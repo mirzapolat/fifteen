@@ -1,0 +1,105 @@
+# Generate the Xcode project with:  xcodegen generate
+name: Fifteen
+options:
+  bundleIdPrefix: com.mirzapolat
+  deploymentTarget:
+    macOS: "26.0"
+    iOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+targets:
+  Fifteen:
+    type: application
+    platform: macOS
+    sources:
+      - Shared
+      - macOS
+      - Resources
+    info:
+      path: macOS/Info.plist
+      properties:
+        CFBundleDisplayName: Fifteen
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHumanReadableCopyright: Free, no account, no ads.
+    entitlements:
+      path: macOS/Fifteen.entitlements
+      properties: {}
+    settings:
+      base:
+        PRODUCT_NAME: Fifteen
+        PRODUCT_BUNDLE_IDENTIFIER: com.mirzapolat.fifteen
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        ENABLE_HARDENED_RUNTIME: YES
+    scheme: {}
+
+  Fifteen-iOS:
+    type: application
+    platform: iOS
+    sources:
+      - Shared
+      - iOS
+      - Resources
+    dependencies:
+      - target: FifteenWidgets
+    info:
+      path: iOS/Info.plist
+      properties:
+        CFBundleDisplayName: Fifteen
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIApplicationSupportsIndirectInputEvents: true
+        NSSupportsLiveActivities: true
+        UIBackgroundModes: [audio]
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_NAME: Fifteen
+        PRODUCT_BUNDLE_IDENTIFIER: com.mirzapolat.fifteen
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    scheme: {}
+
+  FifteenWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Widgets
+      - Shared/LiveActivity
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Fifteen
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mirzapolat.fifteen.widgets
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES

@@ -1,0 +1,735 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		01D24C46BFF47C0B046393B9 /* AppBlocker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AE322C93077A612A9357549 /* AppBlocker.swift */; };
+		06AA5E345ADF530B39919F30 /* DialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD1DB7939A72D0FF14018 /* DialView.swift */; };
+		08ECD384978830D44CBD380B /* ControlPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACA98CA6DB9DAED7C826BFD4 /* ControlPills.swift */; };
+		12088508F0DCB7CAD26E22AB /* HotKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9482EEEDBC0094EAE9F42E5 /* HotKeys.swift */; };
+		2275578EDFFA073B2E3CFD31 /* FifteeniOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8720E439D528AD2F2E953EA2 /* FifteeniOSApp.swift */; };
+		26270955069E7EBC183ADD36 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 06914CA08BA8FF48BF169BF6 /* AppIcon.icon */; };
+		2C0D62A24FAB8AF7F79238A6 /* GlassPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82EEE03C3C1F4F22C453F627 /* GlassPanel.swift */; };
+		2D7D16CC070E11BA80076E13 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38D7C4DC16C92FE5AE048925 /* Theme.swift */; };
+		2FCFCA4981F7A737AC971254 /* HistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B5FCF3FE0103D67F1E0861 /* HistoryStore.swift */; };
+		32DCD1D99907ED7767C9BE10 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 06914CA08BA8FF48BF169BF6 /* AppIcon.icon */; };
+		3488E7A7A54515CB4CFBF9AF /* FocusActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB8D333B48C27E6A8DA8460 /* FocusActivityAttributes.swift */; };
+		3B29F64280234569DEE83D5D /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F8BCF59A86DD81EBA267C1 /* AboutView.swift */; };
+		3DD74308B405D64056CDAAE9 /* FifteenMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A63E61454FB956361E36B29 /* FifteenMacApp.swift */; };
+		3EE9B76927333898EE9B21BA /* Phase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B466AB6CA2153E40B275F0 /* Phase.swift */; };
+		45CBC4F54559CA819C470F3C /* TimerParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D292AEBDA8FA9EC8D597A936 /* TimerParts.swift */; };
+		49DB67CFD357522E59E3042F /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406194013EE1419FFCB0EEBA /* HistoryView.swift */; };
+		5FE4E79D462A860B78C11FE5 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F8BCF59A86DD81EBA267C1 /* AboutView.swift */; };
+		6601901295230F40E6717B4E /* SoundEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E60D82F37CB68E097F02925 /* SoundEngine.swift */; };
+		67834BD3C8D3C18E238A945E /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406194013EE1419FFCB0EEBA /* HistoryView.swift */; };
+		69201BD758EC2A64C0317AAA /* Notifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32E917808F6BA630A36F853C /* Notifier.swift */; };
+		69A1133FE93212AD550F1D3A /* FocusActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB8D333B48C27E6A8DA8460 /* FocusActivityAttributes.swift */; };
+		6A2BC281A03BC282B53415C1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 933C49CAEA95F38928B2CD6A /* Assets.xcassets */; };
+		6B2153BECADA331700D23871 /* MacIntegrations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101B4780DEA218187E9B6B60 /* MacIntegrations.swift */; };
+		74C84E12B8F74F470784A410 /* LiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98C805D80E47B6A1588E22E4 /* LiveActivityController.swift */; };
+		7AF5F8AA75596A106C69E4CC /* TimerParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D292AEBDA8FA9EC8D597A936 /* TimerParts.swift */; };
+		7B4E8A95ACF4AA239D85AF8B /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03E02919F70FE57EBE7CFFA6 /* Preferences.swift */; };
+		7DC88699DE2B1C18B2243447 /* FifteenWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E5FFDC49996343D1FAC09927 /* FifteenWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		806D03B7420B8B9827C234D7 /* ControlPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACA98CA6DB9DAED7C826BFD4 /* ControlPills.swift */; };
+		849F5B4860A1C4D76B67B814 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38D7C4DC16C92FE5AE048925 /* Theme.swift */; };
+		9E8826762790E070145A26F9 /* FifteenWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BFB429C6ECCE1BA450981A1 /* FifteenWidgets.swift */; };
+		A146CF8095FAC5937657B085 /* TimerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DE412EA1844D20331B9B8E1 /* TimerEngine.swift */; };
+		A239B52E44B4086F26CF8EB8 /* StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92C8CF80F9E95632578E23A /* StatusItemController.swift */; };
+		A8A41EB0DB395DD9FDB9739F /* MenuBarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B38E1DA18F48D8F22B67F6 /* MenuBarIcon.swift */; };
+		A99CAE5F895D7D1D05B019BF /* SoundEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E60D82F37CB68E097F02925 /* SoundEngine.swift */; };
+		B04D1921DF97BB350D497DA5 /* FifteenIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A98FEE823CD3A659B62DC77 /* FifteenIntents.swift */; };
+		BBE9EE959DAAFB8746CB8D20 /* FocusActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB8D333B48C27E6A8DA8460 /* FocusActivityAttributes.swift */; };
+		BE5D4EF6B06C2E7811C21706 /* SettingsSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26C703BC3375DB1C566DC3C /* SettingsSections.swift */; };
+		C0C0506611A685851C3CE1A8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03E02919F70FE57EBE7CFFA6 /* Preferences.swift */; };
+		C588F0792F51FC8B9AFBF9C7 /* MacSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39CEBB2735502C8A2F7F37EF /* MacSettingsView.swift */; };
+		CB7F9172B98B0843D395B6A2 /* SettingsSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26C703BC3375DB1C566DC3C /* SettingsSections.swift */; };
+		CD5F348BE24CC2ED6E4B2D7B /* Phase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B466AB6CA2153E40B275F0 /* Phase.swift */; };
+		CDFFB8BF32D82B95A3771280 /* BreakCurtain.swift in Sources */ = {isa = PBXBuildFile; fileRef = B44838093FAB0200E91B6501 /* BreakCurtain.swift */; };
+		D0118BF02DA8F33F53FD0559 /* Notifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32E917808F6BA630A36F853C /* Notifier.swift */; };
+		D08977D6A7326F57060C7B51 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 933C49CAEA95F38928B2CD6A /* Assets.xcassets */; };
+		DA263CF8B696D756E131A94B /* DialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD1DB7939A72D0FF14018 /* DialView.swift */; };
+		EDD77DE6689604F4B012F6B3 /* FifteenIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A98FEE823CD3A659B62DC77 /* FifteenIntents.swift */; };
+		FA33AAD64D0F10888188D2F8 /* TimerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DE412EA1844D20331B9B8E1 /* TimerEngine.swift */; };
+		FDE5B169375161395FA2D27D /* HistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B5FCF3FE0103D67F1E0861 /* HistoryStore.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		53BF57A1A316B2B168F356C4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C70DCC275941F09617AEB66E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0B931B586F982BFED213C9B0;
+			remoteInfo = FifteenWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B2EA515E95E548A081EFA68A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7DC88699DE2B1C18B2243447 /* FifteenWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		03E02919F70FE57EBE7CFFA6 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
+		06914CA08BA8FF48BF169BF6 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		101B4780DEA218187E9B6B60 /* MacIntegrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacIntegrations.swift; sourceTree = "<group>"; };
+		2B3AF5958955A4D94978635D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		2BFB429C6ECCE1BA450981A1 /* FifteenWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FifteenWidgets.swift; sourceTree = "<group>"; };
+		32E917808F6BA630A36F853C /* Notifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifier.swift; sourceTree = "<group>"; };
+		38D7C4DC16C92FE5AE048925 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		39CEBB2735502C8A2F7F37EF /* MacSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSettingsView.swift; sourceTree = "<group>"; };
+		3B5CD1DB7939A72D0FF14018 /* DialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialView.swift; sourceTree = "<group>"; };
+		406194013EE1419FFCB0EEBA /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		4DE412EA1844D20331B9B8E1 /* TimerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerEngine.swift; sourceTree = "<group>"; };
+		5AE322C93077A612A9357549 /* AppBlocker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBlocker.swift; sourceTree = "<group>"; };
+		6E60D82F37CB68E097F02925 /* SoundEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEngine.swift; sourceTree = "<group>"; };
+		7B0E69F42A90D7E800E9650E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7BB8D333B48C27E6A8DA8460 /* FocusActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusActivityAttributes.swift; sourceTree = "<group>"; };
+		7E5FDFAE6572DA13E7B60F6B /* Fifteen.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fifteen.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		82EEE03C3C1F4F22C453F627 /* GlassPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassPanel.swift; sourceTree = "<group>"; };
+		8720E439D528AD2F2E953EA2 /* FifteeniOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FifteeniOSApp.swift; sourceTree = "<group>"; };
+		87F8BCF59A86DD81EBA267C1 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		8A98FEE823CD3A659B62DC77 /* FifteenIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FifteenIntents.swift; sourceTree = "<group>"; };
+		90B466AB6CA2153E40B275F0 /* Phase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase.swift; sourceTree = "<group>"; };
+		933C49CAEA95F38928B2CD6A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		98C805D80E47B6A1588E22E4 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
+		9A63E61454FB956361E36B29 /* FifteenMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FifteenMacApp.swift; sourceTree = "<group>"; };
+		A26C703BC3375DB1C566DC3C /* SettingsSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSections.swift; sourceTree = "<group>"; };
+		ACA98CA6DB9DAED7C826BFD4 /* ControlPills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPills.swift; sourceTree = "<group>"; };
+		B44838093FAB0200E91B6501 /* BreakCurtain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreakCurtain.swift; sourceTree = "<group>"; };
+		BC9B2C406E0C36105AB2A064 /* Fifteen.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fifteen.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C1B5FCF3FE0103D67F1E0861 /* HistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStore.swift; sourceTree = "<group>"; };
+		C5EA11C8926BDB4F5277AAB2 /* Fifteen.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Fifteen.entitlements; sourceTree = "<group>"; };
+		D292AEBDA8FA9EC8D597A936 /* TimerParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerParts.swift; sourceTree = "<group>"; };
+		E5FFDC49996343D1FAC09927 /* FifteenWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FifteenWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		E92C8CF80F9E95632578E23A /* StatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusItemController.swift; sourceTree = "<group>"; };
+		E9482EEEDBC0094EAE9F42E5 /* HotKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeys.swift; sourceTree = "<group>"; };
+		F3B38E1DA18F48D8F22B67F6 /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
+		F6833A631DB471F5D7FB45B6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		3891F1C473A7A3C33A11C438 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BC9B2C406E0C36105AB2A064 /* Fifteen.app */,
+				7E5FDFAE6572DA13E7B60F6B /* Fifteen.app */,
+				E5FFDC49996343D1FAC09927 /* FifteenWidgets.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		45BFA675DECF917BD1AF09B4 /* Widgets */ = {
+			isa = PBXGroup;
+			children = (
+				2BFB429C6ECCE1BA450981A1 /* FifteenWidgets.swift */,
+				7B0E69F42A90D7E800E9650E /* Info.plist */,
+			);
+			path = Widgets;
+			sourceTree = "<group>";
+		};
+		4665007F31A41A021FEC7E22 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				C1B5FCF3FE0103D67F1E0861 /* HistoryStore.swift */,
+				90B466AB6CA2153E40B275F0 /* Phase.swift */,
+				03E02919F70FE57EBE7CFFA6 /* Preferences.swift */,
+				4DE412EA1844D20331B9B8E1 /* TimerEngine.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+		4CCAB322F88A4566B35C1DC3 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				87F8BCF59A86DD81EBA267C1 /* AboutView.swift */,
+				ACA98CA6DB9DAED7C826BFD4 /* ControlPills.swift */,
+				3B5CD1DB7939A72D0FF14018 /* DialView.swift */,
+				406194013EE1419FFCB0EEBA /* HistoryView.swift */,
+				A26C703BC3375DB1C566DC3C /* SettingsSections.swift */,
+				38D7C4DC16C92FE5AE048925 /* Theme.swift */,
+				D292AEBDA8FA9EC8D597A936 /* TimerParts.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		61C9B7E1C6EF9ABDF59D7333 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				32E917808F6BA630A36F853C /* Notifier.swift */,
+				6E60D82F37CB68E097F02925 /* SoundEngine.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		7353D6BC8D1A0B8E7AFD275F /* Intents */ = {
+			isa = PBXGroup;
+			children = (
+				8A98FEE823CD3A659B62DC77 /* FifteenIntents.swift */,
+			);
+			path = Intents;
+			sourceTree = "<group>";
+		};
+		8BAA779E624CCBEC5878718B /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				5AE322C93077A612A9357549 /* AppBlocker.swift */,
+				B44838093FAB0200E91B6501 /* BreakCurtain.swift */,
+				C5EA11C8926BDB4F5277AAB2 /* Fifteen.entitlements */,
+				9A63E61454FB956361E36B29 /* FifteenMacApp.swift */,
+				82EEE03C3C1F4F22C453F627 /* GlassPanel.swift */,
+				E9482EEEDBC0094EAE9F42E5 /* HotKeys.swift */,
+				F6833A631DB471F5D7FB45B6 /* Info.plist */,
+				101B4780DEA218187E9B6B60 /* MacIntegrations.swift */,
+				39CEBB2735502C8A2F7F37EF /* MacSettingsView.swift */,
+				F3B38E1DA18F48D8F22B67F6 /* MenuBarIcon.swift */,
+				E92C8CF80F9E95632578E23A /* StatusItemController.swift */,
+			);
+			path = macOS;
+			sourceTree = "<group>";
+		};
+		AC23646D6D071F8D15FBFEA7 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				7353D6BC8D1A0B8E7AFD275F /* Intents */,
+				DF308E1CD23BC947D10160B2 /* LiveActivity */,
+				4665007F31A41A021FEC7E22 /* Model */,
+				61C9B7E1C6EF9ABDF59D7333 /* Services */,
+				4CCAB322F88A4566B35C1DC3 /* Views */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		B503C75391EDDCAB8EB8949F /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				06914CA08BA8FF48BF169BF6 /* AppIcon.icon */,
+				933C49CAEA95F38928B2CD6A /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		D5F1BAF83B19F77A40C47520 = {
+			isa = PBXGroup;
+			children = (
+				D9F3E4243D26D8E61F80BC4F /* iOS */,
+				8BAA779E624CCBEC5878718B /* macOS */,
+				B503C75391EDDCAB8EB8949F /* Resources */,
+				AC23646D6D071F8D15FBFEA7 /* Shared */,
+				45BFA675DECF917BD1AF09B4 /* Widgets */,
+				3891F1C473A7A3C33A11C438 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D9F3E4243D26D8E61F80BC4F /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				8720E439D528AD2F2E953EA2 /* FifteeniOSApp.swift */,
+				2B3AF5958955A4D94978635D /* Info.plist */,
+				98C805D80E47B6A1588E22E4 /* LiveActivityController.swift */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		DF308E1CD23BC947D10160B2 /* LiveActivity */ = {
+			isa = PBXGroup;
+			children = (
+				7BB8D333B48C27E6A8DA8460 /* FocusActivityAttributes.swift */,
+			);
+			path = LiveActivity;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0B931B586F982BFED213C9B0 /* FifteenWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F285B8B0D7AB4D1253D581B7 /* Build configuration list for PBXNativeTarget "FifteenWidgets" */;
+			buildPhases = (
+				7FF32C7BCC281C5B06644DCE /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FifteenWidgets;
+			packageProductDependencies = (
+			);
+			productName = FifteenWidgets;
+			productReference = E5FFDC49996343D1FAC09927 /* FifteenWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		8AED4620A01913A41E797F42 /* Fifteen */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5D25A6308E95DFA40BEC97B3 /* Build configuration list for PBXNativeTarget "Fifteen" */;
+			buildPhases = (
+				7BDC444590140BF45D04F154 /* Sources */,
+				198CA8707376996AA3517836 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Fifteen;
+			packageProductDependencies = (
+			);
+			productName = Fifteen;
+			productReference = 7E5FDFAE6572DA13E7B60F6B /* Fifteen.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F4BA4E9EBA2FD8E29852C86C /* Fifteen-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 42A4BBB2C7325D7CB58C243F /* Build configuration list for PBXNativeTarget "Fifteen-iOS" */;
+			buildPhases = (
+				569330F4E1FF46DA8ED08177 /* Sources */,
+				2B79E145CA3FF93E1651F03F /* Resources */,
+				B2EA515E95E548A081EFA68A /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7DBD6ABB8B92C1EDC7E95A5F /* PBXTargetDependency */,
+			);
+			name = "Fifteen-iOS";
+			packageProductDependencies = (
+			);
+			productName = "Fifteen-iOS";
+			productReference = BC9B2C406E0C36105AB2A064 /* Fifteen.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C70DCC275941F09617AEB66E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2720;
+				TargetAttributes = {
+					0B931B586F982BFED213C9B0 = {
+						DevelopmentTeam = "";
+					};
+				};
+			};
+			buildConfigurationList = 6CD7E597DB00F13589D3DCBE /* Build configuration list for PBXProject "Fifteen" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = D5F1BAF83B19F77A40C47520;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3891F1C473A7A3C33A11C438 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8AED4620A01913A41E797F42 /* Fifteen */,
+				F4BA4E9EBA2FD8E29852C86C /* Fifteen-iOS */,
+				0B931B586F982BFED213C9B0 /* FifteenWidgets */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		198CA8707376996AA3517836 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				26270955069E7EBC183ADD36 /* AppIcon.icon in Resources */,
+				D08977D6A7326F57060C7B51 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2B79E145CA3FF93E1651F03F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				32DCD1D99907ED7767C9BE10 /* AppIcon.icon in Resources */,
+				6A2BC281A03BC282B53415C1 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		569330F4E1FF46DA8ED08177 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5FE4E79D462A860B78C11FE5 /* AboutView.swift in Sources */,
+				806D03B7420B8B9827C234D7 /* ControlPills.swift in Sources */,
+				06AA5E345ADF530B39919F30 /* DialView.swift in Sources */,
+				B04D1921DF97BB350D497DA5 /* FifteenIntents.swift in Sources */,
+				2275578EDFFA073B2E3CFD31 /* FifteeniOSApp.swift in Sources */,
+				69A1133FE93212AD550F1D3A /* FocusActivityAttributes.swift in Sources */,
+				2FCFCA4981F7A737AC971254 /* HistoryStore.swift in Sources */,
+				67834BD3C8D3C18E238A945E /* HistoryView.swift in Sources */,
+				74C84E12B8F74F470784A410 /* LiveActivityController.swift in Sources */,
+				D0118BF02DA8F33F53FD0559 /* Notifier.swift in Sources */,
+				3EE9B76927333898EE9B21BA /* Phase.swift in Sources */,
+				7B4E8A95ACF4AA239D85AF8B /* Preferences.swift in Sources */,
+				CB7F9172B98B0843D395B6A2 /* SettingsSections.swift in Sources */,
+				6601901295230F40E6717B4E /* SoundEngine.swift in Sources */,
+				849F5B4860A1C4D76B67B814 /* Theme.swift in Sources */,
+				FA33AAD64D0F10888188D2F8 /* TimerEngine.swift in Sources */,
+				45CBC4F54559CA819C470F3C /* TimerParts.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7BDC444590140BF45D04F154 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3B29F64280234569DEE83D5D /* AboutView.swift in Sources */,
+				01D24C46BFF47C0B046393B9 /* AppBlocker.swift in Sources */,
+				CDFFB8BF32D82B95A3771280 /* BreakCurtain.swift in Sources */,
+				08ECD384978830D44CBD380B /* ControlPills.swift in Sources */,
+				DA263CF8B696D756E131A94B /* DialView.swift in Sources */,
+				EDD77DE6689604F4B012F6B3 /* FifteenIntents.swift in Sources */,
+				3DD74308B405D64056CDAAE9 /* FifteenMacApp.swift in Sources */,
+				BBE9EE959DAAFB8746CB8D20 /* FocusActivityAttributes.swift in Sources */,
+				2C0D62A24FAB8AF7F79238A6 /* GlassPanel.swift in Sources */,
+				FDE5B169375161395FA2D27D /* HistoryStore.swift in Sources */,
+				49DB67CFD357522E59E3042F /* HistoryView.swift in Sources */,
+				12088508F0DCB7CAD26E22AB /* HotKeys.swift in Sources */,
+				6B2153BECADA331700D23871 /* MacIntegrations.swift in Sources */,
+				C588F0792F51FC8B9AFBF9C7 /* MacSettingsView.swift in Sources */,
+				A8A41EB0DB395DD9FDB9739F /* MenuBarIcon.swift in Sources */,
+				69201BD758EC2A64C0317AAA /* Notifier.swift in Sources */,
+				CD5F348BE24CC2ED6E4B2D7B /* Phase.swift in Sources */,
+				C0C0506611A685851C3CE1A8 /* Preferences.swift in Sources */,
+				BE5D4EF6B06C2E7811C21706 /* SettingsSections.swift in Sources */,
+				A99CAE5F895D7D1D05B019BF /* SoundEngine.swift in Sources */,
+				A239B52E44B4086F26CF8EB8 /* StatusItemController.swift in Sources */,
+				2D7D16CC070E11BA80076E13 /* Theme.swift in Sources */,
+				A146CF8095FAC5937657B085 /* TimerEngine.swift in Sources */,
+				7AF5F8AA75596A106C69E4CC /* TimerParts.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7FF32C7BCC281C5B06644DCE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9E8826762790E070145A26F9 /* FifteenWidgets.swift in Sources */,
+				3488E7A7A54515CB4CFBF9AF /* FocusActivityAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7DBD6ABB8B92C1EDC7E95A5F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0B931B586F982BFED213C9B0 /* FifteenWidgets */;
+			targetProxy = 53BF57A1A316B2B168F356C4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		13BFBC3F1A0777856B09527D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = macOS/Fifteen.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 56746T8S3D;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mirzapolat.fifteen;
+				PRODUCT_NAME = Fifteen;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		1595B3AB659BD3209C225960 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 56746T8S3D;
+				INFOPLIST_FILE = iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mirzapolat.fifteen;
+				PRODUCT_NAME = Fifteen;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9549835487154BE83410F78A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = Widgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mirzapolat.fifteen.widgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A2BF86D20D122B40D7E32DB8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 56746T8S3D;
+				INFOPLIST_FILE = iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mirzapolat.fifteen;
+				PRODUCT_NAME = Fifteen;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		CDDE017E27A9AB12A6733748 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		DB4B17A4FCBE95D47B26AB81 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = Widgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mirzapolat.fifteen.widgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DE7C262C3AD5AF08AA72ED44 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		E9F1A2D28672BAC58883F006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = macOS/Fifteen.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 56746T8S3D;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mirzapolat.fifteen;
+				PRODUCT_NAME = Fifteen;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		42A4BBB2C7325D7CB58C243F /* Build configuration list for PBXNativeTarget "Fifteen-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1595B3AB659BD3209C225960 /* Debug */,
+				A2BF86D20D122B40D7E32DB8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5D25A6308E95DFA40BEC97B3 /* Build configuration list for PBXNativeTarget "Fifteen" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E9F1A2D28672BAC58883F006 /* Debug */,
+				13BFBC3F1A0777856B09527D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6CD7E597DB00F13589D3DCBE /* Build configuration list for PBXProject "Fifteen" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CDDE017E27A9AB12A6733748 /* Debug */,
+				DE7C262C3AD5AF08AA72ED44 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F285B8B0D7AB4D1253D581B7 /* Build configuration list for PBXNativeTarget "FifteenWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DB4B17A4FCBE95D47B26AB81 /* Debug */,
+				9549835487154BE83410F78A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C70DCC275941F09617AEB66E /* Project object */;
+}

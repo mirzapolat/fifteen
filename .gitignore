@@ -1,0 +1,138 @@
+# Fifteen — .gitignore
+# Native Swift app for macOS, iOS and iPadOS, generated with XcodeGen (project.yml).
+
+# ─── macOS ────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# ─── Build output ─────────────────────────────────────────────────────────
+build/
+Build/
+DerivedData/
+*.dSYM
+*.dSYM.zip
+*.app
+*.appex
+*.ipa
+*.xcarchive
+*.hmap
+*.o
+*.a
+*.dylib
+*.swiftmodule
+*.swiftdoc
+*.swiftsourceinfo
+*.moved-aside
+*.xcresult
+timeline.xctimeline
+playground.xcworkspace
+.build/
+.swiftpm/
+
+# ─── Xcode user state ─────────────────────────────────────────────────────
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.pbxuser
+!default.pbxuser
+!default.mode1v3
+!default.mode2v3
+!default.perspectivev3
+*.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/configuration/
+*.xcworkspace/xcshareddata/swiftpm/configuration/
+IDEWorkspaceChecks.plist
+
+# The Xcode project is generated from project.yml by `xcodegen generate`.
+# It's committed so the repo opens in Xcode without extra tools.
+# To treat it as a pure build artifact instead, uncomment:
+# Fifteen.xcodeproj/
+
+# ─── Dependency managers ──────────────────────────────────────────────────
+Packages/
+Package.pins
+Package.resolved
+Pods/
+Carthage/Build/
+Carthage/Checkouts/
+vendor/bundle/
+.bundle/
+
+# ─── Fastlane / CI ────────────────────────────────────────────────────────
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output/
+fastlane/README.md
+*.coverage
+*.profraw
+*.profdata
+coverage/
+test_output/
+
+# ─── Signing, secrets & local config (never commit these) ─────────────────
+*.p12
+*.p8
+*.cer
+*.certSigningRequest
+*.mobileprovision
+*.provisionprofile
+*.keychain
+*.keychain-db
+AuthKey_*.p8
+.env
+.env.*
+!.env.example
+*.local.xcconfig
+Local.xcconfig
+Secrets.xcconfig
+GoogleService-Info.plist
+
+# ─── Editors & tools ──────────────────────────────────────────────────────
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.nova/
+.fleet/
+*.sublime-project
+*.sublime-workspace
+.claude/settings.local.json
+
+# ─── Logs, temp files & archives ──────────────────────────────────────────
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.zip
+*.dmg
+*.tar.gz
+*.crash
+*.ips
+*.trace
+tmp/
+temp/

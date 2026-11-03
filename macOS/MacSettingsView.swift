@@ -1,0 +1,303 @@
+import SwiftUI
+import ServiceManagement
+import UniformTypeIdentifiers
+
+/// Native Mac preferences: toolbar tabs with icons above their labels,
+/// and the window animates to each pane's height.
+@MainActor
+final class SettingsTabController: NSTabViewController {
+    init() {
+        super.init(nibName: nil, bundle: nil)
+        tabStyle = .toolbar
+        canPropagateSelectedChildViewControllerTitle = true
+        transitionOptions = [.crossfade, .allowUserInteraction]
+        add("General", symbol: "gearshape", height: Self.paneHeight) { GeneralPane() }
+        add("Timer", symbol: "timer", height: Self.paneHeight) { Form { TimerSettingsSection() }.formStyle(.grouped) }
+        add("Sound", symbol: "speaker.wave.2", height: Self.paneHeight) { Form { SoundSettingsSection() }.formStyle(.grouped) }
+        add("Display", symbol: "circle.lefthalf.filled", height: Self.paneHeight) {
+            Form { DisplaySettingsSection() }.formStyle(.grouped)
+        }
+        add("Focus", symbol: "eye.slash", height: Self.paneHeight) { FocusPane() }
+        add("About", symbol: "info.circle", height: Self.paneHeight) { AboutView() }
+    }
+
+    /// Every tab is the same size, so switching tabs never resizes the window; longer panes scroll.
+    private static let paneHeight: CGFloat = 620
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    private func add<Content: View>(_ title: String, symbol: String, height: CGFloat,
+                                    @ViewBuilder content: () -> Content) {
+        let root = content()
+            .frame(width: 500, height: height)
+            .environment(TimerEngine.shared)
+            .environment(Preferences.shared)
+            .environment(HistoryStore.shared)
+        let host = NSHostingController(rootView: root)
+        host.sizingOptions = [.preferredContentSize]
+        host.title = title
+        let item = NSTabViewItem(viewController: host)
+        item.label = title
+        item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
+        addTabViewItem(item)
+    }
+}
+
+private struct GeneralPane: View {
+    @Environment(Preferences.self) private var prefs
+
+    var body: some View {
+        @Bindable var prefs = prefs
+        Form {
+            Section("Menu Bar") {
+                Picker("Show", selection: $prefs.menuBarDisplay) {
+                    ForEach(MenuBarDisplay.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                if prefs.menuBarDisplay != .time {
+                    MenuBarIconPicker()
+                }
+                Toggle("Show seconds", isOn: $prefs.menuBarSeconds)
+                    .disabled(prefs.menuBarDisplay == .icon)
+            }
+
+            Section {
+                Toggle("Global keyboard shortcuts", isOn: $prefs.globalHotKeys)
+                Group {
+                    LabeledContent("Start or pause", value: "⌃⌥P")
+                    LabeledContent("Skip to next", value: "⌃⌥S")
+                    LabeledContent("Reset session", value: "⌃⌥R")
+                    LabeledContent("Open Fifteen", value: "⌃⌥O")
+                }
+                .disabled(!prefs.globalHotKeys)
+                LabeledContent("Start or pause from the menu bar", value: "Right-click")
+            } header: {
+                Text("Keyboard")
+            }
+
+            Section {
+                LaunchAtLoginToggle()
+                Toggle("Pause focus while the Mac is locked", isOn: $prefs.pauseWhenLocked)
+            } header: {
+                Text("System")
+            } footer: {
+                Text("Fifteen picks up where you left off when you unlock.")
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+private struct FocusPane: View {
+    @Environment(Preferences.self) private var prefs
+
+    var body: some View {
+        @Bindable var prefs = prefs
+        Form {
+            Section {
+                Toggle("Block distracting apps while focusing", isOn: $prefs.hideDistractingApps.animation())
+                if prefs.hideDistractingApps {
+                    Picker("When one opens", selection: $prefs.blockAction) {
+                        ForEach(BlockAction.allCases) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                }
+            } header: {
+                Text("App Blocker")
+            } footer: {
+                Text(prefs.blockAction == .hide
+                     ? "Blocked apps are hidden when focus starts and whenever you open one. A small note tells you why, with a way to allow it for 5 minutes. Each attempt is logged as a distraction."
+                     : "Blocked apps are quit when focus starts and whenever you open one. Make sure your work is saved in them. A small note lets you allow one for 5 minutes.")
+            }
+
+            if prefs.hideDistractingApps {
+                Section("Blocked Apps") {
+                    BlockedAppsList()
+                }
+            }
+
+            Section {
+                Toggle("Cover the screen during breaks", isOn: $prefs.breakCurtain)
+            } header: {
+                Text("Breaks")
+            } footer: {
+                Text("A calm full-screen veil so the break actually happens. Skip is always one click (or Esc) away.")
+            }
+
+            Section {
+                TextField("When focus starts", text: $prefs.focusStartShortcut, prompt: Text("Shortcut name"))
+                TextField("When focus ends", text: $prefs.focusEndShortcut, prompt: Text("Shortcut name"))
+            } header: {
+                Text("Shortcuts")
+            } footer: {
+                Text("Run your own shortcut, for example to turn on a Focus mode, start a playlist, or set your status.")
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+/// One tile per menu bar icon style, each previewed mid-session exactly as it will look.
+private struct MenuBarIconPicker: View {
+    @Environment(Preferences.self) private var prefs
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Icon")
+            HStack(spacing: 6) {
+                ForEach(MenuBarIconStyle.allCases) { style in
+                    let selected = prefs.menuBarIcon == style
+                    Button {
+                        withAnimation(.snappy) { prefs.menuBarIcon = style }
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(nsImage: MenuBarIcon.image(style: style, fraction: 0.62, state: .running, phase: .focus))
+                                .renderingMode(.template)
+                                .frame(height: 18)
+                            Text(style.title)
+                                .font(.caption)
+                                .foregroundStyle(selected ? .primary : .secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(selected ? 0.1 : 0.03)))
+                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(selected ? 0.8 : 0), lineWidth: 1.5))
+                        .contentShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                    .help(style.title)
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                }
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+private struct LaunchAtLoginToggle: View {
+    @State private var enabled = SMAppService.mainApp.status == .enabled
+
+    var body: some View {
+        Toggle("Open Fifteen at login", isOn: $enabled)
+            .onChange(of: enabled) { _, on in
+                do {
+                    if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+                } catch {
+                    enabled = SMAppService.mainApp.status == .enabled
+                }
+            }
+    }
+}
+
+private struct BlockedAppsList: View {
+    @Environment(Preferences.self) private var prefs
+
+    /// Common time sinks, offered one click away if they're installed.
+    private static let suggestedIDs = [
+        "com.apple.MobileSMS", "com.apple.mail", "com.tinyspeck.slackmacgap", "com.hnc.Discord",
+        "net.whatsapp.WhatsApp", "ru.keepcoder.Telegram", "org.telegram.desktop", "com.facebook.archon",
+        "com.microsoft.teams2", "com.apple.news", "com.apple.TV", "com.apple.Music", "com.spotify.client",
+        "com.valvesoftware.steam", "com.apple.FaceTime", "com.apple.Photos", "com.reddit.Reddit",
+    ]
+
+    var body: some View {
+        if prefs.blockedApps.isEmpty {
+            Text("No apps blocked yet.")
+                .foregroundStyle(.secondary)
+        }
+        ForEach(prefs.blockedApps, id: \.self) { id in
+            HStack {
+                Image(nsImage: icon(for: id))
+                    .resizable()
+                    .frame(width: 20, height: 20)
+                Text(name(for: id))
+                Spacer()
+                Button {
+                    withAnimation { prefs.blockedApps.removeAll { $0 == id } }
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help("Remove")
+            }
+        }
+        if !suggestions.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Suggestions")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(suggestions, id: \.self) { id in
+                            Button {
+                                withAnimation { prefs.blockedApps.append(id) }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(nsImage: icon(for: id))
+                                        .resizable()
+                                        .frame(width: 16, height: 16)
+                                    Text(name(for: id))
+                                    Image(systemName: "plus")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .buttonBorderShape(.capsule)
+                        }
+                    }
+                }
+            }
+        }
+        HStack {
+            Menu("Add Running App") {
+                ForEach(runningApps, id: \.self) { id in
+                    Button(name(for: id)) { prefs.blockedApps.append(id) }
+                }
+            }
+            .fixedSize()
+            Button("Choose App…") { chooseApps() }
+        }
+    }
+
+    private var suggestions: [String] {
+        Self.suggestedIDs.filter { url(for: $0) != nil && !prefs.blockedApps.contains($0) }
+    }
+
+    private var runningApps: [String] {
+        NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular }
+            .compactMap(\.bundleIdentifier)
+            .filter { $0 != Bundle.main.bundleIdentifier && !prefs.blockedApps.contains($0) }
+            .sorted { name(for: $0).localizedCaseInsensitiveCompare(name(for: $1)) == .orderedAscending }
+    }
+
+    private func url(for id: String) -> URL? {
+        NSWorkspace.shared.urlForApplication(withBundleIdentifier: id)
+    }
+
+    private func name(for id: String) -> String {
+        guard let url = url(for: id) else { return id }
+        return FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
+    }
+
+    private func icon(for id: String) -> NSImage {
+        guard let url = url(for: id) else { return NSImage(systemSymbolName: "app", accessibilityDescription: nil) ?? NSImage() }
+        return NSWorkspace.shared.icon(forFile: url.path)
+    }
+
+    private func chooseApps() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.application]
+        panel.allowsMultipleSelection = true
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.prompt = "Add"
+        guard panel.runModal() == .OK else { return }
+        for url in panel.urls {
+            if let id = Bundle(url: url)?.bundleIdentifier, !prefs.blockedApps.contains(id) {
+                prefs.blockedApps.append(id)
+            }
+        }
+    }
+}
