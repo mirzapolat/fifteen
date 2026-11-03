@@ -24,6 +24,12 @@ final class TimerEngine {
     /// Updated once per displayed second while something is counting.
     private(set) var now = Date()
     var intention = "" { didSet { save() } }
+    /// The project the next sessions count toward (nil = unassigned).
+    var projectID: Project.ID? { didSet { save() } }
+    @ObservationIgnored private var plannedDuration: TimeInterval?
+    @ObservationIgnored private var pausedTotal: TimeInterval = 0
+    @ObservationIgnored private var pauseStartedAt: Date?
+    @ObservationIgnored private var endedEarly = false
 
     @ObservationIgnored private let prefs = Preferences.shared
     @ObservationIgnored private let history = HistoryStore.shared
@@ -114,7 +120,12 @@ final class TimerEngine {
         sessionStart = now
         endDate = now.addingTimeInterval(total)
         distractions = 0
+        plannedDuration = isFlowtime ? nil : total
+        pausedTotal = 0
+        pauseStartedAt = nil
+        endedEarly = false
         state = .running
+        Haptics.play(.start)
         emit(.started(phase))
         changed()
     }
@@ -124,7 +135,9 @@ final class TimerEngine {
         now = Date()
         pausedRemaining = remaining(at: now)
         endDate = nil
+        pauseStartedAt = now
         state = .paused
+        Haptics.play(.pause)
         emit(.paused)
         changed()
     }
@@ -134,7 +147,10 @@ final class TimerEngine {
         now = Date()
         endDate = now.addingTimeInterval(pausedRemaining ?? total)
         pausedRemaining = nil
+        if let pauseStartedAt { pausedTotal += now.timeIntervalSince(pauseStartedAt) }
+        pauseStartedAt = nil
         state = .running
+        Haptics.play(.start)
         emit(.resumed)
         changed()
     }
@@ -148,7 +164,10 @@ final class TimerEngine {
         pausedRemaining = nil
         sessionStart = nil
         total = defaultTotal(for: phase)
-        if wasActive { emit(.stopped) }
+        if wasActive {
+            Haptics.play(.pause)
+            emit(.stopped)
+        }
         changed()
     }
 
@@ -183,6 +202,7 @@ final class TimerEngine {
         guard spent >= 60 else { reset(); return }
         total = spent
         endDate = now
+        endedEarly = true
         complete()
     }
 
@@ -274,15 +294,24 @@ final class TimerEngine {
             let start = sessionStart ?? end.addingTimeInterval(-total)
             let record = FocusRecord(start: start, end: end, duration: total,
                                      intention: intention.trimmingCharacters(in: .whitespacesAndNewlines),
-                                     distractions: distractions)
+                                     distractions: distractions,
+                                     projectID: history.project(projectID) == nil ? nil : projectID,
+                                     mode: prefs.timerMode,
+                                     plannedDuration: plannedDuration,
+                                     endedEarly: endedEarly,
+                                     pausedTime: pausedTotal)
             history.add(record)
             lastRecordID = record.id
             lastFocusDuration = total
-            completedInCycle += 1
+            // A short Flowtime session is kept in history but doesn't earn a step toward the long break.
+            if !prefs.isFlowtime || total >= TimeInterval(prefs.flowtimeMinimumMinutes * 60) {
+                completedInCycle += 1
+            }
         }
         state = .finished
         pausedRemaining = nil
         if fresh {
+            Haptics.play(.finish)
             SoundEngine.shared.play(phase.isBreak ? prefs.breakChime : prefs.chime, volume: prefs.chimeVolume)
         }
         let finishedPhase = phase
@@ -374,12 +403,18 @@ final class TimerEngine {
         var completedInCycle: Int
         var distractions: Int
         var intention: String
+        var projectID: UUID?
+        var plannedDuration: TimeInterval?
+        var pausedTotal: TimeInterval?
+        var pauseStartedAt: Date?
     }
 
     private func save() {
         let snapshot = Snapshot(phase: phase, state: state, total: total, endDate: endDate,
                                 pausedRemaining: pausedRemaining, sessionStart: sessionStart,
-                                completedInCycle: completedInCycle, distractions: distractions, intention: intention)
+                                completedInCycle: completedInCycle, distractions: distractions, intention: intention,
+                                projectID: projectID, plannedDuration: plannedDuration,
+                                pausedTotal: pausedTotal, pauseStartedAt: pauseStartedAt)
         if let data = try? JSONEncoder().encode(snapshot) {
             UserDefaults.standard.set(data, forKey: snapshotKey)
         }
@@ -397,6 +432,10 @@ final class TimerEngine {
         completedInCycle = s.completedInCycle
         distractions = s.distractions
         intention = s.intention
+        projectID = s.projectID
+        plannedDuration = s.plannedDuration
+        pausedTotal = s.pausedTotal ?? 0
+        pauseStartedAt = s.pauseStartedAt
         if state == .finished && !isCountingOvertime { endDate = nil }
     }
 }

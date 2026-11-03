@@ -2,7 +2,9 @@ import SwiftUI
 
 /// Platform actions the shared views can trigger (open History, open Settings, quit).
 struct AppActions {
-    var showHistory: () -> Void = {}
+    /// Opens Insights; with a section, jumps straight to it.
+    var showInsights: (InsightsSection?) -> Void = { _ in }
+    func showHistory() { showInsights(nil) }
     var showSettings: () -> Void = {}
     var quit: (() -> Void)? = nil
 }

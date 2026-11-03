@@ -33,42 +33,53 @@ struct RootView: View {
     var body: some View {
         GeometryReader { geo in
             let landscape = geo.size.width > geo.size.height * 1.15
-            let dial = min(geo.size.width - 48, geo.size.height * (landscape ? 0.6 : 0.5), 560)
-            VStack(spacing: 0) {
-                PhaseHeader()
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                Spacer(minLength: 12)
-                DialView(lineWidth: dial > 380 ? 9 : 7)
-                    .frame(width: dial, height: dial)
-                IntentionField()
-                    .font(.title3)
-                    .padding(.horizontal, 32)
-                    .padding(.top, landscape ? 16 : 32)
-                Spacer(minLength: 12)
-                if prefs.showTodayProgress {
-                    TodayLine()
-                        .padding(.bottom, 14)
+            if landscape {
+                // Ring on the left; header, caption and controls in a column on the right.
+                let dial = min(geo.size.height * 0.78, geo.size.width * 0.5, 600)
+                HStack(spacing: 48) {
+                    DialView(lineWidth: dial > 380 ? 9 : 7)
+                        .frame(width: dial, height: dial)
+                    VStack(spacing: 20) {
+                        PhaseHeader()
+                        Spacer(minLength: 0)
+                        IntentionField()
+                        ControlPills()
+                    }
+                    .frame(maxWidth: 400)
+                    .padding(.vertical, 24)
                 }
-                ControlPills()
-                    .frame(maxWidth: 520)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
+                .padding(.horizontal, 32)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                // One column; header, caption and controls share its width so their edges line up.
+                let column = min(geo.size.width - 32, 520)
+                let dial = min(geo.size.width - 56, geo.size.height * 0.52, 560)
+                VStack(spacing: 0) {
+                    PhaseHeader()
+                        .frame(width: column)
+                        .padding(.top, 8)
+                    Spacer(minLength: 16)
+                    DialView(lineWidth: dial > 380 ? 9 : 7)
+                        .frame(width: dial, height: dial)
+                    Spacer(minLength: 16)
+                    IntentionField()
+                        .frame(width: column)
+                        .padding(.bottom, 14)
+                    ControlPills()
+                        .frame(width: column)
+                        .padding(.bottom, 8)
+                }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
         }
         .background(Color(uiColor: .systemBackground).ignoresSafeArea())
-        .environment(\.appActions, AppActions(showHistory: { showHistory = true },
+        .environment(\.appActions, AppActions(showInsights: { section in
+                                                  if let section { InsightsRoute.shared.section = section }
+                                                  showHistory = true
+                                              },
                                               showSettings: { showSettings = true }))
         .sheet(isPresented: $showHistory) {
-            NavigationStack {
-                HistoryView()
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { showHistory = false }
-                        }
-                    }
-            }
+            InsightsView(onDone: { showHistory = false })
         }
         .sheet(isPresented: $showSettings) { IOSSettingsView() }
         .fullScreenCover(isPresented: .constant(!onboarded)) {
@@ -114,6 +125,7 @@ struct IOSSettingsView: View {
                     }
                 }
             }
+            .toggleStyle(InkSwitchStyle())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

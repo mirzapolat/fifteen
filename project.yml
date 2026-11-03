@@ -103,3 +103,26 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.mirzapolat.fifteen.widgets
         TARGETED_DEVICE_FAMILY: "1,2"
         SKIP_INSTALL: YES
+
+  FifteenTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests
+      - Shared/Model/Records.swift
+      - Shared/Analytics
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mirzapolat.fifteen.tests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+
+schemes:
+  FifteenTests:
+    build:
+      targets:
+        FifteenTests: [test]
+    test:
+      targets:
+        - FifteenTests

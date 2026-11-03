@@ -2,7 +2,8 @@ import AppKit
 import Observation
 
 /// The menu bar item: a ring that empties as time passes, the time, or both.
-/// Click opens the glass bubble. Right-click (or ⌥-click) starts and pauses without opening it.
+/// Click opens the glass bubble. Right-click opens the same menu as the bubble's ••• button;
+/// ⌥-click starts and pauses without opening anything.
 @MainActor
 final class StatusItemController: NSObject {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -28,11 +29,68 @@ final class StatusItemController: NSObject {
 
     @objc private func clicked() {
         let event = NSApp.currentEvent
-        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.option) == true {
+        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true {
+            showMenu()
+        } else if event?.modifierFlags.contains(.option) == true {
             engine.primaryAction()
         } else {
             panel.toggle()
         }
+    }
+
+    /// The bubble's ••• menu, plus start/pause at the top since there's no ring to click here.
+    private func showMenu() {
+        if panel.isShown { panel.close() }
+        let menu = NSMenu()
+        menu.addItem(action(primaryTitle, symbol: primarySymbol) { [engine] in engine.primaryAction() })
+        if engine.state != .idle {
+            menu.addItem(action("Reset", symbol: "arrow.counterclockwise") { [engine] in engine.reset() })
+        }
+        menu.addItem(.separator())
+        if engine.phase == .focus && engine.isActive {
+            if !engine.isFlowtime {
+                menu.addItem(action("Finish Early", symbol: "checkmark.circle") { [engine] in engine.finishEarly() })
+            }
+            menu.addItem(action("Log a Distraction", symbol: "exclamationmark.bubble") { [engine] in engine.logDistraction() })
+        }
+        menu.addItem(action(skipTitle, symbol: "forward.end") { [engine] in engine.skip() })
+        menu.addItem(.separator())
+        menu.addItem(action("Insights…", symbol: "chart.bar") { WindowRouter.shared.showHistory() })
+        menu.addItem(action("Settings…", symbol: "gearshape", key: ",") { WindowRouter.shared.showSettings() })
+        menu.addItem(.separator())
+        menu.addItem(action("Quit Fifteen", symbol: "power", key: "q") { NSApp.terminate(nil) })
+        // Attach just for this click so the menu drops from the item like a normal menu bar menu.
+        item.menu = menu
+        item.button?.performClick(nil)
+        item.menu = nil
+    }
+
+    private var primaryTitle: String {
+        switch engine.state {
+        case .idle: "Start \(engine.phase.title)"
+        case .running: "Pause"
+        case .paused: "Resume"
+        case .finished: engine.nextPhase.startTitle
+        }
+    }
+
+    private var primarySymbol: String {
+        switch engine.state {
+        case .running: "pause.fill"
+        default: "play.fill"
+        }
+    }
+
+    private var skipTitle: String {
+        if engine.phase.isBreak { return "Skip Break" }
+        return engine.nextPhase.isBreak ? "Skip to Break" : "Skip Session"
+    }
+
+    private func action(_ title: String, symbol: String, key: String = "", _ handler: @escaping () -> Void) -> NSMenuItem {
+        let item = ClosureMenuItem(title: title, handler: handler)
+        item.keyEquivalent = key
+        item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        return item
     }
 
     /// Redraws whenever anything it reads changes.
@@ -75,9 +133,8 @@ final class StatusItemController: NSObject {
             }
             let size = NSFont.menuBarFont(ofSize: 0).pointSize
             let font = NSFont.monospacedDigitSystemFont(ofSize: size, weight: .regular)
-            let color: NSColor = state == .paused ? .secondaryLabelColor : .labelColor
             button.attributedTitle = NSAttributedString(string: showIcon ? " " + text : text,
-                                                        attributes: [.font: font, .foregroundColor: color, .baselineOffset: 0.5])
+                                                        attributes: [.font: font, .foregroundColor: NSColor.labelColor, .baselineOffset: 0.5])
         } else {
             button.attributedTitle = NSAttributedString(string: "")
         }
@@ -87,4 +144,19 @@ final class StatusItemController: NSObject {
     private func clock(_ interval: TimeInterval) -> String {
         prefs.menuBarSeconds ? TimeFormat.clock(interval) : TimeFormat.short(interval)
     }
+}
+
+/// A menu item that runs a closure.
+private final class ClosureMenuItem: NSMenuItem {
+    private let handler: () -> Void
+
+    init(title: String, handler: @escaping () -> Void) {
+        self.handler = handler
+        super.init(title: title, action: #selector(run), keyEquivalent: "")
+        target = self
+    }
+
+    required init(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    @objc private func run() { handler() }
 }

@@ -33,6 +33,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let tab = args.firstIndex(of: "--settings-tab").flatMap { args.indices.contains($0 + 1) ? Int(args[$0 + 1]) : nil }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { WindowRouter.shared.showSettings(tab: tab) }
         }
+        // `--insights [overview|projects|sessions]` opens Insights (add `--demo` for sample data).
+        if args.contains("--insights") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { WindowRouter.shared.showHistory() }
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        DoNotDisturb.shared.turnOffBeforeQuitting()
     }
 
     /// Opening Fifteen again from Finder or Spotlight shows the timer.
@@ -49,17 +57,17 @@ final class WindowRouter {
     private var windows: [String: NSWindow] = [:]
 
     func showHistory() {
-        show(id: "history", title: "History", size: NSSize(width: 440, height: 620)) {
-            NavigationStack { HistoryView() }
+        show(id: "history", title: "Insights", size: NSSize(width: 980, height: 700)) {
+            InsightsView()
+                .frame(minWidth: 760, minHeight: 520)
         }
     }
 
     func showSettings(tab: Int? = nil) {
-        NSApp.activate()
         if let window = windows["settings"] {
             if let tab, let tabs = window.contentViewController as? NSTabViewController,
                tabs.tabViewItems.indices.contains(tab) { tabs.selectedTabViewItemIndex = tab }
-            window.makeKeyAndOrderFront(nil)
+            bringToFront(window)
             return
         }
         let controller = SettingsTabController()
@@ -70,15 +78,14 @@ final class WindowRouter {
         window.isReleasedWhenClosed = false
         window.center()
         windows["settings"] = window
-        window.makeKeyAndOrderFront(nil)
+        bringToFront(window)
         // Don't drop the cursor into the first text field (a preset name) on open.
         DispatchQueue.main.async { window.makeFirstResponder(nil) }
     }
 
     private func show<Content: View>(id: String, title: String, size: NSSize, @ViewBuilder content: () -> Content) {
-        NSApp.activate()
         if let window = windows[id] {
-            window.makeKeyAndOrderFront(nil)
+            bringToFront(window)
             return
         }
         let root = content()
@@ -94,6 +101,17 @@ final class WindowRouter {
         window.toolbarStyle = .unified
         window.center()
         windows[id] = window
+        bringToFront(window)
+    }
+
+    /// Fifteen is a menu bar app, so a plain `activate()` is only a polite request that macOS often
+    /// declines while another app is in front; the window then opened behind it. Order the window
+    /// up regardless, and ask firmly to become the active app so it also takes the keyboard.
+    private func bringToFront(_ window: NSWindow) {
+        if window.isMiniaturized { window.deminiaturize(nil) }
+        window.orderFrontRegardless()
         window.makeKeyAndOrderFront(nil)
+        NSRunningApplication.current.activate(options: [.activateAllWindows])
+        NSApp.activate()
     }
 }

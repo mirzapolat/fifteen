@@ -30,6 +30,7 @@ final class SettingsTabController: NSTabViewController {
                                     @ViewBuilder content: () -> Content) {
         let root = content()
             .frame(width: 500, height: height)
+            .toggleStyle(InkSwitchStyle())
             .environment(TimerEngine.shared)
             .environment(Preferences.shared)
             .environment(HistoryStore.shared)
@@ -70,7 +71,7 @@ private struct GeneralPane: View {
                     LabeledContent("Open Fifteen", value: "⌃⌥O")
                 }
                 .disabled(!prefs.globalHotKeys)
-                LabeledContent("Start or pause from the menu bar", value: "Right-click")
+                LabeledContent("Start or pause from the menu bar", value: "⌥-click")
             } header: {
                 Text("Keyboard")
             }
@@ -116,6 +117,8 @@ private struct FocusPane: View {
                 }
             }
 
+            DoNotDisturbSection()
+
             Section {
                 Toggle("Cover the screen during breaks", isOn: $prefs.breakCurtain)
             } header: {
@@ -123,17 +126,62 @@ private struct FocusPane: View {
             } footer: {
                 Text("A calm full-screen veil so the break actually happens. Skip is always one click (or Esc) away.")
             }
-
-            Section {
-                TextField("When focus starts", text: $prefs.focusStartShortcut, prompt: Text("Shortcut name"))
-                TextField("When focus ends", text: $prefs.focusEndShortcut, prompt: Text("Shortcut name"))
-            } header: {
-                Text("Shortcuts")
-            } footer: {
-                Text("Run your own shortcut, for example to turn on a Focus mode, start a playlist, or set your status.")
-            }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Do Not Disturb and your own shortcuts, both run when focus starts and ends.
+/// Do Not Disturb gets a guided one-time setup of the two shortcuts it needs.
+private struct DoNotDisturbSection: View {
+    @Environment(Preferences.self) private var prefs
+    private var dnd: DoNotDisturb { DoNotDisturb.shared }
+
+    var body: some View {
+        @Bindable var prefs = prefs
+        Section {
+            Toggle("Turn on Do Not Disturb while focusing", isOn: $prefs.doNotDisturb.animation())
+                .onChange(of: prefs.doNotDisturb) { DoNotDisturb.shared.sync() }
+            if prefs.doNotDisturb {
+                shortcutRow(DoNotDisturb.onName, found: dnd.hasOnShortcut,
+                            recipe: "Add “Set Focus”, choose Do Not Disturb, set it to Turn On.")
+                shortcutRow(DoNotDisturb.offName, found: dnd.hasOffShortcut,
+                            recipe: "Add “Set Focus”, choose Do Not Disturb, set it to Turn Off.")
+                HStack {
+                    Button("Check Again") { dnd.refresh() }
+                    Spacer()
+                    Button(dnd.testing ? "Testing…" : "Test for 3 Seconds") { dnd.test() }
+                        .disabled(!dnd.isReady || dnd.testing)
+                }
+            }
+            TextField("Also run when focus starts", text: $prefs.focusStartShortcut, prompt: Text("Shortcut name"))
+            TextField("Also run when focus ends", text: $prefs.focusEndShortcut, prompt: Text("Shortcut name"))
+        } header: {
+            Text("Do Not Disturb & Shortcuts")
+        } footer: {
+            Text((prefs.doNotDisturb && !dnd.isReady
+                  ? "macOS doesn't let apps switch Focus directly, so Fifteen runs two tiny shortcuts. Make each one once with the steps above, keeping the names exactly as shown."
+                  : "Notifications are silenced while you focus and come back for your breaks, when you stop, and when Fifteen quits.")
+                 + " You can also run your own shortcuts, for example to start a playlist or set your status.")
+        }
+        .onAppear { dnd.refresh() }
+    }
+
+    private func shortcutRow(_ name: String, found: Bool, recipe: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: found ? "checkmark.circle.fill" : "circle.dashed")
+                .foregroundStyle(found ? .primary : .secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("“\(name)”")
+                Text(found ? "Ready" : (dnd.checked ? recipe : "Checking…"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if !found {
+                Button("Create…") { dnd.create(name) }
+            }
+        }
     }
 }
 

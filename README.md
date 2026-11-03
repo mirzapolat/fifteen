@@ -21,7 +21,7 @@ The Mac app is ad-hoc signed so it runs locally. For an iPhone/iPad device, set 
 
 **Mac menu bar**
 - Menu bar shows the icon, the time, or both (Settings → General). The icon is a tiny ring that empties as time passes, with pause bars when paused.
-- Click opens a Liquid Glass bubble that grows out of the menu bar. Right-click or ⌥-click starts/pauses without opening it.
+- Click opens a Liquid Glass bubble that grows out of the menu bar. Right-click opens a quick menu (start/pause, skip, Insights, Settings, Quit); ⌥-click starts/pauses without opening anything.
 - Global shortcuts: ⌃⌥P start/pause, ⌃⌥O open the bubble.
 - Hide distracting apps during focus (each one hidden is logged as a distraction).
 - Optional full-screen break curtain with a breathing circle and a break suggestion. Esc skips.
@@ -39,7 +39,7 @@ The Mac app is ad-hoc signed so it runs locally. For an iPhone/iPad device, set 
 - Synthesized sounds (no audio files): bell, singing bowl, wood block, an optional ticking clock, and white noise, rain or deep-rumble background sound.
 - Notifications with "Start Next" and "5 More Minutes" actions.
 - Daily goal shown as a quiet bar that resets each morning at an hour you choose. No streaks.
-- History: today, this week, a 7-day chart, sessions by day with intentions, CSV export.
+- Insights: overview with comparisons and charts, a year heatmap, projects, a searchable session table, goals, opt-in streaks, CSV/JSON export and backup import.
 - Shortcuts / Siri: Start Focus (optional minutes), Start Break, Pause or Resume, Stop, Get Time Left.
 
 **iPhone & iPad**

@@ -1,57 +1,86 @@
 import Foundation
 import Observation
-import CoreTransferable
+import SwiftUI
 import UniformTypeIdentifiers
 
-/// One finished focus session.
-struct FocusRecord: Codable, Identifiable, Hashable {
-    var id = UUID()
-    var start: Date
-    var end: Date
-    var duration: TimeInterval
-    var intention: String
-    var distractions: Int
-    /// "What did you get done?" — written after the session.
-    var note: String? = nil
-    /// How focused it felt, 1–5.
-    var rating: Int? = nil
-
-    static let ratingWords = ["", "Scattered", "Distracted", "Okay", "Focused", "Deep focus"]
-}
-
-struct DayTotal: Identifiable {
-    var day: Date
-    var minutes: Double
-    var sessions: Int
-    var id: Date { day }
-}
-
-/// Focus history, kept as a small JSON file in Application Support. Never thrown away silently.
+/// Focus history and projects, kept as a small versioned JSON file in Application Support.
+/// Never thrown away silently: old formats are backed up before upgrading, unreadable files are set aside.
 @Observable
 @MainActor
 final class HistoryStore {
     static let shared = HistoryStore()
 
     private(set) var records: [FocusRecord] = []
+    private(set) var projects: [Project] = []
 
-    @ObservationIgnored private let fileURL: URL = {
+    @ObservationIgnored private let folder: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Fifteen", isDirectory: true)
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
-        return base.appendingPathComponent("history.json")
+        return base
     }()
+    @ObservationIgnored private var fileURL: URL { folder.appendingPathComponent("history.json") }
+
+    /// `--demo`: generated history for previews and screenshots. Kept in memory only, never saved.
+    @ObservationIgnored private let isDemo = CommandLine.arguments.contains("--demo")
 
     private init() {
-        guard let data = try? Data(contentsOf: fileURL) else { return }
-        do {
-            records = try JSONDecoder.history.decode([FocusRecord].self, from: data)
-        } catch {
-            // Keep the unreadable file instead of overwriting it on the next save.
-            let backup = fileURL.deletingPathExtension()
-                .appendingPathExtension("corrupt-\(Int(Date().timeIntervalSince1970)).json")
-            try? FileManager.default.moveItem(at: fileURL, to: backup)
+        if isDemo { loadDemo() } else { load() }
+    }
+
+    private func loadDemo() {
+        var generator = SystemRandomNumberGenerator()
+        let names = [("Thesis", "graduationcap"), ("Reading", "book"), ("Client work", "briefcase")]
+        projects = names.map { Project(name: $0.0, symbol: $0.1) }
+        let intentions = ["Draft chapter 3", "Literature notes", "Fix the login bug", "Plan the week", "Read 30 pages", ""]
+        let calendar = Calendar.current
+        for daysAgo in (0..<120).reversed() {
+            guard let day = calendar.date(byAdding: .day, value: -daysAgo, to: calendar.startOfDay(for: .now)) else { continue }
+            let weekend = calendar.isDateInWeekend(day)
+            let count = Int.random(in: weekend ? 0...2 : 1...6, using: &generator)
+            var clock = calendar.date(bySettingHour: Int.random(in: 8...10, using: &generator), minute: 0, second: 0, of: day)!
+            for _ in 0..<count {
+                let minutes = Double([25, 25, 25, 30, 45, 50].randomElement(using: &generator)!)
+                let end = clock.addingTimeInterval(minutes * 60)
+                guard end < .now else { break }
+                records.append(FocusRecord(start: clock, end: end, duration: minutes * 60,
+                                           intention: intentions.randomElement(using: &generator)!,
+                                           distractions: Int.random(in: 0...2, using: &generator),
+                                           rating: Bool.random(using: &generator) ? Int.random(in: 2...5, using: &generator) : nil,
+                                           projectID: projects.randomElement(using: &generator)?.id,
+                                           mode: .pomodoro, plannedDuration: minutes * 60))
+                clock = end.addingTimeInterval(Double(Int.random(in: 5...90, using: &generator)) * 60)
+            }
         }
     }
+
+    // MARK: Loading & saving
+
+    private func load() {
+        guard let data = try? Data(contentsOf: fileURL) else { return }
+        if let file = try? JSONDecoder.history.decode(HistoryFile.self, from: data) {
+            records = file.sessions
+            projects = file.projects
+        } else if let legacy = try? JSONDecoder.history.decode([FocusRecord].self, from: data) {
+            // Schema v1 was a bare array. Keep a copy, then upgrade in place.
+            let backup = folder.appendingPathComponent("history.v1.backup.json")
+            if !FileManager.default.fileExists(atPath: backup.path) { try? data.write(to: backup) }
+            records = legacy
+            save()
+        } else {
+            let aside = folder.appendingPathComponent("history.unreadable-\(Int(Date().timeIntervalSince1970)).json")
+            try? FileManager.default.moveItem(at: fileURL, to: aside)
+        }
+    }
+
+    private func save() {
+        guard !isDemo else { return }
+        let file = HistoryFile(schemaVersion: HistoryFile.currentVersion, sessions: records, projects: projects)
+        guard let data = try? JSONEncoder.history.encode(file) else { return }
+        try? data.write(to: fileURL, options: .atomic)
+    }
+
+    // MARK: Sessions
 
     func add(_ record: FocusRecord) {
         records.append(record)
@@ -78,6 +107,13 @@ final class HistoryStore {
         save()
     }
 
+    func setProject(_ projectID: Project.ID?, for ids: Set<FocusRecord.ID>) {
+        for index in records.indices where ids.contains(records[index].id) {
+            records[index].projectID = projectID
+        }
+        save()
+    }
+
     func delete(_ ids: Set<FocusRecord.ID>) {
         records.removeAll { ids.contains($0.id) }
         save()
@@ -88,64 +124,124 @@ final class HistoryStore {
         save()
     }
 
-    private func save() {
-        guard let data = try? JSONEncoder.history.encode(records) else { return }
-        try? data.write(to: fileURL, options: .atomic)
+    // MARK: Projects
+
+    var activeProjects: [Project] { projects.filter { !$0.isArchived } }
+
+    func project(_ id: Project.ID?) -> Project? {
+        guard let id else { return nil }
+        return projects.first { $0.id == id }
     }
 
-    // MARK: Queries
-
-    /// The "day" starts at a chosen hour, so a late-night session still counts as yesterday.
-    func dayStart(for date: Date, hour: Int) -> Date {
-        let shifted = date.addingTimeInterval(TimeInterval(-hour * 3600))
-        return Calendar.current.startOfDay(for: shifted).addingTimeInterval(TimeInterval(hour * 3600))
+    @discardableResult
+    func addProject(named name: String) -> Project {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let project = Project(name: trimmed.isEmpty ? "Untitled" : trimmed,
+                              symbol: Project.symbols[projects.count % Project.symbols.count])
+        projects.append(project)
+        save()
+        return project
     }
 
-    func records(onDayOf date: Date, hour: Int) -> [FocusRecord] {
-        let start = dayStart(for: date, hour: hour)
-        let end = start.addingTimeInterval(86_400)
-        return records.filter { $0.end >= start && $0.end < end }
+    func updateProject(_ project: Project) {
+        guard let index = projects.firstIndex(where: { $0.id == project.id }) else { return }
+        projects[index] = project
+        save()
     }
 
-    func todayCount(hour: Int) -> Int { records(onDayOf: .now, hour: hour).count }
+    /// Deletes a project; its sessions stay, unassigned.
+    func deleteProject(_ id: Project.ID) {
+        projects.removeAll { $0.id == id }
+        for index in records.indices where records[index].projectID == id {
+            records[index].projectID = nil
+        }
+        save()
+    }
+
+    // MARK: Today
+
+    func todayCount(hour: Int) -> Int { today(hour: hour).count }
 
     func todayDuration(hour: Int) -> TimeInterval {
-        records(onDayOf: .now, hour: hour).reduce(0) { $0 + $1.duration }
+        today(hour: hour).reduce(0) { $0 + $1.duration }
     }
 
-    func lastDays(_ count: Int, hour: Int) -> [DayTotal] {
-        let today = dayStart(for: .now, hour: hour)
-        return (0..<count).reversed().map { offset in
-            let day = today.addingTimeInterval(TimeInterval(-offset * 86_400))
-            let items = records(onDayOf: day, hour: hour)
-            return DayTotal(day: day, minutes: items.reduce(0) { $0 + $1.duration } / 60, sessions: items.count)
-        }
+    private func today(hour: Int) -> [FocusRecord] {
+        let key = Analytics.dayKey(.now, hour: hour, calendar: .current)
+        return records.filter { Analytics.dayKey($0.end, hour: hour, calendar: .current) == key }
     }
 
-    var totalDuration: TimeInterval { records.reduce(0) { $0 + $1.duration } }
+    // MARK: Export & import
 
-    /// Sessions grouped by day, newest first.
-    func groupedByDay(hour: Int) -> [(day: Date, records: [FocusRecord])] {
-        let groups = Dictionary(grouping: records) { dayStart(for: $0.end, hour: hour) }
-        return groups.keys.sorted(by: >).map { ($0, groups[$0]!.sorted { $0.end > $1.end }) }
-    }
-
-    var csv: String {
+    var sessionsCSV: String {
         let formatter = ISO8601DateFormatter()
-        func quoted(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
-        var lines = ["start,end,minutes,intention,distractions,note,rating"]
-        for r in records {
-            lines.append("\(formatter.string(from: r.start)),\(formatter.string(from: r.end)),\(Int((r.duration / 60).rounded())),\(quoted(r.intention)),\(r.distractions),\(quoted(r.note ?? "")),\(r.rating.map(String.init) ?? "")")
+        func quoted(_ text: String) -> String { "\"" + text.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
+        var lines = ["start,end,minutes,project,intention,note,rating,distractions,mode,ended_early"]
+        for r in records.sorted(by: { $0.end < $1.end }) {
+            lines.append([
+                formatter.string(from: r.start),
+                formatter.string(from: r.end),
+                String(Int((r.duration / 60).rounded())),
+                quoted(project(r.projectID)?.name ?? ""),
+                quoted(r.intention),
+                quoted(r.note ?? ""),
+                r.rating.map(String.init) ?? "",
+                String(r.distractions),
+                r.mode?.rawValue ?? "",
+                (r.endedEarly ?? false) ? "yes" : "",
+            ].joined(separator: ","))
         }
         return lines.joined(separator: "\n")
     }
+
+    func backupJSON() -> Data {
+        let file = HistoryFile(schemaVersion: HistoryFile.currentVersion, sessions: records, projects: projects)
+        return (try? JSONEncoder.history.encode(file)) ?? Data()
+    }
+
+    /// Merges a backup (v2, or a v1 array) by id; nothing already here is duplicated or overwritten.
+    func importBackup(_ data: Data) throws -> (sessions: Int, projects: Int) {
+        let incoming: HistoryFile
+        if let file = try? JSONDecoder.history.decode(HistoryFile.self, from: data) {
+            incoming = file
+        } else {
+            incoming = HistoryFile(schemaVersion: 1,
+                                   sessions: try JSONDecoder.history.decode([FocusRecord].self, from: data),
+                                   projects: [])
+        }
+        let knownProjects = Set(projects.map(\.id))
+        let newProjects = incoming.projects.filter { !knownProjects.contains($0.id) }
+        let knownSessions = Set(records.map(\.id))
+        let newSessions = incoming.sessions.filter { !knownSessions.contains($0.id) }
+        projects += newProjects
+        records = (records + newSessions).sorted { $0.end < $1.end }
+        save()
+        return (newSessions.count, newProjects.count)
+    }
 }
 
-struct HistoryExport: Transferable {
-    var text: String
-    static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(exportedContentType: .commaSeparatedText) { Data($0.text.utf8) }
-            .suggestedFileName("Fifteen History.csv")
+/// A file handed to the system save panel.
+struct ExportFile: FileDocument {
+    static var readableContentTypes: [UTType] { [.json, .commaSeparatedText] }
+
+    var data: Data
+    var contentType: UTType
+    var filename: String
+
+    init(data: Data, contentType: UTType, filename: String) {
+        self.data = data
+        self.contentType = contentType
+        self.filename = filename
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+        contentType = configuration.contentType
+        filename = ""
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
     }
 }
 

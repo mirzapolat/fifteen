@@ -53,16 +53,14 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
     }
 }
 
-enum TimerMode: String, CaseIterable, Identifiable {
-    /// Fixed-length sessions.
-    case pomodoro
-    /// Count up until your focus fades, then take a break proportional to the session.
-    case flowtime
+/// The ring's colors: crisp black and white, or a softly glowing rainbow.
+enum RingTheme: String, CaseIterable, Identifiable {
+    case mono, rainbow
     var id: Self { self }
     var title: String {
         switch self {
-        case .pomodoro: "Pomodoro"
-        case .flowtime: "Flowtime"
+        case .mono: "Black & White"
+        case .rainbow: "Rainbow"
         }
     }
 }
@@ -119,6 +117,8 @@ final class Preferences {
     var isFlowtime: Bool { timerMode == .flowtime }
     /// Flowtime break = focus time ÷ this.
     var flowtimeBreakDivisor: Int { didSet { store.set(flowtimeBreakDivisor, forKey: Key.flowtimeBreakDivisor) } }
+    /// A Flowtime session shorter than this is still recorded, but doesn't count toward the long break.
+    var flowtimeMinimumMinutes: Int { didSet { store.set(flowtimeMinimumMinutes, forKey: Key.flowtimeMinimumMinutes) } }
     var presets: [TimerPreset] { didSet { store.set(try? JSONEncoder().encode(presets), forKey: Key.presets) } }
     var focusMinutes: Int { didSet { store.set(focusMinutes, forKey: Key.focusMinutes) } }
     var shortBreakMinutes: Int { didSet { store.set(shortBreakMinutes, forKey: Key.shortBreakMinutes) } }
@@ -129,6 +129,15 @@ final class Preferences {
     var longBreaksEnabled: Bool { sessionsBeforeLongBreak > 0 }
     var anyBreaksEnabled: Bool { shortBreaksEnabled || longBreaksEnabled }
     var dailyGoal: Int { didSet { store.set(dailyGoal, forKey: Key.dailyGoal) } }
+    /// Minutes of focus per day / per week to aim for (0 = off).
+    var dailyGoalMinutes: Int { didSet { store.set(dailyGoalMinutes, forKey: Key.dailyGoalMinutes) } }
+    var weeklyGoalMinutes: Int { didSet { store.set(weeklyGoalMinutes, forKey: Key.weeklyGoalMinutes) } }
+    /// Streaks are opt-in and only ever shown in Insights.
+    var streaksEnabled: Bool { didSet { store.set(streaksEnabled, forKey: Key.streaksEnabled) } }
+    /// A day counts only when the daily minutes goal is met (instead of any session).
+    var streakNeedsGoal: Bool { didSet { store.set(streakNeedsGoal, forKey: Key.streakNeedsGoal) } }
+    /// Weekdays (1 = Sunday … 7 = Saturday) that never break a streak.
+    var streakRestDays: [Int] { didSet { store.set(streakRestDays, forKey: Key.streakRestDays) } }
     var autoStartBreaks: Bool { didSet { store.set(autoStartBreaks, forKey: Key.autoStartBreaks) } }
     var autoStartFocus: Bool { didSet { store.set(autoStartFocus, forKey: Key.autoStartFocus) } }
     var keepCountingAfterEnd: Bool { didSet { store.set(keepCountingAfterEnd, forKey: Key.keepCountingAfterEnd) } }
@@ -146,11 +155,13 @@ final class Preferences {
     var ambientVolume: Double { didSet { store.set(ambientVolume, forKey: Key.ambientVolume) } }
     var ambientDuringBreaks: Bool { didSet { store.set(ambientDuringBreaks, forKey: Key.ambientDuringBreaks) } }
 
-    // Notifications
+    // Notifications & feedback
     var notifications: Bool { didSet { store.set(notifications, forKey: Key.notifications) } }
+    var haptics: Bool { didSet { store.set(haptics, forKey: Key.haptics) } }
 
     // Display — what the timer shows
     var appearance: AppearanceMode { didSet { store.set(appearance.rawValue, forKey: Key.appearance) } }
+    var ringTheme: RingTheme { didSet { store.set(ringTheme.rawValue, forKey: Key.ringTheme) } }
     var showIntention: Bool { didSet { store.set(showIntention, forKey: Key.showIntention) } }
     var showCycleDots: Bool { didSet { store.set(showCycleDots, forKey: Key.showCycleDots) } }
     var showTodayProgress: Bool { didSet { store.set(showTodayProgress, forKey: Key.showTodayProgress) } }
@@ -167,6 +178,8 @@ final class Preferences {
     var blockedApps: [String] { didSet { store.set(blockedApps, forKey: Key.blockedApps) } }
     var blockAction: BlockAction { didSet { store.set(blockAction.rawValue, forKey: Key.blockAction) } }
     var breakCurtain: Bool { didSet { store.set(breakCurtain, forKey: Key.breakCurtain) } }
+    /// Mac: switch on Do Not Disturb during focus (via two shortcuts).
+    var doNotDisturb: Bool { didSet { store.set(doNotDisturb, forKey: Key.doNotDisturb) } }
     var pauseWhenLocked: Bool { didSet { store.set(pauseWhenLocked, forKey: Key.pauseWhenLocked) } }
     var focusStartShortcut: String { didSet { store.set(focusStartShortcut, forKey: Key.focusStartShortcut) } }
     var focusEndShortcut: String { didSet { store.set(focusEndShortcut, forKey: Key.focusEndShortcut) } }
@@ -182,7 +195,9 @@ final class Preferences {
             Key.longBreakMinutes: 15,
             Key.timerMode: TimerMode.pomodoro.rawValue,
             Key.flowtimeBreakDivisor: 5,
+            Key.flowtimeMinimumMinutes: 1,
             Key.appearance: AppearanceMode.system.rawValue,
+            Key.ringTheme: RingTheme.mono.rawValue,
             Key.showIntention: true,
             Key.showCycleDots: true,
             Key.showTodayProgress: true,
@@ -193,6 +208,11 @@ final class Preferences {
             Key.soundEnabled: true,
             Key.blockAction: BlockAction.hide.rawValue,
             Key.dailyGoal: 8,
+            Key.dailyGoalMinutes: 0,
+            Key.weeklyGoalMinutes: 0,
+            Key.streaksEnabled: true,
+            Key.streakNeedsGoal: false,
+            Key.streakRestDays: [Int](),
             Key.autoStartBreaks: false,
             Key.autoStartFocus: false,
             Key.keepCountingAfterEnd: false,
@@ -205,6 +225,7 @@ final class Preferences {
             Key.ambientVolume: 0.4,
             Key.ambientDuringBreaks: false,
             Key.notifications: true,
+            Key.haptics: true,
             Key.menuBarDisplay: MenuBarDisplay.iconAndTime.rawValue,
             Key.menuBarSeconds: true,
             Key.menuBarIcon: MenuBarIconStyle.ring.rawValue,
@@ -212,6 +233,7 @@ final class Preferences {
             Key.hideDistractingApps: false,
             Key.blockedApps: [String](),
             Key.breakCurtain: false,
+            Key.doNotDisturb: false,
             Key.pauseWhenLocked: true,
             Key.focusStartShortcut: "",
             Key.focusEndShortcut: "",
@@ -223,9 +245,11 @@ final class Preferences {
         longBreakMinutes = store.integer(forKey: Key.longBreakMinutes)
         timerMode = TimerMode(rawValue: store.string(forKey: Key.timerMode) ?? "") ?? .pomodoro
         flowtimeBreakDivisor = store.integer(forKey: Key.flowtimeBreakDivisor)
+        flowtimeMinimumMinutes = store.integer(forKey: Key.flowtimeMinimumMinutes)
         presets = store.data(forKey: Key.presets).flatMap { try? JSONDecoder().decode([TimerPreset].self, from: $0) }
             ?? TimerPreset.defaults
         appearance = AppearanceMode(rawValue: store.string(forKey: Key.appearance) ?? "") ?? .system
+        ringTheme = RingTheme(rawValue: store.string(forKey: Key.ringTheme) ?? "") ?? .mono
         showIntention = store.bool(forKey: Key.showIntention)
         showCycleDots = store.bool(forKey: Key.showCycleDots)
         showTodayProgress = store.bool(forKey: Key.showTodayProgress)
@@ -236,6 +260,11 @@ final class Preferences {
         soundEnabled = store.bool(forKey: Key.soundEnabled)
         blockAction = BlockAction(rawValue: store.string(forKey: Key.blockAction) ?? "") ?? .hide
         dailyGoal = store.integer(forKey: Key.dailyGoal)
+        dailyGoalMinutes = store.integer(forKey: Key.dailyGoalMinutes)
+        weeklyGoalMinutes = store.integer(forKey: Key.weeklyGoalMinutes)
+        streaksEnabled = store.bool(forKey: Key.streaksEnabled)
+        streakNeedsGoal = store.bool(forKey: Key.streakNeedsGoal)
+        streakRestDays = (store.array(forKey: Key.streakRestDays) as? [Int]) ?? []
         autoStartBreaks = store.bool(forKey: Key.autoStartBreaks)
         autoStartFocus = store.bool(forKey: Key.autoStartFocus)
         keepCountingAfterEnd = store.bool(forKey: Key.keepCountingAfterEnd)
@@ -248,6 +277,7 @@ final class Preferences {
         ambientVolume = store.double(forKey: Key.ambientVolume)
         ambientDuringBreaks = store.bool(forKey: Key.ambientDuringBreaks)
         notifications = store.bool(forKey: Key.notifications)
+        haptics = store.bool(forKey: Key.haptics)
         menuBarDisplay = MenuBarDisplay(rawValue: store.string(forKey: Key.menuBarDisplay) ?? "") ?? .iconAndTime
         menuBarSeconds = store.bool(forKey: Key.menuBarSeconds)
         menuBarIcon = MenuBarIconStyle(rawValue: store.string(forKey: Key.menuBarIcon) ?? "") ?? .ring
@@ -255,6 +285,7 @@ final class Preferences {
         hideDistractingApps = store.bool(forKey: Key.hideDistractingApps)
         blockedApps = store.stringArray(forKey: Key.blockedApps) ?? []
         breakCurtain = store.bool(forKey: Key.breakCurtain)
+        doNotDisturb = store.bool(forKey: Key.doNotDisturb)
         pauseWhenLocked = store.bool(forKey: Key.pauseWhenLocked)
         focusStartShortcut = store.string(forKey: Key.focusStartShortcut) ?? ""
         focusEndShortcut = store.string(forKey: Key.focusEndShortcut) ?? ""
@@ -311,8 +342,10 @@ final class Preferences {
         static let shortBreaksEnabled = "shortBreaksEnabled"
         static let timerMode = "timerMode"
         static let flowtimeBreakDivisor = "flowtimeBreakDivisor"
+        static let flowtimeMinimumMinutes = "flowtimeMinimumMinutes"
         static let presets = "presets"
         static let appearance = "appearance"
+        static let ringTheme = "ringTheme"
         static let showIntention = "showIntention"
         static let showCycleDots = "showCycleDots"
         static let showTodayProgress = "showTodayProgress"
@@ -321,6 +354,11 @@ final class Preferences {
         static let soundEnabled = "soundEnabled"
         static let blockAction = "blockAction"
         static let dailyGoal = "dailyGoal"
+        static let dailyGoalMinutes = "dailyGoalMinutes"
+        static let weeklyGoalMinutes = "weeklyGoalMinutes"
+        static let streaksEnabled = "streaksEnabled"
+        static let streakNeedsGoal = "streakNeedsGoal"
+        static let streakRestDays = "streakRestDays"
         static let autoStartBreaks = "autoStartBreaks"
         static let autoStartFocus = "autoStartFocus"
         static let keepCountingAfterEnd = "keepCountingAfterEnd"
@@ -333,6 +371,7 @@ final class Preferences {
         static let ambientVolume = "ambientVolume"
         static let ambientDuringBreaks = "ambientDuringBreaks"
         static let notifications = "notifications"
+        static let haptics = "haptics"
         static let menuBarDisplay = "menuBarDisplay"
         static let menuBarSeconds = "menuBarSeconds"
         static let menuBarIcon = "menuBarIcon"
@@ -340,10 +379,19 @@ final class Preferences {
         static let hideDistractingApps = "hideDistractingApps"
         static let blockedApps = "blockedApps"
         static let breakCurtain = "breakCurtain"
+        static let doNotDisturb = "doNotDisturb"
         static let pauseWhenLocked = "pauseWhenLocked"
         static let focusStartShortcut = "focusStartShortcut"
         static let focusEndShortcut = "focusEndShortcut"
         static let liveActivity = "liveActivity"
         static let keepScreenOn = "keepScreenOn"
+    }
+}
+
+
+extension Preferences {
+    /// The streak rule from settings.
+    var streakRule: StreakRule {
+        StreakRule(minimumMinutes: streakNeedsGoal ? Double(dailyGoalMinutes) : 0, restWeekdays: Set(streakRestDays))
     }
 }

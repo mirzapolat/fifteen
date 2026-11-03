@@ -1,22 +1,44 @@
 import SwiftUI
 
-/// Duration · Start/Pause · "…" — three glass pills that morph into each other.
-/// At the end of a session the duration pill melts away and Start grows into a tinted "Take a Break".
+/// The row under the ring:  [length]  ·····  [reset] [history] […]
+/// The ring itself starts and pauses. When a session ends, the length pill grows into a tinted
+/// "Take a Break" (or "Back to Focus") so moving on is one click.
 struct ControlPills: View {
     @Environment(TimerEngine.self) private var engine
     @Environment(Preferences.self) private var prefs
     @Environment(\.appActions) private var actions
+    @Environment(\.colorScheme) private var scheme
     @Namespace private var glass
 
     var body: some View {
-        GlassEffectContainer(spacing: Pill.spacing) {
+        // Less than the gap between pills, so each stays its own drop of glass instead of melting
+        // into its neighbour; glassEffectID still morphs pills in and out.
+        GlassEffectContainer(spacing: 2) {
+            // Left: this session (length, project/intention, reset) — it changes as the session does.
+            // Right: the app (Insights, •••) — fixed in the corner, never shifting.
             HStack(spacing: Pill.spacing) {
-                if engine.state != .finished {
-                    durationPill
-                        .glassEffectID("duration", in: glass)
+                if engine.state == .finished {
+                    nextPill
+                        .glassEffectID("leading", in: glass)
+                } else {
+                    lengthPill
+                        .glassEffectID("leading", in: glass)
                 }
-                primaryPill
-                    .glassEffectID("primary", in: glass)
+                if showsDetailsPill {
+                    detailsPill
+                        .glassEffectID("details", in: glass)
+                }
+                // Reset morphs in only when there's something to reset; last in its group, away
+                // from the main pill, so it isn't hit by accident.
+                if engine.state != .idle {
+                    resetPill
+                        .glassEffectID("reset", in: glass)
+                }
+                if engine.state != .finished {
+                    Spacer(minLength: 0)
+                }
+                historyPill
+                    .glassEffectID("history", in: glass)
                 morePill
                     .glassEffectID("more", in: glass)
             }
@@ -25,92 +47,69 @@ struct ControlPills: View {
         .animation(Pill.morph, value: engine.phase)
     }
 
-    // MARK: Primary
+    // MARK: Leading — length, or move on
 
-    private var primaryPill: some View {
+    private var nextPill: some View {
         Button {
-            engine.primaryAction()
+            engine.advance(autoStart: true)
         } label: {
-            Label(primaryTitle, systemImage: primarySymbol)
-                .contentTransition(.symbolEffect(.replace))
+            Label(nextTitle, systemImage: nextSymbol)
                 .fixedSize()
                 .frame(maxWidth: .infinity)
-                .pill(prominent: engine.state == .finished)
+                .pill(prominent: true)
         }
         .buttonStyle(.plain)
-        .sensoryFeedback(.impact(weight: .medium), trigger: engine.state)
-        .help(primaryTitle)
+        .help(nextTitle)
     }
 
-    private var primaryTitle: String {
-        switch engine.state {
-        case .idle: "Start"
-        case .running: "Pause"
-        case .paused: "Resume"
-        case .finished: continuesFocus ? "Next Session" : engine.nextPhase.startTitle
-        }
-    }
-
-    private var primarySymbol: String {
-        switch engine.state {
-        case .idle, .paused: "play.fill"
-        case .running: "pause.fill"
-        case .finished: continuesFocus ? "play.fill" : engine.nextPhase.symbol
-        }
-    }
-
-    /// Focus followed directly by focus (breaks turned off).
     private var continuesFocus: Bool { engine.phase == .focus && engine.nextPhase == .focus }
-
-    private var skipTitle: String {
-        if engine.phase.isBreak { return "Skip Break" }
-        return engine.nextPhase.isBreak ? "Skip to Break" : "Skip Session"
-    }
-
-    // MARK: Duration
+    private var nextTitle: String { continuesFocus ? "Next Session" : engine.nextPhase.startTitle }
+    private var nextSymbol: String { continuesFocus ? "play.fill" : engine.nextPhase.symbol }
 
     @ViewBuilder
-    private var durationPill: some View {
+    private var lengthPill: some View {
         if engine.isFlowtime && engine.isActive {
             // Flowtime has no end: this pill is how you stop when your focus fades.
             Button { engine.finishEarly() } label: {
                 Label("Finish", systemImage: "checkmark").fixedSize().pill()
             }
             .buttonStyle(.plain)
-            .layoutPriority(1)
             .help("End this session and take your break")
         } else {
-            durationMenu
+            lengthMenu
         }
     }
 
-    private var durationMenu: some View {
+    /// Idle: pick a length (or a preset, or the mode). Running: add time.
+    private var lengthMenu: some View {
         Menu {
             if engine.state == .idle {
+                if !engine.isFlowtime {
+                    Picker("Length", selection: Binding(
+                        get: { Int(engine.total / 60) },
+                        set: { engine.setIdleMinutes($0) }
+                    )) {
+                        ForEach(lengths, id: \.self) { Text("\($0) minutes").tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                }
                 if !prefs.presets.isEmpty {
-                    Section("Presets") {
+                    Menu("Presets") {
                         ForEach(prefs.presets) { preset in
                             Toggle(isOn: Binding(get: { prefs.isCurrent(preset) },
-                                                 set: { _ in applyPreset(preset) })) {
-                                Text("\(preset.name) · \(preset.focus)/\(preset.shortBreak == 0 ? "–" : "\(preset.shortBreak)")")
+                                                 set: { _ in apply(preset) })) {
+                                Text(presetLabel(preset))
                             }
                         }
                     }
                 }
-                Section("Mode") {
-                    Picker("Mode", selection: Binding(get: { prefs.timerMode },
-                                                      set: { prefs.timerMode = $0; engine.reloadIdle() })) {
-                        ForEach(TimerMode.allCases) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.inline)
+                Picker("Mode", selection: Binding(
+                    get: { prefs.timerMode },
+                    set: { prefs.timerMode = $0; engine.reloadIdle() }
+                )) {
+                    ForEach(TimerMode.allCases) { Text($0.title).tag($0) }
                 }
-                if !engine.isFlowtime {
-                    Section("This Session") {
-                        ForEach([5, 10, 15, 20, 25, 30, 45, 50, 60, 90], id: \.self) { minutes in
-                            Button("\(minutes) minutes") { engine.setIdleMinutes(minutes) }
-                        }
-                    }
-                }
+                .pickerStyle(.menu)
             } else {
                 Section("Add Time") {
                     Button("1 Minute", systemImage: "plus") { engine.extend(by: 60) }
@@ -119,38 +118,95 @@ struct ControlPills: View {
                 }
             }
         } label: {
-            ViewThatFits(in: .horizontal) {
-                Label(durationTitle, systemImage: durationSymbol)
-                    .monospacedDigit()
-                    .fixedSize()
-                Image(systemName: durationSymbol)
-            }
-            .pill()
+            Label(lengthTitle, systemImage: lengthSymbol)
+                .monospacedDigit()
+                .fixedSize()
+                .pill()
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
-        .layoutPriority(1)
+        .fixedSize()
         .help(engine.state == .idle ? "Length, presets and mode" : "Add time")
     }
 
-    private var durationTitle: String {
+    /// Common lengths, plus the current one if it's something else (e.g. set by dragging the ring).
+    private var lengths: [Int] {
+        let presets = [10, 15, 20, 25, 30, 45, 50, 60, 90]
+        let current = Int(engine.total / 60)
+        return presets.contains(current) ? presets : (presets + [current]).sorted()
+    }
+
+    private func presetLabel(_ preset: TimerPreset) -> String {
+        preset.shortBreak == 0
+            ? "\(preset.name) — \(preset.focus) min, no breaks"
+            : "\(preset.name) — \(preset.focus) min focus, \(preset.shortBreak) min break"
+    }
+
+    private var lengthTitle: String {
         if engine.state != .idle { return "Time" }
         return engine.isFlowtime ? "Flow" : "\(Int(engine.total / 60)) min"
     }
 
-    private var durationSymbol: String {
+    private var lengthSymbol: String {
         if engine.state != .idle { return "plus" }
         return engine.isFlowtime ? "infinity" : "timer"
     }
 
-    private func applyPreset(_ preset: TimerPreset) {
+    private func apply(_ preset: TimerPreset) {
         prefs.apply(preset)
         engine.reloadIdle()
     }
 
-    // MARK: More
+    // MARK: Trailing — reset, history, more
 
+    private var resetPill: some View {
+        Button { engine.reset() } label: {
+            Image(systemName: "arrow.counterclockwise")
+                .frame(width: Pill.height)
+                .pill(square: true)
+        }
+        .buttonStyle(.plain)
+        .help("Reset this session")
+        .accessibilityLabel("Reset")
+    }
+
+    /// Hidden in breaks, and after a session, when the "What did you get done?" note takes the field's place.
+    private var showsDetailsPill: Bool {
+        prefs.showIntention && !engine.phase.isBreak && engine.state != .finished
+    }
+
+    private var historyPill: some View {
+        Button { actions.showHistory() } label: {
+            Image(systemName: "chart.bar")
+                .frame(width: Pill.height)
+                .pill(square: true)
+        }
+        .buttonStyle(.plain)
+        .help("Insights")
+        .accessibilityLabel("Insights")
+    }
+
+    /// Reveals the project and "one thing" field. Solid while it's open; the icon is filled when
+    /// a project or intention is set, so you know there's something behind it.
+    private var detailsPill: some View {
+        let chrome = TimerChrome.shared
+        let hasDetails = !engine.intention.isEmpty || engine.projectID != nil
+        return Button {
+            withAnimation(Pill.morph) { chrome.detailsShown.toggle() }
+        } label: {
+            Image(systemName: hasDetails ? "text.bubble.fill" : "text.bubble")
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: Pill.height)
+                .pill(prominent: chrome.detailsShown, square: true)
+        }
+        .buttonStyle(.plain)
+        .help(chrome.detailsShown ? "Hide project and intention" : "Project and intention")
+        .accessibilityLabel("Project and intention")
+        .accessibilityAddTraits(chrome.detailsShown ? .isSelected : [])
+    }
+
+    /// Only what isn't already one click away elsewhere.
     private var morePill: some View {
         Menu {
             Section {
@@ -161,20 +217,8 @@ struct ControlPills: View {
                     Button("Log a Distraction", systemImage: "exclamationmark.bubble") { engine.logDistraction() }
                 }
                 Button(skipTitle, systemImage: "forward.end") { engine.skip() }
-                if engine.state != .idle {
-                    Button("Reset", systemImage: "arrow.counterclockwise") { engine.reset() }
-                }
             }
             Section {
-                Menu("Switch To", systemImage: "arrow.triangle.swap") {
-                    ForEach(Phase.allCases) { phase in
-                        Button(phase.title, systemImage: phase.symbol) { engine.select(phase) }
-                            .disabled(phase == engine.phase && engine.state == .idle)
-                    }
-                }
-            }
-            Section {
-                Button("History", systemImage: "chart.bar") { actions.showHistory() }
                 Button("Settings…", systemImage: "gearshape") { actions.showSettings() }
                 if let quit = actions.quit {
                     Button("Quit Fifteen", systemImage: "power") { quit() }
@@ -190,5 +234,10 @@ struct ControlPills: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .help("More")
+    }
+
+    private var skipTitle: String {
+        if engine.phase.isBreak { return "Skip Break" }
+        return engine.nextPhase.isBreak ? "Skip to Break" : "Skip Session"
     }
 }

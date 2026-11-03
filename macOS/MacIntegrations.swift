@@ -25,6 +25,7 @@ final class MacIntegrations {
         sync()
 
         AppBlocker.shared.start()
+        DoNotDisturb.shared.start()
 
         let workspace = NSWorkspace.shared.notificationCenter
         workspace.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { _ in

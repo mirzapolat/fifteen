@@ -19,6 +19,12 @@ struct TimerSettingsSection: View {
                     Text("A fifth of focus time").tag(5)
                     Text("A sixth of focus time").tag(6)
                 }
+                Picker("Counts toward long break after", selection: $prefs.flowtimeMinimumMinutes) {
+                    ForEach(Self.options([1, 5, 10, 15, 20, 25, 30, 45], including: prefs.flowtimeMinimumMinutes), id: \.self) {
+                        Text("\($0) min").tag($0)
+                    }
+                }
+                .disabled(!prefs.longBreaksEnabled)
             } else {
                 ValueStepper("Focus", value: $prefs.focusMinutes, in: 1...180, unit: "min")
 
@@ -32,9 +38,18 @@ struct TimerSettingsSection: View {
                 }
             }
 
-            // How long, and how often — side by side.
+            // How often, then how long — side by side.
             LabeledContent("Long break") {
                 HStack(spacing: 8) {
+                    Picker("Frequency", selection: $prefs.sessionsBeforeLongBreak.animation()) {
+                        Text("Off").tag(0)
+                        Divider()
+                        ForEach(2...12, id: \.self) { count in
+                            Text("after \(count) sessions").tag(count)
+                        }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
                     if prefs.longBreaksEnabled {
                         Picker("Length", selection: $prefs.longBreakMinutes) {
                             ForEach(Self.options([5, 10, 15, 20, 25, 30, 45, 60], including: prefs.longBreakMinutes), id: \.self) {
@@ -45,22 +60,13 @@ struct TimerSettingsSection: View {
                         .fixedSize()
                         .transition(.opacity)
                     }
-                    Picker("Frequency", selection: $prefs.sessionsBeforeLongBreak.animation()) {
-                        Text("Off").tag(0)
-                        Divider()
-                        ForEach(2...12, id: \.self) { count in
-                            Text("after \(count) sessions").tag(count)
-                        }
-                    }
-                    .labelsHidden()
-                    .fixedSize()
                 }
             }
         } header: {
             Text("Rhythm")
         } footer: {
             if prefs.isFlowtime {
-                Text("Flowtime counts up. Work until your focus fades, press Finish, and take a break sized to the session.")
+                Text("Flowtime counts up. Work until your focus fades, press Finish, and take a break sized to the session. Shorter sessions are still saved, but don't count toward the long break.")
             } else {
                 Text(prefs.anyBreaksEnabled
                      ? "Each break starts when the focus session before it ends."
@@ -90,7 +96,7 @@ struct TimerSettingsSection: View {
             Text("When you're in the flow, the timer counts the extra minutes instead of stopping you. They're added to the session when you move on.")
         }
 
-        Section("Day") {
+        Section {
             Picker("Daily goal", selection: $prefs.dailyGoal) {
                 Text("Off").tag(0)
                 Divider()
@@ -98,12 +104,25 @@ struct TimerSettingsSection: View {
                     Text("\(count) session\(count == 1 ? "" : "s")").tag(count)
                 }
             }
+            Picker("Daily focus goal", selection: $prefs.dailyGoalMinutes) {
+                Text("Off").tag(0)
+                Divider()
+                ForEach([30, 60, 90, 120, 180, 240, 300, 360], id: \.self) { Text(TimeFormat.duration(TimeInterval($0 * 60))).tag($0) }
+            }
+            Picker("Weekly focus goal", selection: $prefs.weeklyGoalMinutes) {
+                Text("Off").tag(0)
+                Divider()
+                ForEach([5, 10, 15, 20, 25, 30, 40], id: \.self) { Text("\($0)h").tag($0 * 60) }
+            }
             Picker("New day starts at", selection: $prefs.dayStartsAtHour) {
                 ForEach(0..<12, id: \.self) { hour in
-                    Text(Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: .now)!, format: .dateTime.hour())
-                        .tag(hour)
+                    Text(hour == 0 ? "Midnight" : "\(hour) AM").tag(hour)
                 }
             }
+        } header: {
+            Text("Day")
+        } footer: {
+            Text("The session goal fills the counter at the top right of the timer. The focus goals appear in Insights: as progress rings in Overview, and the daily one as a line on the per-day chart. A daily focus goal can also be what keeps a streak going.")
         }
 
         Section {
@@ -232,8 +251,17 @@ struct SoundSettingsSection: View {
             }
         }
 
-        Section("Notifications") {
+        Section {
             Toggle("Notify when a session ends", isOn: $prefs.notifications)
+            Toggle("Haptic feedback", isOn: $prefs.haptics)
+        } header: {
+            Text("Notifications & Haptics")
+        } footer: {
+            #if os(macOS)
+            Text("Haptics are felt on a Force Touch trackpad while your finger rests on it.")
+            #else
+            Text("A firm tap when you start, a light one when you pause, and a buzz when a session ends.")
+            #endif
         }
     }
 
@@ -271,62 +299,134 @@ private struct PreviewButton: View {
 }
 
 /// Named rhythms like "Study 50/10". Pick one from the timer's length pill; edit them here.
+/// A simple table: one row per preset, ordered with up/down arrows.
 struct PresetsSection: View {
     @Environment(Preferences.self) private var prefs
+
+    private static let focusOptions = [10, 15, 20, 25, 30, 40, 45, 50, 60, 75, 90]
+    private static let breakOptions = [0, 3, 5, 10, 15, 20]
+    private static let orderWidth: CGFloat = 44
+    private static let focusWidth: CGFloat = 92
+    private static let breakWidth: CGFloat = 104
+    private static let actionsWidth: CGFloat = 52
+    /// Room the menu's ⌃⌄ takes at the right of each picker.
+    private static let chevronWidth: CGFloat = 30
 
     var body: some View {
         @Bindable var prefs = prefs
         Section {
+            if !prefs.presets.isEmpty {
+                headerRow
+            }
             ForEach($prefs.presets) { $preset in
+                let index = prefs.presets.firstIndex(where: { $0.id == preset.id }) ?? 0
                 HStack(spacing: 8) {
-                    TextField("Name", text: $preset.name)
+                    HStack(spacing: 2) {
+                        arrow("chevron.up", help: "Move up", disabled: index == 0) { move(index, by: -1) }
+                        arrow("chevron.down", help: "Move down", disabled: index == prefs.presets.count - 1) { move(index, by: 1) }
+                    }
+                    .frame(width: Self.orderWidth, alignment: .leading)
+
+                    TextField("Name", text: $preset.name, prompt: Text("Name"))
                         .labelsHidden()
-                    Spacer(minLength: 4)
+                        .textFieldStyle(.plain)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     Picker("Focus", selection: $preset.focus) {
-                        ForEach([10, 15, 20, 25, 30, 40, 45, 50, 60, 75, 90], id: \.self) { Text("\($0) min").tag($0) }
+                        ForEach(Self.options(Self.focusOptions, including: preset.focus), id: \.self) { Text("\($0) min").tag($0) }
                     }
                     .labelsHidden()
-                    .fixedSize()
+                    .frame(width: Self.focusWidth)
+
                     Picker("Break", selection: $preset.shortBreak) {
-                        Text("No break").tag(0)
-                        ForEach([3, 5, 10, 15, 20], id: \.self) { Text("\($0) min break").tag($0) }
+                        ForEach(Self.options(Self.breakOptions, including: preset.shortBreak), id: \.self) {
+                            Text($0 == 0 ? "None" : "\($0) min").tag($0)
+                        }
                     }
                     .labelsHidden()
-                    .fixedSize()
-                    Button {
-                        prefs.apply(preset)
-                        TimerEngine.shared.reloadIdle()
-                    } label: {
-                        Image(systemName: prefs.isCurrent(preset) ? "checkmark.circle.fill" : "circle")
-                            .symbolRenderingMode(.hierarchical)
+                    .frame(width: Self.breakWidth)
+
+                    HStack(spacing: 6) {
+                        Button {
+                            prefs.apply(preset)
+                            TimerEngine.shared.reloadIdle()
+                        } label: {
+                            Image(systemName: prefs.isCurrent(preset) ? "checkmark.circle.fill" : "circle")
+                        }
+                        .help(prefs.isCurrent(preset) ? "In use" : "Use this preset")
+                        .accessibilityLabel(prefs.isCurrent(preset) ? "In use" : "Use this preset")
+                        Button {
+                            withAnimation(.snappy) { prefs.presets.removeAll { $0.id == preset.id } }
+                        } label: {
+                            Image(systemName: "trash").foregroundStyle(.secondary)
+                        }
+                        .help("Delete")
+                        .accessibilityLabel("Delete \(preset.name)")
                     }
                     .buttonStyle(.borderless)
-                    .help(prefs.isCurrent(preset) ? "In use" : "Use this preset")
-                    Button {
-                        withAnimation { prefs.presets.removeAll { $0.id == preset.id } }
-                    } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Delete")
+                    .frame(width: Self.actionsWidth, alignment: .trailing)
                 }
             }
-            Button("Add Preset") {
-                withAnimation {
+            Button("Add Preset", systemImage: "plus") {
+                withAnimation(.snappy) {
                     prefs.presets.append(TimerPreset(name: "New Preset", focus: prefs.focusMinutes,
                                                      shortBreak: prefs.shortBreaksEnabled ? prefs.shortBreakMinutes : 0))
                 }
             }
         } header: {
             Text("Presets")
+        } footer: {
+            Text("The timer's length menu lists presets in this order.")
         }
+    }
+
+    private var headerRow: some View {
+        HStack(spacing: 8) {
+            Color.clear.frame(width: Self.orderWidth, height: 1)
+            Text("Name").frame(maxWidth: .infinity, alignment: .leading)
+            // Right-aligned over the values, which sit just left of each menu's chevrons.
+            Text("Focus").padding(.trailing, Self.chevronWidth).frame(width: Self.focusWidth, alignment: .trailing)
+            Text("Break").padding(.trailing, Self.chevronWidth).frame(width: Self.breakWidth, alignment: .trailing)
+            Color.clear.frame(width: Self.actionsWidth, height: 1)
+        }
+        .font(.caption.weight(.medium))
+        .foregroundStyle(.secondary)
+        .accessibilityHidden(true)
+    }
+
+    private func arrow(_ symbol: String, help: String, disabled: Bool, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.caption.weight(.semibold))
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .disabled(disabled)
+        .help(help)
+        .accessibilityLabel(help)
+    }
+
+    private func move(_ index: Int, by delta: Int) {
+        let target = index + delta
+        guard prefs.presets.indices.contains(index), prefs.presets.indices.contains(target) else { return }
+        withAnimation(.snappy) { prefs.presets.swapAt(index, target) }
+    }
+
+    /// The standard choices, plus the preset's own value if it's something else.
+    private static func options(_ base: [Int], including value: Int) -> [Int] {
+        base.contains(value) ? base : (base + [value]).sorted()
     }
 }
 
 /// Look and layout: theme, and which parts of the timer are shown.
 struct DisplaySettingsSection: View {
     @Environment(Preferences.self) private var prefs
+
+    /// Weekdays in the user's order (Monday first in most of Europe).
+    static var weekdayOrder: [Int] {
+        (0..<7).map { (Calendar.current.firstWeekday - 1 + $0) % 7 + 1 }
+    }
 
     var body: some View {
         @Bindable var prefs = prefs
@@ -335,10 +435,14 @@ struct DisplaySettingsSection: View {
                 ForEach(AppearanceMode.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
+            Picker("Theme", selection: $prefs.ringTheme.animation()) {
+                ForEach(RingTheme.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
         }
 
         Section("Timer") {
-            Toggle("\"What's the one thing?\" field", isOn: $prefs.showIntention)
+            Toggle("Project & intention", isOn: $prefs.showIntention)
             Toggle("Cycle dots", isOn: $prefs.showCycleDots)
                 .disabled(!prefs.longBreaksEnabled)
             Toggle("Today's progress", isOn: $prefs.showTodayProgress)
@@ -352,8 +456,33 @@ struct DisplaySettingsSection: View {
             Text("Write what you got done and rate how focused you were, right on the timer. Both show up in History.")
         }
 
-        Section("History") {
-            Toggle("Weekly chart", isOn: $prefs.showWeekChart)
+        Section {
+            Toggle("Show streaks", isOn: $prefs.streaksEnabled.animation())
+            if prefs.streaksEnabled {
+                Picker("A day counts when", selection: $prefs.streakNeedsGoal) {
+                    Text("There's at least one session").tag(false)
+                    Text("The daily focus goal is met").tag(true)
+                }
+                .disabled(prefs.dailyGoalMinutes == 0)
+                LabeledContent("Rest days") {
+                    HStack(spacing: 4) {
+                        ForEach(Self.weekdayOrder, id: \.self) { weekday in
+                            let on = prefs.streakRestDays.contains(weekday)
+                            Button(Calendar.current.veryShortWeekdaySymbols[weekday - 1]) {
+                                if on { prefs.streakRestDays.removeAll { $0 == weekday } } else { prefs.streakRestDays.append(weekday) }
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(on ? .primary : .secondary)
+                            .fontWeight(on ? .bold : .regular)
+                            .accessibilityAddTraits(on ? .isSelected : [])
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("Insights")
+        } footer: {
+            Text("Streaks only ever appear in Insights. Rest days never break one.")
         }
     }
 }
@@ -384,4 +513,45 @@ private struct ValueStepper: View {
             }
         }
     }
+}
+
+/// A switch in the app's black-and-white ink. The stock switch fills with the accent color, which is
+/// white in dark mode, so its white knob vanished. Here the knob is always the opposite ink of the
+/// track: black on a white track in dark mode, white on a black track in light mode.
+struct InkSwitchStyle: ToggleStyle {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        let dark = scheme == .dark
+        let ink = Color.ink(scheme)
+        HStack {
+            configuration.label
+            Spacer(minLength: 12)
+            Capsule()
+                .fill(configuration.isOn ? ink : ink.opacity(dark ? 0.2 : 0.12))
+                .overlay(Capsule().strokeBorder(ink.opacity(configuration.isOn ? 0 : 0.12), lineWidth: 1))
+                .frame(width: Self.size.width, height: Self.size.height)
+                .overlay(alignment: configuration.isOn ? .trailing : .leading) {
+                    Circle()
+                        .fill(configuration.isOn ? Color.ink(dark ? .light : .dark) : (dark ? Color(white: 0.82) : .white))
+                        .shadow(color: .black.opacity(0.18), radius: 1, y: 0.5)
+                        .padding(2)
+                }
+                .animation(.snappy(duration: 0.2), value: configuration.isOn)
+                .onTapGesture { configuration.isOn.toggle() }
+        }
+        .opacity(isEnabled ? 1 : 0.45)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isToggle)
+        .accessibilityValue(configuration.isOn ? "On" : "Off")
+        .accessibilityAction { configuration.isOn.toggle() }
+    }
+
+    #if os(macOS)
+    private static let size = CGSize(width: 32, height: 18)
+    #else
+    private static let size = CGSize(width: 51, height: 31)
+    #endif
 }
