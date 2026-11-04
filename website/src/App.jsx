@@ -103,11 +103,31 @@ function Meta({ latest }) {
 // ---- Nav ---------------------------------------------------------------------------
 // [desktop label, phone menu label, target, phone menu icon]
 const MENU = [
-  ['Features', 'Explore Features', '/#features', I.Sparkles],
   ['Mac', 'For Mac', '/#mac', I.Laptop],
   ['iPhone', 'For iPhone & iPad', '/#iphone', I.Phone],
+  ['Features', 'Explore Features', '/#features', I.Sparkles],
   ['Link', 'Link Devices', '/#link', I.People],
 ];
+
+// On touch devices, size the hero to the physical screen: iOS Safari's toolbars float over
+// the page, so svh/dvh leave the hero shorter than what you actually see.
+function useScreenHeight() {
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!window.matchMedia('(pointer: coarse)').matches) return;
+    const set = () => {
+      const { width: w, height: h } = window.screen;
+      const landscape = window.innerWidth > window.innerHeight;
+      root.style.setProperty('--screen-h', `${landscape ? Math.min(w, h) : Math.max(w, h)}px`);
+    };
+    set();
+    window.addEventListener('resize', set);
+    return () => {
+      window.removeEventListener('resize', set);
+      root.style.removeProperty('--screen-h');
+    };
+  }, []);
+}
 
 function Nav({ go, onDownload }) {
   const [compact, setCompact] = useState(false);
@@ -207,7 +227,7 @@ function Nav({ go, onDownload }) {
 }
 
 // ---- Hero ------------------------------------------------------------------------------
-function Hero({ timer, spectrum, setSpectrum, latest, onDownload }) {
+function Hero({ timer, spectrum, setSpectrum, latest, onDownload, next = 'mac' }) {
   const [drag, setDrag] = useState(null); // minutes while dragging the ring
   const last = useRef(timer.minutes);
 
@@ -258,11 +278,11 @@ function Hero({ timer, spectrum, setSpectrum, latest, onDownload }) {
 
       <a
         className="scroll-hint"
-        href="#features"
-        aria-label="Scroll to features"
+        href={`#${next}`}
+        aria-label={`Scroll to ${next}`}
         onClick={(e) => {
           e.preventDefault();
-          document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+          document.getElementById(next)?.scrollIntoView({ behavior: 'smooth' });
         }}
       >
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -588,6 +608,7 @@ export default function App() {
   const [spectrum, setSpectrum] = useState(false);
   const [toast, setToast] = useState(false);
   const toastTimer = useRef(0);
+  useScreenHeight();
 
   const onDownload = () => {
     setToast(true);
@@ -631,9 +652,9 @@ export default function App() {
               latest={latest}
               onDownload={onDownload}
             />
-            <Features />
             <MacSection timer={timer} spectrum={spectrum} />
             <PhoneSection timer={timer} spectrum={spectrum} />
+            <Features />
             <LinkSection timer={timer} spectrum={spectrum} />
             <DownloadSection latest={latest} onDownload={onDownload} spectrum={spectrum} />
           </>

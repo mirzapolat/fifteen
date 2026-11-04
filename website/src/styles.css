@@ -854,9 +854,11 @@ p {
   .hero-dial {
     display: none;
   }
-  /* On phones the hero fills exactly one screen, content centered, arrow at the bottom. */
+  /* On phones the hero fills the whole physical screen (Safari's toolbars float over it),
+     content centered, arrow at the bottom of what's visible on first load. */
   .hero {
-    min-height: 100svh;
+    --hero-h: max(100lvh, var(--screen-h, 0px));
+    min-height: var(--hero-h);
     padding: 96px 20px 88px;
     align-content: center;
   }
@@ -941,7 +943,7 @@ p {
     box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--hair);
   }
   .features-grid .tile {
-    padding: 13px 0;
+    padding: 13px 14px;
     border-radius: 0;
     background: none;
     box-shadow: none;
@@ -952,15 +954,25 @@ p {
   .features-grid .tile::after {
     display: none;
   }
-  .features-grid > .reveal + .reveal .tile {
+  .features-grid {
+    grid-template-columns: 1fr 1fr;
+    padding: 2px 0;
+  }
+  .features-grid > .reveal:nth-child(n + 3) .tile {
     border-top: 1px solid var(--hair);
+  }
+  .features-grid > .reveal:nth-child(even) .tile {
+    border-left: 1px solid var(--hair);
+  }
+  .features-grid > .reveal:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
   .tile h3 {
     font-size: 15px;
     margin-bottom: 2px;
   }
   .tile p {
-    font-size: 13.5px;
+    font-size: 13px;
     line-height: 1.4;
   }
   .section {
@@ -1093,10 +1105,37 @@ kbd {
 
 @media (max-width: 560px) {
   .analytics-list {
-    padding: 4px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 2px 0;
   }
   .analytics-list li {
-    padding: 11px 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 13px 14px;
+  }
+  .analytics-list li + li {
+    border-top: 0;
+  }
+  .analytics-list li:nth-child(n + 3) {
+    border-top: 1px solid var(--hair);
+  }
+  .analytics-list li:nth-child(even) {
+    border-left: 1px solid var(--hair);
+  }
+  .analytics-list li:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+  .analytics-list b {
+    font-size: 15px;
+  }
+  .analytics-list li > span:last-child > span {
+    font-size: 13px;
+    line-height: 1.4;
   }
   .analytics-icon {
     width: 32px;
@@ -1879,6 +1918,26 @@ kbd {
   flex: 0 1 260px;
 }
 
+@media (max-width: 560px) {
+  .phones {
+    flex-wrap: nowrap;
+    gap: 14px;
+    margin-top: 36px;
+  }
+  .phones .phone-slot {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 180px !important;
+  }
+}
+
+/* Phones: the Link section shows just the Mac. */
+@media (max-width: 760px) {
+  .link-mocks .phone-slot {
+    display: none;
+  }
+}
+
 @media (max-width: 860px) {
   .link-mocks {
     flex-direction: column;
@@ -2124,6 +2183,7 @@ kbd {
 @media (max-width: 900px) {
   .scroll-hint {
     display: grid;
+    bottom: calc(var(--hero-h) - 100svh + 44px + env(safe-area-inset-bottom));
   }
 }
 
