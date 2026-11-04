@@ -48,9 +48,14 @@ struct Project: Codable, Identifiable, Hashable, Sendable {
     var isArchived: Bool = false
     var created: Date = .now
 
+    /// Offered in the project icon picker, in rows of eight: work, making, learning, life.
     static let symbols = [
-        "folder", "book", "pencil", "doc.text", "laptopcomputer", "hammer", "paintbrush", "graduationcap",
-        "briefcase", "music.note", "dumbbell", "leaf", "lightbulb", "chart.bar", "globe", "heart",
+        "folder", "briefcase", "doc.text", "pencil", "laptopcomputer", "terminal",
+        "chevron.left.forwardslash.chevron.right", "chart.bar",
+        "hammer", "wrench.and.screwdriver", "paintbrush", "camera", "film", "music.note", "mic", "puzzlepiece",
+        "book", "graduationcap", "lightbulb", "brain.head.profile", "flask", "atom", "function", "globe",
+        "heart", "leaf", "dumbbell", "figure.run", "house", "fork.knife", "airplane", "gamecontroller",
+        "person.2", "envelope", "calendar", "cart", "star", "flag", "pawprint", "theatermasks",
     ]
 }
 

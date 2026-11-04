@@ -15,8 +15,10 @@ final class AppBlocker {
     private let toast = BlockToast()
     private var allowedUntil: [String: Date] = [:]
 
+    /// Blocking holds for the whole focus session, pauses included; apps are released only
+    /// when the session finishes or is reset.
     var isActive: Bool {
-        prefs.hideDistractingApps && engine.phase == .focus && engine.state == .running
+        prefs.hideDistractingApps && engine.phase == .focus && engine.isActive
     }
 
     func start() {
@@ -60,10 +62,11 @@ final class AppBlocker {
         block(app)
         engine.logDistraction()
         let name = app.localizedName ?? "That app"
-        let left = TimeFormat.short(engine.remaining)
+        let left = engine.state == .paused ? "Focus paused"
+            : engine.isFlowtime ? "In the flow" : "\(TimeFormat.short(engine.remaining)) of focus left"
         toast.show(icon: app.icon,
                    title: "\(name) can wait",
-                   subtitle: "\(left) of focus left · distraction logged",
+                   subtitle: "\(left) · distraction logged",
                    allowID: id)
     }
 

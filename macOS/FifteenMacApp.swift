@@ -17,11 +17,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        AppIconChanger.applyAtLaunch(Preferences.shared.appIcon)
         Notifier.shared.setUp()
         let status = StatusItemController()
         statusController = status
         MacIntegrations.shared.start(togglePanel: { status.togglePanel() }, showPanel: { status.showPanel() })
         FifteenShortcuts.updateAppShortcutParameters()
+        LinkSession.shared.start()
 
         // `open Fifteen.app --args --open` shows the bubble right away (handy after first install).
         if CommandLine.arguments.contains("--open") {
@@ -32,6 +34,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if args.contains("--settings") || args.contains("--settings-tab") {
             let tab = args.firstIndex(of: "--settings-tab").flatMap { args.indices.contains($0 + 1) ? Int(args[$0 + 1]) : nil }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { WindowRouter.shared.showSettings(tab: tab) }
+        }
+        // `--link-create` starts a group, `--link-join KQXMRT` joins one (for trying Link out).
+        if args.contains("--link-create") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { LinkSession.shared.createGroup() }
+        }
+        if let i = args.firstIndex(of: "--link-join"), args.indices.contains(i + 1) {
+            let code = args[i + 1]
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { LinkSession.shared.join(code) }
         }
         // `--insights [overview|projects|sessions]` opens Insights (add `--demo` for sample data).
         if args.contains("--insights") {

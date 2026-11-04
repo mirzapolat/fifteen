@@ -35,6 +35,9 @@ targets:
         LSUIElement: true
         LSApplicationCategoryType: public.app-category.productivity
         NSHumanReadableCopyright: Free, no account, no ads.
+        # Lets Link talk to a relay on this Mac or the local network while developing.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
     entitlements:
       path: macOS/Fifteen.entitlements
       properties: {}

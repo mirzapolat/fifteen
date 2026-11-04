@@ -97,7 +97,7 @@ struct TimerSettingsSection: View {
         }
 
         Section {
-            Picker("Daily goal", selection: $prefs.dailyGoal) {
+            Picker("Daily session goal", selection: $prefs.dailyGoal) {
                 Text("Off").tag(0)
                 Divider()
                 ForEach(1...24, id: \.self) { count in
@@ -122,7 +122,7 @@ struct TimerSettingsSection: View {
         } header: {
             Text("Day")
         } footer: {
-            Text("The session goal fills the counter at the top right of the timer. The focus goals appear in Insights: as progress rings in Overview, and the daily one as a line on the per-day chart. A daily focus goal can also be what keeps a streak going.")
+            Text("Goals appear in Insights as progress rings in Overview; the daily focus goal is also a line on the per-day chart. A daily focus goal can also be what keeps a streak going.")
         }
 
         Section {
@@ -445,7 +445,7 @@ struct DisplaySettingsSection: View {
             Toggle("Project & intention", isOn: $prefs.showIntention)
             Toggle("Cycle dots", isOn: $prefs.showCycleDots)
                 .disabled(!prefs.longBreaksEnabled)
-            Toggle("Today's progress", isOn: $prefs.showTodayProgress)
+            Toggle("Swirl when a session starts", isOn: $prefs.startSwirl)
         }
 
         Section {

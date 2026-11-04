@@ -325,17 +325,17 @@ struct GoalRing: View {
     }
 }
 
-/// Five small dots, filled up to the rating.
+/// Five small stars, filled up to the rating (the same stars the timer asks with).
 struct RatingDots: View {
     var value: Int
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 1) {
             ForEach(1...5, id: \.self) { i in
-                Circle()
-                    .fill(Color.ink(scheme).opacity(i <= value ? 0.85 : 0.15))
-                    .frame(width: 5, height: 5)
+                Image(systemName: "star.fill")
+                    .font(.system(size: 7, weight: .semibold))
+                    .foregroundStyle(Color.ink(scheme).opacity(i <= value ? 0.85 : 0.15))
             }
         }
         .accessibilityElement(children: .ignore)

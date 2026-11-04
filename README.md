@@ -20,10 +20,17 @@ The Mac app is ad-hoc signed so it runs locally. For an iPhone/iPad device, set 
 ## What's in it
 
 **Mac menu bar**
-- Menu bar shows the icon, the time, or both (Settings → General). The icon is a tiny ring that empties as time passes, with pause bars when paused.
+- Menu bar shows the time (the default), the icon, or both (Settings → General). The icon is a tiny ring that empties as time passes, with pause bars when paused.
+- The bubble can pop open by itself when a session ends (Settings → General).
+- Four app icons to choose from: the bold "15" or a minimal ring, each dark or light (Settings → Display).
 - Click opens a Liquid Glass bubble that grows out of the menu bar. Right-click opens a quick menu (start/pause, skip, Insights, Settings, Quit); ⌥-click starts/pauses without opening anything.
+- **Link**: focus together with friends. Start a group, share its 6-letter code, and everyone's
+  timer starts, pauses, resets and takes breaks together. Ratings, notes and projects stay private.
+  The relay in `server/link` runs at `wss://fifteen.mirzapolat.com` and deploys on push to main
+  (`.github/workflows/deploy-link.yml`). Locally: `cd server/link && npm install && npm start`, then
+  `defaults write com.mirzapolat.fifteen linkServerURL ws://localhost:8787`.
 - Global shortcuts: ⌃⌥P start/pause, ⌃⌥O open the bubble.
-- Hide distracting apps during focus (each one hidden is logged as a distraction).
+- Hide distracting apps during focus, paused time included (each one hidden is logged as a distraction). While a session runs, blocking can be tightened but not loosened in Settings.
 - Optional full-screen break curtain with a breathing circle and a break suggestion. Esc skips.
 - Pauses focus when the Mac locks or sleeps and resumes when you unlock.
 - Run your own Shortcuts when focus starts and ends (e.g. turn on a Focus mode, start music).
@@ -38,7 +45,7 @@ The Mac app is ad-hoc signed so it runs locally. For an iPhone/iPad device, set 
 - At the end, Start morphs into a tinted "Take a Break" / "Back to Focus" pill.
 - Synthesized sounds (no audio files): bell, singing bowl, wood block, an optional ticking clock, and white noise, rain or deep-rumble background sound.
 - Notifications with "Start Next" and "5 More Minutes" actions.
-- Daily goal shown as a quiet bar that resets each morning at an hour you choose. No streaks.
+- After focus, "How did it go?" with five stars right in the ring.
 - Insights: overview with comparisons and charts, a year heatmap, projects, a searchable session table, goals, opt-in streaks, CSV/JSON export and backup import.
 - Shortcuts / Siri: Start Focus (optional minutes), Start Break, Pause or Resume, Stop, Get Time Left.
 

@@ -81,23 +81,7 @@ struct ProjectsSection: View {
     private func projectRow(_ project: Project, share: ProjectShare?, total: Double) -> some View {
         let minutes = share?.minutes ?? 0
         return HStack(spacing: 12) {
-            Menu {
-                ForEach(Project.symbols, id: \.self) { symbol in
-                    Button { var p = project; p.symbol = symbol; history.updateProject(p) } label: {
-                        Label(symbol, systemImage: symbol)
-                    }
-                }
-            } label: {
-                Image(systemName: project.symbol)
-                    .frame(width: 30, height: 30)
-                    .background(Circle().fill(InsightStyle(scheme: scheme).cardFill))
-                    .overlay(Circle().strokeBorder(InsightStyle(scheme: scheme).cardEdge, lineWidth: 1))
-            }
-            .menuStyle(.button)
-            .buttonStyle(.plain)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help("Change symbol")
+            ProjectSymbolButton(project: project)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(project.name).foregroundStyle(project.isArchived ? .secondary : .primary)
@@ -177,5 +161,78 @@ struct Sparkline: View {
         .chartYAxis(.hidden)
         .chartLegend(.hidden)
         .accessibilityHidden(true)
+    }
+}
+
+/// The project's icon; click it to choose another from a grid.
+private struct ProjectSymbolButton: View {
+    var project: Project
+    @Environment(HistoryStore.self) private var history
+    @Environment(\.colorScheme) private var scheme
+    @State private var picking = false
+
+    var body: some View {
+        let style = InsightStyle(scheme: scheme)
+        Button { picking.toggle() } label: {
+            Image(systemName: project.symbol)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(style.cardFill))
+                .overlay(Circle().strokeBorder(picking ? Color.ink(scheme).opacity(0.6) : style.cardEdge, lineWidth: 1))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help("Change icon")
+        .accessibilityLabel("Icon for \(project.name)")
+        .popover(isPresented: $picking, arrowEdge: .bottom) {
+            SymbolGrid(selection: project.symbol) { symbol in
+                var p = project
+                p.symbol = symbol
+                history.updateProject(p)
+                picking = false
+            }
+            .presentationCompactAdaptation(.popover)
+        }
+    }
+}
+
+/// A grid of project icons with the current one highlighted.
+struct SymbolGrid: View {
+    var selection: String
+    var choose: (String) -> Void
+    @Environment(\.colorScheme) private var scheme
+    @State private var hovered: String?
+
+    private static let cell: CGFloat = 34
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Icon")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(Self.cell), spacing: 6), count: 8), spacing: 6) {
+                ForEach(Project.symbols, id: \.self) { symbol in
+                    let selected = symbol == selection
+                    Button { choose(symbol) } label: {
+                        Image(systemName: symbol)
+                            .font(.system(size: 15))
+                            .foregroundStyle(selected ? (scheme == .dark ? Color.black : Color.white) : Color.primary)
+                            .frame(width: Self.cell, height: Self.cell)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(selected ? Color.ink(scheme)
+                                          : Color.primary.opacity(hovered == symbol ? 0.1 : 0.04))
+                            )
+                            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { inside in
+                        if inside { hovered = symbol } else if hovered == symbol { hovered = nil }
+                    }
+                    .accessibilityLabel(symbol.replacingOccurrences(of: ".", with: " "))
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                }
+            }
+        }
+        .padding(14)
     }
 }

@@ -65,6 +65,21 @@ enum RingTheme: String, CaseIterable, Identifiable {
     }
 }
 
+/// The Mac app's icon: the bold "15" or a minimal ring, each in dark or light.
+enum AppIconStyle: String, CaseIterable, Identifiable {
+    case fifteenDark, fifteenLight, ringDark, ringLight
+    var id: Self { self }
+    var title: String {
+        switch self {
+        case .fifteenDark: "15 Dark"
+        case .fifteenLight: "15 Light"
+        case .ringDark: "Ring Dark"
+        case .ringLight: "Ring Light"
+        }
+    }
+    var isDark: Bool { self == .fifteenDark || self == .ringDark }
+}
+
 /// A named rhythm, e.g. "Study" = 50 min focus + 10 min breaks.
 struct TimerPreset: Codable, Identifiable, Hashable {
     var id = UUID()
@@ -164,15 +179,19 @@ final class Preferences {
     var ringTheme: RingTheme { didSet { store.set(ringTheme.rawValue, forKey: Key.ringTheme) } }
     var showIntention: Bool { didSet { store.set(showIntention, forKey: Key.showIntention) } }
     var showCycleDots: Bool { didSet { store.set(showCycleDots, forKey: Key.showCycleDots) } }
-    var showTodayProgress: Bool { didSet { store.set(showTodayProgress, forKey: Key.showTodayProgress) } }
     var showWeekChart: Bool { didSet { store.set(showWeekChart, forKey: Key.showWeekChart) } }
     /// After focus: "What did you get done?" and a 1–5 focus rating.
     var askForReflection: Bool { didSet { store.set(askForReflection, forKey: Key.askForReflection) } }
+    /// A comet swirls around the ring as a session starts (Pomodoro and Flowtime).
+    var startSwirl: Bool { didSet { store.set(startSwirl, forKey: Key.startSwirl) } }
 
     // Mac
     var menuBarDisplay: MenuBarDisplay { didSet { store.set(menuBarDisplay.rawValue, forKey: Key.menuBarDisplay) } }
     var menuBarSeconds: Bool { didSet { store.set(menuBarSeconds, forKey: Key.menuBarSeconds) } }
     var menuBarIcon: MenuBarIconStyle { didSet { store.set(menuBarIcon.rawValue, forKey: Key.menuBarIcon) } }
+    var appIcon: AppIconStyle { didSet { store.set(appIcon.rawValue, forKey: Key.appIcon) } }
+    /// Mac: open the timer bubble when a session ends.
+    var openWhenDone: Bool { didSet { store.set(openWhenDone, forKey: Key.openWhenDone) } }
     var globalHotKeys: Bool { didSet { store.set(globalHotKeys, forKey: Key.globalHotKeys) } }
     var hideDistractingApps: Bool { didSet { store.set(hideDistractingApps, forKey: Key.hideDistractingApps) } }
     var blockedApps: [String] { didSet { store.set(blockedApps, forKey: Key.blockedApps) } }
@@ -200,7 +219,7 @@ final class Preferences {
             Key.ringTheme: RingTheme.mono.rawValue,
             Key.showIntention: true,
             Key.showCycleDots: true,
-            Key.showTodayProgress: true,
+            Key.startSwirl: true,
             Key.showWeekChart: true,
             Key.askForReflection: true,
             Key.shortBreaksEnabled: true,
@@ -226,9 +245,11 @@ final class Preferences {
             Key.ambientDuringBreaks: false,
             Key.notifications: true,
             Key.haptics: true,
-            Key.menuBarDisplay: MenuBarDisplay.iconAndTime.rawValue,
+            Key.menuBarDisplay: MenuBarDisplay.time.rawValue,
             Key.menuBarSeconds: true,
             Key.menuBarIcon: MenuBarIconStyle.ring.rawValue,
+            Key.appIcon: AppIconStyle.fifteenDark.rawValue,
+            Key.openWhenDone: true,
             Key.globalHotKeys: true,
             Key.hideDistractingApps: false,
             Key.blockedApps: [String](),
@@ -252,7 +273,7 @@ final class Preferences {
         ringTheme = RingTheme(rawValue: store.string(forKey: Key.ringTheme) ?? "") ?? .mono
         showIntention = store.bool(forKey: Key.showIntention)
         showCycleDots = store.bool(forKey: Key.showCycleDots)
-        showTodayProgress = store.bool(forKey: Key.showTodayProgress)
+        startSwirl = store.bool(forKey: Key.startSwirl)
         showWeekChart = store.bool(forKey: Key.showWeekChart)
         askForReflection = store.bool(forKey: Key.askForReflection)
         shortBreaksEnabled = store.bool(forKey: Key.shortBreaksEnabled)
@@ -278,9 +299,11 @@ final class Preferences {
         ambientDuringBreaks = store.bool(forKey: Key.ambientDuringBreaks)
         notifications = store.bool(forKey: Key.notifications)
         haptics = store.bool(forKey: Key.haptics)
-        menuBarDisplay = MenuBarDisplay(rawValue: store.string(forKey: Key.menuBarDisplay) ?? "") ?? .iconAndTime
+        menuBarDisplay = MenuBarDisplay(rawValue: store.string(forKey: Key.menuBarDisplay) ?? "") ?? .time
         menuBarSeconds = store.bool(forKey: Key.menuBarSeconds)
         menuBarIcon = MenuBarIconStyle(rawValue: store.string(forKey: Key.menuBarIcon) ?? "") ?? .ring
+        appIcon = AppIconStyle(rawValue: store.string(forKey: Key.appIcon) ?? "") ?? .fifteenDark
+        openWhenDone = store.bool(forKey: Key.openWhenDone)
         globalHotKeys = store.bool(forKey: Key.globalHotKeys)
         hideDistractingApps = store.bool(forKey: Key.hideDistractingApps)
         blockedApps = store.stringArray(forKey: Key.blockedApps) ?? []
@@ -348,7 +371,7 @@ final class Preferences {
         static let ringTheme = "ringTheme"
         static let showIntention = "showIntention"
         static let showCycleDots = "showCycleDots"
-        static let showTodayProgress = "showTodayProgress"
+        static let startSwirl = "startSwirl"
         static let showWeekChart = "showWeekChart"
         static let askForReflection = "askForReflection"
         static let soundEnabled = "soundEnabled"
@@ -375,6 +398,8 @@ final class Preferences {
         static let menuBarDisplay = "menuBarDisplay"
         static let menuBarSeconds = "menuBarSeconds"
         static let menuBarIcon = "menuBarIcon"
+        static let appIcon = "appIcon"
+        static let openWhenDone = "openWhenDone"
         static let globalHotKeys = "globalHotKeys"
         static let hideDistractingApps = "hideDistractingApps"
         static let blockedApps = "blockedApps"

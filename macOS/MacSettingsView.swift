@@ -15,7 +15,11 @@ final class SettingsTabController: NSTabViewController {
         add("Timer", symbol: "timer", height: Self.paneHeight) { Form { TimerSettingsSection() }.formStyle(.grouped) }
         add("Sound", symbol: "speaker.wave.2", height: Self.paneHeight) { Form { SoundSettingsSection() }.formStyle(.grouped) }
         add("Display", symbol: "circle.lefthalf.filled", height: Self.paneHeight) {
-            Form { DisplaySettingsSection() }.formStyle(.grouped)
+            Form {
+                DisplaySettingsSection()
+                AppIconSection()
+            }
+            .formStyle(.grouped)
         }
         add("Focus", symbol: "eye.slash", height: Self.paneHeight) { FocusPane() }
         add("About", symbol: "info.circle", height: Self.paneHeight) { AboutView() }
@@ -60,6 +64,7 @@ private struct GeneralPane: View {
                 }
                 Toggle("Show seconds", isOn: $prefs.menuBarSeconds)
                     .disabled(prefs.menuBarDisplay == .icon)
+                Toggle("Open the timer when a session ends", isOn: $prefs.openWhenDone)
             }
 
             Section {
@@ -82,7 +87,7 @@ private struct GeneralPane: View {
             } header: {
                 Text("System")
             } footer: {
-                Text("Fifteen picks up where you left off when you unlock.")
+                Text("Fifteen picks up where you left off when you unlock. While linked with others, locking doesn't pause the group's timer.")
             }
         }
         .formStyle(.grouped)
@@ -91,17 +96,37 @@ private struct GeneralPane: View {
 
 private struct FocusPane: View {
     @Environment(Preferences.self) private var prefs
+    @Environment(TimerEngine.self) private var engine
 
     var body: some View {
         @Bindable var prefs = prefs
+        // While a session is running or paused, nothing here can be loosened: you can add
+        // restrictions, but not switch them off. Finish or reset the timer to change them.
+        let locked = engine.isActive
         Form {
+            if locked {
+                Section {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Locked while a session runs")
+                            Text("You can add blocked apps, but not remove them or switch blocking off. Finish or reset the timer to change these.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "lock.fill")
+                    }
+                }
+            }
             Section {
                 Toggle("Block distracting apps while focusing", isOn: $prefs.hideDistractingApps.animation())
+                    .disabled(locked && prefs.hideDistractingApps)
                 if prefs.hideDistractingApps {
                     Picker("When one opens", selection: $prefs.blockAction) {
                         ForEach(BlockAction.allCases) { Text($0.title).tag($0) }
                     }
                     .pickerStyle(.segmented)
+                    .disabled(locked)
                 }
             } header: {
                 Text("App Blocker")
@@ -113,11 +138,11 @@ private struct FocusPane: View {
 
             if prefs.hideDistractingApps {
                 Section("Blocked Apps") {
-                    BlockedAppsList()
+                    BlockedAppsList(locked: locked)
                 }
             }
 
-            DoNotDisturbSection()
+            DoNotDisturbSection(locked: locked)
 
             Section {
                 Toggle("Cover the screen during breaks", isOn: $prefs.breakCurtain)
@@ -128,12 +153,14 @@ private struct FocusPane: View {
             }
         }
         .formStyle(.grouped)
+        .animation(.snappy, value: locked)
     }
 }
 
 /// Do Not Disturb and your own shortcuts, both run when focus starts and ends.
 /// Do Not Disturb gets a guided one-time setup of the two shortcuts it needs.
 private struct DoNotDisturbSection: View {
+    var locked = false
     @Environment(Preferences.self) private var prefs
     private var dnd: DoNotDisturb { DoNotDisturb.shared }
 
@@ -142,6 +169,7 @@ private struct DoNotDisturbSection: View {
         Section {
             Toggle("Turn on Do Not Disturb while focusing", isOn: $prefs.doNotDisturb.animation())
                 .onChange(of: prefs.doNotDisturb) { DoNotDisturb.shared.sync() }
+                .disabled(locked && prefs.doNotDisturb)
             if prefs.doNotDisturb {
                 shortcutRow(DoNotDisturb.onName, found: dnd.hasOnShortcut,
                             recipe: "Add “Set Focus”, choose Do Not Disturb, set it to Turn On.")
@@ -238,6 +266,8 @@ private struct LaunchAtLoginToggle: View {
 }
 
 private struct BlockedAppsList: View {
+    /// During a session apps can be added but not removed.
+    var locked = false
     @Environment(Preferences.self) private var prefs
 
     /// Common time sinks, offered one click away if they're installed.
@@ -260,14 +290,20 @@ private struct BlockedAppsList: View {
                     .frame(width: 20, height: 20)
                 Text(name(for: id))
                 Spacer()
-                Button {
-                    withAnimation { prefs.blockedApps.removeAll { $0 == id } }
-                } label: {
-                    Image(systemName: "minus.circle.fill")
+                if locked {
+                    Image(systemName: "lock.fill")
+                        .foregroundStyle(.tertiary)
+                        .help("Can't be removed during a session")
+                } else {
+                    Button {
+                        withAnimation { prefs.blockedApps.removeAll { $0 == id } }
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Remove")
                 }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
-                .help("Remove")
             }
         }
         if !suggestions.isEmpty {

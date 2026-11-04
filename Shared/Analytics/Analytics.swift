@@ -131,6 +131,8 @@ struct Analytics: Sendable {
 
     func minutes(onDayOf date: Date) -> Double { byDay[day(of: date)]?.minutes ?? 0 }
 
+    func sessions(onDayOf date: Date) -> Int { byDay[day(of: date)]?.sessions ?? 0 }
+
     func minutes(inWeekOf date: Date) -> Double {
         guard let week = calendar.dateInterval(of: .weekOfYear, for: day(of: date)) else { return 0 }
         return byDay.filter { week.contains($0.key) }.reduce(0) { $0 + $1.value.minutes }

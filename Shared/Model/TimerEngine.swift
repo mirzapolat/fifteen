@@ -36,6 +36,11 @@ final class TimerEngine {
     @ObservationIgnored private var ticker: Task<Void, Never>?
     @ObservationIgnored private var listeners: [(TimerEvent) -> Void] = []
     @ObservationIgnored private let snapshotKey = "timerSnapshot"
+    /// Called after every change, for Link to pass on (it coalesces the in-between steps).
+    @ObservationIgnored var onChange: (() -> Void)?
+    /// A linked group can run a session in a different mode than this device's setting.
+    /// Cleared as soon as this device picks a phase itself.
+    private(set) var linkedMode: TimerMode?
 
     private init() {
         total = Preferences.shared.isFlowtime ? Self.flowtimeCap : Preferences.shared.duration(for: .focus)
@@ -60,7 +65,10 @@ final class TimerEngine {
     static let flowtimeCap: TimeInterval = 12 * 3600
 
     /// True when the current session counts up (Flowtime focus).
-    var isFlowtime: Bool { phase == .focus && prefs.isFlowtime }
+    var isFlowtime: Bool { phase == .focus && sessionMode == .flowtime }
+
+    /// The mode of the current session: this device's setting, unless a linked group set it.
+    var sessionMode: TimerMode { linkedMode ?? prefs.timerMode }
 
     func elapsed(at date: Date) -> TimeInterval {
         switch state {
@@ -73,7 +81,7 @@ final class TimerEngine {
     var elapsed: TimeInterval { elapsed(at: now) }
 
     private func defaultTotal(for phase: Phase) -> TimeInterval {
-        phase == .focus && prefs.isFlowtime ? Self.flowtimeCap : prefs.duration(for: phase)
+        phase == .focus && sessionMode == .flowtime ? Self.flowtimeCap : prefs.duration(for: phase)
     }
 
     /// 0 at the start of a session, 1 at the end.
@@ -99,7 +107,7 @@ final class TimerEngine {
         let every = prefs.sessionsBeforeLongBreak
         if every > 0 && completedInCycle > 0 && completedInCycle % every == 0 { return .longBreak }
         // Flowtime always rests after a session; its break length comes from the session.
-        return prefs.shortBreaksEnabled || prefs.isFlowtime ? .shortBreak : .focus
+        return prefs.shortBreaksEnabled || sessionMode == .flowtime ? .shortBreak : .focus
     }
 
     // MARK: Actions
@@ -183,10 +191,11 @@ final class TimerEngine {
         finishOvertime()
         let next = nextPhase
         let cameFromFocus = phase == .focus && state == .finished
+        let wasFlowtime = sessionMode == .flowtime
         if phase == .longBreak { completedInCycle = 0 }
         select(next)
         // Flowtime: the break grows with the session (a fifth of it by default).
-        if cameFromFocus && prefs.isFlowtime && next == .shortBreak && lastFocusDuration > 0 {
+        if cameFromFocus && wasFlowtime && next == .shortBreak && lastFocusDuration > 0 {
             let minutes = max(1, (lastFocusDuration / 60 / Double(max(1, prefs.flowtimeBreakDivisor))).rounded())
             total = minutes * 60
             changed()
@@ -218,6 +227,7 @@ final class TimerEngine {
     func select(_ newPhase: Phase) {
         if isActive { emit(.stopped) }
         if state == .finished { finishOvertime() }
+        linkedMode = nil
         phase = newPhase
         state = .idle
         endDate = nil
@@ -285,6 +295,123 @@ final class TimerEngine {
         listeners.append(listener)
     }
 
+    // MARK: Link
+
+    /// The timer as linked devices see it.
+    var shared: SharedTimer {
+        SharedTimer(phase: phase, mode: sessionMode, state: state, total: total,
+                    endsAt: state == .running ? endDate : nil,
+                    pausedRemaining: state == .paused ? (pausedRemaining ?? total) : nil,
+                    startedAt: state == .idle ? nil : sessionStart)
+    }
+
+    /// Takes on a change someone else in the group made. It runs through the same events as a
+    /// local change, so sounds, notifications, the app blocker and Do Not Disturb follow along,
+    /// and this device still records its own sessions.
+    func adopt(_ s: SharedTimer) {
+        now = Date()
+        // A session that is about to end here (clocks differ by a moment) ends and is recorded
+        // first, so a friend starting the break a split second early doesn't swallow it.
+        if state == .running, remaining(at: now) <= 2,
+           s.phase != phase || s.startedAt.map({ abs($0.timeIntervalSince(sessionStart ?? .distantPast)) > 1.5 }) ?? true {
+            endDate = now
+            complete()
+        }
+        guard !shared.matches(s, at: now) else { return }
+
+        let wasActive = isActive
+        let previous = state
+        let sameSession = phase == s.phase && previous != .idle
+            && sessionStart.flatMap { mine in s.startedAt.map { abs($0.timeIntervalSince(mine)) < 1.5 } } == true
+        linkedMode = s.mode == prefs.timerMode ? nil : s.mode
+
+        switch s.state {
+        case .idle:
+            finishOvertime()
+            if wasActive {
+                Haptics.play(.pause)
+                emit(.stopped)
+            }
+            if phase == .longBreak && s.phase != .longBreak { completedInCycle = 0 }
+            phase = s.phase
+            state = .idle
+            endDate = nil
+            pausedRemaining = nil
+            sessionStart = nil
+            total = s.total
+
+        case .running, .paused:
+            if !sameSession {
+                finishOvertime()
+                if wasActive { emit(.stopped) }
+                if phase == .longBreak && s.phase != .longBreak { completedInCycle = 0 }
+                phase = s.phase
+                sessionStart = s.startedAt ?? now
+                distractions = 0
+                pausedTotal = 0
+                pauseStartedAt = nil
+                endedEarly = false
+                plannedDuration = isFlowtime ? nil : s.total
+            } else if previous == .finished {
+                // Someone reopened the session for a few more minutes: take this device's record
+                // back too, so it isn't counted twice.
+                finishOvertime()
+                if phase == .focus, let id = lastRecordID, history.record(id) != nil {
+                    history.delete([id])
+                    completedInCycle = max(0, completedInCycle - 1)
+                }
+            }
+            total = s.total
+            if s.state == .running {
+                if previous == .paused, let pauseStartedAt { pausedTotal += now.timeIntervalSince(pauseStartedAt) }
+                pauseStartedAt = nil
+                endDate = s.endsAt ?? now.addingTimeInterval(s.total)
+                pausedRemaining = nil
+            } else {
+                if previous != .paused { pauseStartedAt = now }
+                pausedRemaining = s.pausedRemaining ?? s.total
+                endDate = nil
+            }
+            state = s.state
+            if !sameSession || previous == .idle {
+                Haptics.play(.start)
+                emit(.started(phase))
+                if state == .paused { emit(.paused) }
+            } else if previous == .paused && state == .running {
+                Haptics.play(.start)
+                emit(.resumed)
+            } else if previous == .running && state == .paused {
+                Haptics.play(.pause)
+                emit(.paused)
+            } else if previous == .finished {
+                emit(.resumed)
+            }
+            changed()
+            // It may already be over (e.g. joining a group whose session just ran out).
+            refresh()
+            return
+
+        case .finished:
+            // Someone finished early: end here too, recording the time actually spent.
+            if sameSession && wasActive && phase == .focus {
+                total = s.total
+                endDate = now
+                endedEarly = true
+                complete()
+                return
+            }
+            if wasActive { emit(.stopped) }
+            phase = s.phase
+            state = .finished
+            total = s.total
+            endDate = nil
+            pausedRemaining = nil
+            sessionStart = s.startedAt
+            lastRecordID = nil
+        }
+        changed()
+    }
+
     // MARK: Internals
 
     private func complete() {
@@ -296,7 +423,7 @@ final class TimerEngine {
                                      intention: intention.trimmingCharacters(in: .whitespacesAndNewlines),
                                      distractions: distractions,
                                      projectID: history.project(projectID) == nil ? nil : projectID,
-                                     mode: prefs.timerMode,
+                                     mode: sessionMode,
                                      plannedDuration: plannedDuration,
                                      endedEarly: endedEarly,
                                      pausedTime: pausedTotal)
@@ -304,7 +431,7 @@ final class TimerEngine {
             lastRecordID = record.id
             lastFocusDuration = total
             // A short Flowtime session is kept in history but doesn't earn a step toward the long break.
-            if !prefs.isFlowtime || total >= TimeInterval(prefs.flowtimeMinimumMinutes * 60) {
+            if sessionMode != .flowtime || total >= TimeInterval(prefs.flowtimeMinimumMinutes * 60) {
                 completedInCycle += 1
             }
         }
@@ -339,6 +466,7 @@ final class TimerEngine {
         Notifier.shared.sync(with: self)
         SoundEngine.shared.syncAmbient(playing: shouldPlayAmbient)
         startTickerIfNeeded()
+        onChange?()
     }
 
     private var shouldPlayAmbient: Bool {

@@ -1,15 +1,28 @@
 import SwiftUI
 
-/// "FOCUS ●●○○" — the phase and where you are in the cycle before a long break.
+/// The phase switch on the left; on the Mac, "Link" on the right.
+/// (Today's goal progress lives in Insights → Overview, with the other goals.)
 struct PhaseHeader: View {
-    @Environment(TimerEngine.self) private var engine
-    @Environment(Preferences.self) private var prefs
-
     var body: some View {
-        HStack {
-            PhaseSwitcher()
-            Spacer()
-            HeaderCounter()
+        GlassEffectContainer(spacing: 2) {
+            HStack {
+                #if os(macOS)
+                // While the Link card is open, its title takes the switcher's place.
+                if LinkChrome.shared.isOpen {
+                    LinkTitle()
+                        .transition(.blurReplace)
+                } else {
+                    PhaseSwitcher()
+                        .transition(.blurReplace)
+                }
+                #else
+                PhaseSwitcher()
+                #endif
+                Spacer()
+                #if os(macOS)
+                LinkButton()
+                #endif
+            }
         }
         .frame(height: Pill.height)
     }
@@ -167,7 +180,7 @@ struct IntentionField: View {
     }
 }
 
-private extension View {
+extension View {
     /// A quiet rounded box that brightens while you type.
     func fieldBox(focused: Bool) -> some View {
         let shape = RoundedRectangle(cornerRadius: Pill.height * 0.32, style: .continuous)
@@ -180,67 +193,6 @@ private extension View {
 }
 
 extension EnvironmentValues {
-    /// Changes every time the timer is presented (each time the Mac popup opens), to replay the counter hint.
+    /// Changes every time the timer is presented (each time the Mac popup opens).
     @Entry var presentationCount = 0
-}
-
-/// Top right: today's progress toward the daily goal. (The cycle dots live inside the ring.)
-struct HeaderCounter: View {
-    @Environment(Preferences.self) private var prefs
-
-    var body: some View {
-        if prefs.showTodayProgress {
-            GoalCounter()
-                .frame(height: 20, alignment: .trailing)
-        }
-    }
-}
-
-/// "3/8 today" with a tiny bar; "3 today" when there's no daily goal.
-struct GoalCounter: View {
-    @Environment(HistoryStore.self) private var history
-    @Environment(Preferences.self) private var prefs
-
-    var body: some View {
-        let count = history.todayCount(hour: prefs.dayStartsAtHour)
-        let goal = prefs.dailyGoal // 0 = no goal
-        let time = history.todayDuration(hour: prefs.dayStartsAtHour)
-        HStack(spacing: 6) {
-            if goal > 0 {
-                GoalBar(value: Double(count) / Double(goal))
-                    .frame(width: 26, height: 3)
-                Text(count >= goal ? "\(count)/\(goal) ✓" : "\(count)/\(goal) today")
-            } else {
-                Text("\(count) today")
-            }
-        }
-        .font(.caption.weight(.medium))
-        .monospacedDigit()
-        .foregroundStyle(.secondary)
-        .contentTransition(.numericText())
-        .animation(.snappy, value: count)
-        .fixedSize()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(goal > 0
-            ? "\(count) of \(goal) sessions today, \(TimeFormat.duration(time)) focused"
-            : "\(count) sessions today, \(TimeFormat.duration(time)) focused")
-    }
-}
-
-struct GoalBar: View {
-    var value: Double
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        GeometryReader { geo in
-            Capsule()
-                .fill(Color.ink(scheme).opacity(0.15))
-                .overlay(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.ink(scheme))
-                        .frame(width: geo.size.width * min(1, max(0, value)))
-                }
-        }
-        .animation(.spring(duration: 0.6), value: value)
-    }
 }

@@ -36,7 +36,10 @@ struct DialView: View {
         .onChange(of: dragMinutes) { if dragMinutes != nil { Haptics.play(.select) } }
         .onChange(of: engine.state) { old, new in
             // A fresh start (not resuming from pause) sends a comet swirling around the ring.
-            if new == .running && (old == .idle || old == .finished) && !reduceMotion { swirlStart = .now }
+            // It can be switched off in Settings → Display.
+            if new == .running && (old == .idle || old == .finished) && !reduceMotion && prefs.startSwirl {
+                swirlStart = .now
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(engine.phase.title), \(clockText) \(engine.state == .paused ? "paused" : "")")
@@ -51,6 +54,9 @@ struct DialView: View {
         // Flowtime focus has no fill and no dot: just the track and, once started, the current.
         let flowFocus = engine.isFlowtime && engine.phase == .focus && engine.state != .finished
         let knobHidden = flowFocus || (engine.state == .idle && dragMinutes == nil && !engine.isFlowtime)
+        // While running, the rainbow drifts slowly around the ring (one lap every 24 s).
+        let drift = rainbow && engine.state == .running
+            ? date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 24) / 24 : 0
         return ZStack {
             BreathingDisc(active: engine.phase.isBreak && engine.state == .running)
                 .padding(lineWidth * 4)
@@ -63,10 +69,10 @@ struct DialView: View {
                 Group {
                     if rainbow {
                         // A soft halo under the ring, then the ring itself.
-                        arc(fraction).stroke(Self.spectrum(scheme), style: stroke(lineWidth * 1.6))
+                        arc(fraction).stroke(Self.spectrum(scheme, offset: drift), style: stroke(lineWidth * 1.6))
                             .blur(radius: lineWidth * 1.8)
                             .opacity(scheme == .dark ? 0.9 : 0.6)
-                        arc(fraction).stroke(Self.spectrum(scheme), style: stroke(lineWidth))
+                        arc(fraction).stroke(Self.spectrum(scheme, offset: drift), style: stroke(lineWidth))
                     } else {
                         arc(fraction).stroke(Color.ink(scheme), style: stroke(lineWidth))
                     }
@@ -74,22 +80,19 @@ struct DialView: View {
                 .opacity(flowFocus ? 0 : 1)
 
                 if flowing {
-                    flowCurrent(at: date)
+                    flowCurrent(at: date, drift: drift)
                 } else {
-                    swirl(at: date)
+                    swirl(at: date, drift: drift)
                 }
 
                 Circle()
-                    .fill(rainbow ? Self.hue(at: fraction, scheme) : Color.ink(scheme))
-                    .shadow(color: rainbow ? Self.hue(at: fraction, scheme).opacity(0.8) : .clear, radius: lineWidth * 1.4)
+                    .fill(rainbow ? Self.hue(at: fraction + drift, scheme) : Color.ink(scheme))
+                    .shadow(color: rainbow ? Self.hue(at: fraction + drift, scheme).opacity(0.8) : .clear, radius: lineWidth * 1.4)
                     .frame(width: lineWidth * 2.2, height: lineWidth * 2.2)
                     .offset(y: -radius)
                     .rotationEffect(.degrees(360 * fraction))
                     .opacity(knobHidden ? 0 : 1)
             }
-            // While running, the colors drift slowly around the ring.
-            .hueRotation(.degrees(rainbow && engine.state == .running
-                                  ? date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 24) * 15 : 0))
 
             center(size: size)
         }
@@ -99,12 +102,12 @@ struct DialView: View {
 
     /// A bright comet that whips around the ring twice as a session starts, slowing and fading out.
     @ViewBuilder
-    private func swirl(at date: Date) -> some View {
+    private func swirl(at date: Date, drift: Double) -> some View {
         if let start = swirlStart {
             let t = date.timeIntervalSince(start) / Self.swirlDuration
             if t >= 0 && t < 1 {
                 let eased = 1 - pow(1 - t, 3)
-                comet(color: prefs.ringTheme == .rainbow ? Self.hue(at: eased * 2, scheme) : Color.ink(scheme),
+                comet(color: prefs.ringTheme == .rainbow ? Self.hue(at: eased * 2 + drift, scheme) : Color.ink(scheme),
                       tail: 0.32, headAngle: 720 * eased)
                     .opacity(min(1, t / 0.12) * min(1, (1 - t) / 0.35))
             }
@@ -122,7 +125,7 @@ struct DialView: View {
     /// every few seconds, over the bare track (no fill, no dot — there's no end to count toward).
     /// On start it whips around twice and settles into its cruising speed (the start swirl
     /// flows straight into it, no seam). Pausing freezes and dims it.
-    private func flowCurrent(at date: Date) -> some View {
+    private func flowCurrent(at date: Date, drift: Double) -> some View {
         let elapsed = engine.elapsed(at: date)
         var turns = elapsed / Self.flowLap
         var fadeIn = 1.0
@@ -135,7 +138,7 @@ struct DialView: View {
             }
         }
         let head = turns.truncatingRemainder(dividingBy: 1)
-        return comet(color: prefs.ringTheme == .rainbow ? Self.hue(at: head, scheme) : Color.ink(scheme),
+        return comet(color: prefs.ringTheme == .rainbow ? Self.hue(at: head + drift, scheme) : Color.ink(scheme),
                      tail: 0.3, headAngle: 360 * head)
             .opacity(fadeIn * (engine.state == .paused ? 0.4 : 1))
     }
@@ -169,21 +172,42 @@ struct DialView: View {
         StrokeStyle(lineWidth: width, lineCap: .round)
     }
 
-    private static let hueStops = 12
+    private static let hueStops = 24
 
-    /// The rainbow around the ring, starting and ending on the same red so there's no seam.
-    /// Angles are measured from 12 o'clock, matching `arc`.
-    static func spectrum(_ scheme: ColorScheme) -> AngularGradient {
-        let colors = (0...hueStops).map { hue(at: Double($0) / Double(hueStops), scheme) }
+    /// Hand-picked, equally luminous stops: sky → blue → violet → magenta → pink → coral → orange.
+    /// A plain hue wheel passes through yellows and greens that look muddy on the ring, so the
+    /// rainbow walks out along these and back again, which also leaves no seam at the top.
+    private static let palette: [(r: Double, g: Double, b: Double)] = [
+        (0.18, 0.76, 1.00), // sky
+        (0.30, 0.50, 1.00), // blue
+        (0.55, 0.38, 1.00), // violet
+        (0.85, 0.32, 0.95), // magenta
+        (1.00, 0.32, 0.60), // pink
+        (1.00, 0.44, 0.36), // coral
+        (1.00, 0.60, 0.24), // orange
+    ]
+
+    /// The rainbow around the ring, starting at 12 o'clock to match `arc`.
+    /// `offset` slides the colors along the ring (0…1 is one full lap).
+    static func spectrum(_ scheme: ColorScheme, offset: Double = 0) -> AngularGradient {
+        let colors = (0...hueStops).map { hue(at: Double($0) / Double(hueStops) + offset, scheme) }
         return AngularGradient(colors: colors, center: .center,
                                startAngle: .degrees(-90), endAngle: .degrees(270))
     }
 
     /// The rainbow's color at a point around the ring (0 = top, 1 = all the way round).
     static func hue(at position: Double, _ scheme: ColorScheme) -> Color {
-        Color(hue: position.truncatingRemainder(dividingBy: 1),
-              saturation: scheme == .dark ? 0.7 : 0.8,
-              brightness: scheme == .dark ? 1 : 0.92)
+        var p = position.truncatingRemainder(dividingBy: 1)
+        if p < 0 { p += 1 }
+        // Out along the palette over the first half of the ring, back over the second.
+        let walk = (p < 0.5 ? p * 2 : (1 - p) * 2) * Double(palette.count - 1)
+        let i = min(Int(walk), palette.count - 2)
+        let t = walk - Double(i)
+        let a = palette[i], b = palette[i + 1]
+        // A touch lighter on dark backgrounds so the glow reads as light, not paint.
+        let lift = scheme == .dark ? 0.12 : 0
+        func mix(_ x: Double, _ y: Double) -> Double { let v = x + (y - x) * t; return v + (1 - v) * lift }
+        return Color(red: mix(a.r, b.r), green: mix(a.g, b.g), blue: mix(a.b, b.b))
     }
 
     private func center(size: CGFloat) -> some View {
@@ -194,19 +218,27 @@ struct DialView: View {
                     .padding(.bottom, size * 0.01)
                     .transition(.blurReplace)
             }
-            Text(clockText)
-                .font(.system(size: size * 0.21, weight: .light))
-                .monospacedDigit()
-                .contentTransition(.numericText(countsDown: engine.state != .finished && !engine.isFlowtime))
-                .animation(.snappy(duration: 0.25), value: clockText)
-                .phaseAnimator(engine.state == .paused ? [1.0, 0.3] : [1.0]) { text, opacity in
-                    text.opacity(opacity)
-                } animation: { _ in .easeInOut(duration: 1.1) }
-                .minimumScaleFactor(0.5)
             if showsRating {
+                // The session is over: no "Done", just "How did it go?" and five stars.
                 FocusRating(size: size)
                     .transition(.blurReplace)
             } else {
+                if isQuietlyDone {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: size * 0.15, weight: .light))
+                        .frame(height: size * 0.25)
+                        .transition(.blurReplace)
+                } else {
+                    Text(clockText)
+                        .font(.system(size: size * 0.21, weight: .light))
+                        .monospacedDigit()
+                        .contentTransition(.numericText(countsDown: engine.state != .finished && !engine.isFlowtime))
+                        .animation(.snappy(duration: 0.25), value: clockText)
+                        .phaseAnimator(engine.state == .paused ? [1.0, 0.3] : [1.0]) { text, opacity in
+                            text.opacity(opacity)
+                        } animation: { _ in .easeInOut(duration: 1.1) }
+                        .minimumScaleFactor(0.5)
+                }
                 HStack(spacing: size * 0.02) {
                     if let symbol = actionSymbol {
                         Image(systemName: symbol)
@@ -216,6 +248,8 @@ struct DialView: View {
                     Text(subtitle)
                         .tracking(1.4)
                         .textCase(.uppercase)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                         .contentTransition(.opacity)
                 }
                 .font(.system(size: max(10, size * 0.05), weight: .semibold))
@@ -234,6 +268,11 @@ struct DialView: View {
             && engine.lastRecordID != nil && !engine.isCountingOvertime
     }
 
+    /// Finished, with nothing to count or rate: a quiet checkmark instead of a time.
+    private var isQuietlyDone: Bool {
+        engine.state == .finished && !engine.isCountingOvertime && dragMinutes == nil
+    }
+
     private func fraction(at date: Date) -> Double {
         if let dragMinutes { return Double(dragMinutes) / 60 }
         // Flowtime fills the ring like a clock's minute hand, once per hour.
@@ -250,7 +289,8 @@ struct DialView: View {
     private var clockText: String {
         if let dragMinutes { return TimeFormat.clock(TimeInterval(dragMinutes * 60)) }
         if engine.state == .finished {
-            return engine.isCountingOvertime ? "+" + TimeFormat.clock(engine.overtime) : "Done"
+            // Only read aloud; the ring shows a checkmark or the rating instead.
+            return engine.isCountingOvertime ? "+" + TimeFormat.clock(engine.overtime) : "Finished"
         }
         if engine.isFlowtime { return TimeFormat.clock(engine.elapsed) }
         return TimeFormat.clock(engine.remaining)
@@ -267,7 +307,9 @@ struct DialView: View {
     }
 
     private var subtitle: String {
-        switch engine.state {
+        // "Mira paused": someone in the Link group just changed the timer.
+        if let message = LinkActivity.shared.message, !hovering, dragMinutes == nil { return message }
+        return switch engine.state {
         case .idle: dragMinutes == nil ? "Start" : "Release to set"
         case .running: hovering ? "Pause" : (engine.isFlowtime ? "Flowtime" : engine.phase.title)
         case .paused: "Resume"
@@ -301,41 +343,50 @@ struct DialView: View {
     }
 }
 
-/// "How focused were you?" — five dots, tap one. Stored on the session that just ended.
+/// "How did it go?" — five stars, tap one. Stored on the session that just ended.
 struct FocusRating: View {
     @Environment(TimerEngine.self) private var engine
     @Environment(HistoryStore.self) private var history
     @Environment(\.colorScheme) private var scheme
     var size: CGFloat
+    /// The star under the pointer, previewed before you click.
+    @State private var hovered: Int?
 
     var body: some View {
         let id = engine.lastRecordID
         let current = history.record(id)?.rating ?? 0
-        let dot = max(7, size * 0.042)
-        VStack(spacing: size * 0.025) {
-            Text(current == 0 ? "How focused were you?" : FocusRecord.ratingWords[current])
-                .font(.system(size: max(10, size * 0.045), weight: .semibold))
-                .tracking(1.2)
-                .textCase(.uppercase)
-                .foregroundStyle(.secondary)
+        let shown = hovered ?? current
+        let star = max(12, size * 0.075)
+        VStack(spacing: size * 0.04) {
+            Text(shown == 0 ? "How did it go?" : FocusRecord.ratingWords[shown])
+                .font(.system(size: max(13, size * 0.085), weight: .regular))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .contentTransition(.opacity)
-            HStack(spacing: dot * 0.6) {
+                .animation(.snappy(duration: 0.2), value: shown)
+            HStack(spacing: star * 0.12) {
                 ForEach(1...5, id: \.self) { value in
                     Button {
                         guard let id else { return }
                         withAnimation(.spring(duration: 0.35, bounce: 0.4)) { history.update(id, rating: value) }
                     } label: {
-                        Circle()
-                            .fill(Color.ink(scheme).opacity(value <= current ? 1 : 0.18))
-                            .frame(width: dot, height: dot)
-                            .scaleEffect(value == current ? 1.25 : 1)
-                            .padding(dot * 0.35)
+                        Image(systemName: value <= shown ? "star.fill" : "star")
+                            .font(.system(size: star, weight: .medium))
+                            .foregroundStyle(Color.ink(scheme).opacity(value <= shown ? 1 : 0.3))
+                            .contentTransition(.symbolEffect(.replace))
+                            .scaleEffect(value == current && hovered == nil ? 1.15 : 1)
+                            .padding(star * 0.14)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .onHover { inside in
+                        if inside { hovered = value } else if hovered == value { hovered = nil }
+                    }
                     .accessibilityLabel("\(value) of 5, \(FocusRecord.ratingWords[value])")
+                    .accessibilityAddTraits(value == current ? .isSelected : [])
                 }
             }
+            .animation(.snappy(duration: 0.15), value: shown)
             .onChange(of: current) { Haptics.play(.select) }
         }
     }

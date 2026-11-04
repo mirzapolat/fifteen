@@ -62,12 +62,23 @@ final class MacIntegrations {
         switch event {
         case .started(.focus):
             runShortcut(prefs.focusStartShortcut)
-        case .finished(.focus):
-            runShortcut(prefs.focusEndShortcut)
+        case .finished(let phase):
+            if phase == .focus { runShortcut(prefs.focusEndShortcut) }
+            popUpIfWanted()
         case .stopped where engine.phase == .focus:
             runShortcut(prefs.focusEndShortcut)
         default:
             break
+        }
+    }
+
+    /// "Open the timer when a session ends": show the bubble, but only for a session that just
+    /// ended (not one that ran out while Fifteen was closed), and not under a break curtain.
+    private func popUpIfWanted() {
+        guard prefs.openWhenDone, let end = engine.endDate, Date().timeIntervalSince(end) < 5 else { return }
+        DispatchQueue.main.async { [self] in
+            let curtainUp = prefs.breakCurtain && engine.phase.isBreak && engine.state == .running
+            if !curtainUp { showPanel() }
         }
     }
 
@@ -95,7 +106,9 @@ final class MacIntegrations {
     // MARK: Lock & sleep — pause focus while you're away, pick up where you left off
 
     private func screenLocked() {
-        guard prefs.pauseWhenLocked, engine.phase == .focus, engine.state == .running else { return }
+        // Not while linked: one person stepping away would pause the whole group.
+        guard prefs.pauseWhenLocked, !LinkSession.shared.isLinked,
+              engine.phase == .focus, engine.state == .running else { return }
         engine.pause()
         pausedByLock = true
     }

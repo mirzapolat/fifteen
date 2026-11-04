@@ -152,18 +152,31 @@ struct OverviewSection: View {
     // MARK: Progress
 
     private var hasProgress: Bool {
-        prefs.dailyGoalMinutes > 0 || prefs.weeklyGoalMinutes > 0 || prefs.streaksEnabled
+        prefs.dailyGoal > 0 || prefs.dailyGoalMinutes > 0 || prefs.weeklyGoalMinutes > 0 || prefs.streaksEnabled
     }
 
     private var progress: some View {
         let streaks = prefs.streaksEnabled ? analytics.streaks(prefs.streakRule) : nil
         return VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 24) {
+            // Wraps onto a second row when the card is narrow.
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 16, alignment: .leading)],
+                      alignment: .leading, spacing: 14) {
+                if prefs.dailyGoal > 0 {
+                    let count = analytics.sessions(onDayOf: .now)
+                    goalRing("Sessions today", progress: Double(count) / Double(prefs.dailyGoal),
+                             value: "\(count)", detail: "of \(prefs.dailyGoal)")
+                }
                 if prefs.dailyGoalMinutes > 0 {
-                    goalRing("Today", value: analytics.minutes(onDayOf: .now), goal: Double(prefs.dailyGoalMinutes))
+                    let value = analytics.minutes(onDayOf: .now)
+                    goalRing("Today", progress: value / Double(prefs.dailyGoalMinutes),
+                             value: InsightFormat.minutes(value),
+                             detail: "of \(InsightFormat.minutes(Double(prefs.dailyGoalMinutes)))")
                 }
                 if prefs.weeklyGoalMinutes > 0 {
-                    goalRing("This week", value: analytics.minutes(inWeekOf: .now), goal: Double(prefs.weeklyGoalMinutes))
+                    let value = analytics.minutes(inWeekOf: .now)
+                    goalRing("This week", progress: value / Double(prefs.weeklyGoalMinutes),
+                             value: InsightFormat.minutes(value),
+                             detail: "of \(InsightFormat.minutes(Double(prefs.weeklyGoalMinutes)))")
                 }
             }
             if let streaks {
@@ -182,21 +195,22 @@ struct OverviewSection: View {
         }
     }
 
-    private func goalRing(_ title: String, value: Double, goal: Double) -> some View {
+    private func goalRing(_ title: String, progress: Double, value: String, detail: String) -> some View {
         HStack(spacing: 10) {
             ZStack {
-                GoalRing(progress: value / goal)
-                Text("\(min(999, Int((value / goal * 100).rounded())))%")
+                GoalRing(progress: progress)
+                Text("\(min(999, Int((progress * 100).rounded())))%")
                     .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()
             }
             .frame(width: 44, height: 44)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                Text(InsightFormat.minutes(value)).font(.headline).monospacedDigit()
-                Text("of \(InsightFormat.minutes(goal))").font(.caption).foregroundStyle(.secondary)
+                Text(value).font(.headline).monospacedDigit()
+                Text(detail).font(.caption).foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: Text

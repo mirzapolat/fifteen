@@ -25,7 +25,7 @@ final class StatusItemController: NSObject {
     }
 
     func togglePanel() { panel.toggle() }
-    func showPanel() { panel.open() }
+    func showPanel() { if !panel.isShown { panel.open() } }
 
     @objc private func clicked() {
         let event = NSApp.currentEvent
@@ -119,9 +119,12 @@ final class StatusItemController: NSObject {
         let showIcon = mode != .time
         let showTime = mode == .time || (mode == .iconAndTime && state != .idle)
 
+        // In a Link group, a small "two people" mark sits next to the time.
+        let linked = LinkSession.shared.isLinked
         button.image = showIcon
             ? MenuBarIcon.image(style: prefs.menuBarIcon, fraction: fraction, state: state, phase: engine.phase)
-            : nil
+            : (linked ? Self.linkMark : nil)
+        let hasImage = button.image != nil
 
         if showTime {
             let text: String
@@ -133,13 +136,21 @@ final class StatusItemController: NSObject {
             }
             let size = NSFont.menuBarFont(ofSize: 0).pointSize
             let font = NSFont.monospacedDigitSystemFont(ofSize: size, weight: .regular)
-            button.attributedTitle = NSAttributedString(string: showIcon ? " " + text : text,
+            button.attributedTitle = NSAttributedString(string: hasImage ? " " + text : text,
                                                         attributes: [.font: font, .foregroundColor: NSColor.labelColor, .baselineOffset: 0.5])
         } else {
             button.attributedTitle = NSAttributedString(string: "")
         }
         button.toolTip = "\(engine.phase.title) · \(TimeFormat.clock(remaining))"
     }
+
+    private static let linkMark: NSImage? = {
+        let config = NSImage.SymbolConfiguration(pointSize: 10, weight: .semibold)
+        let image = NSImage(systemSymbolName: "person.2.fill", accessibilityDescription: "Linked")?
+            .withSymbolConfiguration(config)
+        image?.isTemplate = true
+        return image
+    }()
 
     private func clock(_ interval: TimeInterval) -> String {
         prefs.menuBarSeconds ? TimeFormat.clock(interval) : TimeFormat.short(interval)

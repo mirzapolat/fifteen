@@ -1,0 +1,35 @@
+# fifteen-link: the relay that keeps linked Fifteen timers in step.
+# Fronted by the external Traefik instance (TLS + routing managed outside this project);
+# Traefik passes WebSocket upgrades straight through.
+# Compose reads the .env next to this file (on the VPS: ~/docker/apps/fifteen-link/.env).
+#
+#   cp .env.example .env   # set LINK_SECRET
+#   docker compose up --build -d
+
+services:
+  fifteen-link:
+    build:
+      context: .
+    image: fifteen-link
+    environment:
+      NODE_ENV: production
+      PORT: 8787
+      # Signs group tickets; keep it the same forever so groups survive restarts.
+      LINK_SECRET: ${LINK_SECRET}
+    expose:
+      - "8787"
+    networks:
+      - home
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.fifteen-link.rule: "Host(`fifteen.mirzapolat.com`)"
+      traefik.http.routers.fifteen-link.entrypoints: websecure
+      traefik.http.routers.fifteen-link.tls.certresolver: letsencrypt
+      traefik.http.routers.fifteen-link.middlewares: secure-headers@file,compress@file
+      traefik.http.services.fifteen-link.loadbalancer.server.port: "8787"
+    restart: unless-stopped
+
+# Joins the existing Traefik network (created/managed outside this project).
+networks:
+  home:
+    external: true
