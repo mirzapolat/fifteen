@@ -9,6 +9,9 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
     private let center = UNUserNotificationCenter.current()
     private let requestID = "fifteen.session.end"
+    private let linkRequestID = "fifteen.link.activity"
+    /// Opens the timer (the Mac's bubble) when a Link notification is clicked.
+    var openTimer: (() -> Void)?
     private let category = "fifteen.end"
     private var asked = false
 
@@ -58,6 +61,19 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         center.add(UNNotificationRequest(identifier: requestID, content: content, trigger: trigger))
     }
 
+    /// "Mira paused" — someone in the Link group changed the timer. Each one replaces the last,
+    /// so a burst of changes leaves a single, current banner rather than a stack.
+    func notifyLinkActivity(title: String, body: String) {
+        requestAuthorizationIfNeeded()
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.threadIdentifier = "fifteen.link"
+        content.userInfo = ["link": true]
+        center.removeDeliveredNotifications(withIdentifiers: [linkRequestID])
+        center.add(UNNotificationRequest(identifier: linkRequestID, content: content, trigger: nil))
+    }
+
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
                                             withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .list])
@@ -74,6 +90,8 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
                 if engine.state == .finished { engine.advance(autoStart: true) }
             case "snooze":
                 engine.extend(by: 5 * 60)
+            case UNNotificationDefaultActionIdentifier:
+                Notifier.shared.openTimer?()
             default:
                 break
             }

@@ -153,6 +153,7 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
         position(panel)
         panel.makeKeyAndOrderFront(nil)
         anchor()?.highlight(true)
+        LinkChrome.shared.bubbleShown = true
         presentation.openCount += 1
         // Ready to type an intention when there's none yet; otherwise don't select the existing text.
         if !(engine.state == .idle && engine.intention.isEmpty) { panel.makeFirstResponder(nil) }
@@ -169,6 +170,7 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
     func close() {
         guard presentation.isOpen else { return }
         withAnimation(.spring(duration: 0.28, bounce: 0)) { presentation.isOpen = false }
+        LinkChrome.shared.bubbleShown = false
         anchor()?.highlight(false)
         if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
         clickMonitor = nil
@@ -276,27 +278,32 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             PhaseHeader()
                 .padding(.bottom, Self.ringGap)
-            // The Link card takes the ring's place (and most of the gap under it), so the bubble
-            // never changes size; its title moves up into the header.
-            ZStack(alignment: .top) {
-                if LinkChrome.shared.isOpen {
+            // The Link card covers everything under the header (ring, field and controls), so its
+            // buttons sit on the bubble's bottom edge like the controls do. What it covers keeps its
+            // room, so the bubble never changes size; the card's title moves up into the header.
+            let linkOpen = LinkChrome.shared.isOpen
+            VStack(spacing: 0) {
+                ZStack {
+                    if !linkOpen {
+                        DialView(lineWidth: 5)
+                            .frame(width: 204, height: 204)
+                            .transition(.blurReplace.combined(with: .scale(0.94)))
+                    }
+                }
+                .frame(height: 204)
+                .padding(.bottom, Self.ringGap)
+                VStack(spacing: 0) {
+                    IntentionField()
+                    ControlPills()
+                }
+                .steppedAway(linkOpen)
+            }
+            .overlay {
+                if linkOpen {
                     LinkCard()
-                        .frame(height: 204 + Self.ringGap - 8, alignment: .top)
-                        .frame(height: 204, alignment: .top)
-                        .transition(.blurReplace.combined(with: .scale(0.94)))
-                } else {
-                    DialView(lineWidth: 5)
-                        .frame(width: 204, height: 204)
-                        .transition(.blurReplace.combined(with: .scale(0.94)))
+                        .transition(.blurReplace.combined(with: .scale(0.96, anchor: .top)))
                 }
             }
-            .frame(height: 204)
-            .padding(.bottom, Self.ringGap)
-            VStack(spacing: 0) {
-                IntentionField()
-                ControlPills()
-            }
-            .steppedBack(LinkChrome.shared.isOpen)
         }
         .padding(16)
         .padding(.top, Self.arrowHeight)

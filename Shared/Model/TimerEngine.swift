@@ -36,10 +36,13 @@ final class TimerEngine {
     @ObservationIgnored private var ticker: Task<Void, Never>?
     @ObservationIgnored private var listeners: [(TimerEvent) -> Void] = []
     @ObservationIgnored private let snapshotKey = "timerSnapshot"
+    /// In a Link group: the idle timer is the group's, so Settings leave it alone (see TimerSettingsSection).
+    var isLinked = false
     /// Called after every change, for Link to pass on (it coalesces the in-between steps).
     @ObservationIgnored var onChange: (() -> Void)?
-    /// A linked group can run a session in a different mode than this device's setting.
-    /// Cleared as soon as this device picks a phase itself.
+    /// The mode the current session runs in, fixed when it starts (or set by a Link group), so
+    /// switching Pomodoro/Flowtime in Settings mid-session can't flip a running session.
+    /// Cleared whenever this device goes back to idle by itself.
     private(set) var linkedMode: TimerMode?
 
     private init() {
@@ -124,6 +127,7 @@ final class TimerEngine {
 
     func start() {
         guard state == .idle else { return }
+        if linkedMode == nil { linkedMode = prefs.timerMode }
         now = Date()
         sessionStart = now
         endDate = now.addingTimeInterval(total)
@@ -167,6 +171,7 @@ final class TimerEngine {
     func reset() {
         finishOvertime()
         let wasActive = isActive
+        linkedMode = nil
         state = .idle
         endDate = nil
         pausedRemaining = nil
@@ -277,6 +282,14 @@ final class TimerEngine {
         changed()
     }
 
+    /// After history is wiped: nothing left to rate, no project to count toward, a fresh cycle.
+    func forgetHistory() {
+        lastRecordID = nil
+        projectID = nil
+        completedInCycle = 0
+        changed()
+    }
+
     /// The Pomodoro Technique's interruption mark.
     func logDistraction() {
         guard phase == .focus, isActive else { return }
@@ -323,7 +336,8 @@ final class TimerEngine {
         let previous = state
         let sameSession = phase == s.phase && previous != .idle
             && sessionStart.flatMap { mine in s.startedAt.map { abs($0.timeIntervalSince(mine)) < 1.5 } } == true
-        linkedMode = s.mode == prefs.timerMode ? nil : s.mode
+        // A running or paused session keeps its mode; idle follows this device's setting when they agree.
+        linkedMode = s.state == .idle && s.mode == prefs.timerMode ? nil : s.mode
 
         switch s.state {
         case .idle:

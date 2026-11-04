@@ -2,12 +2,11 @@ import SwiftUI
 import AppKit
 
 extension View {
-    /// While the Link card is open, the other controls fade and blur into the glass:
-    /// they can't be used then, and the card is the one thing to look at.
-    func steppedBack(_ active: Bool) -> some View {
-        blur(radius: active ? 5 : 0)
-            .opacity(active ? 0.3 : 1)
-            .saturation(active ? 0 : 1)
+    /// While the Link card is open, the controls under it blur away completely: they can't be
+    /// used then, and they keep their room so the bubble doesn't change size.
+    func steppedAway(_ active: Bool) -> some View {
+        blur(radius: active ? 8 : 0)
+            .opacity(active ? 0 : 1)
             .allowsHitTesting(!active)
             .accessibilityHidden(active)
             .animation(Pill.morph, value: active)
@@ -20,6 +19,8 @@ extension View {
 final class LinkChrome {
     static let shared = LinkChrome()
     var isOpen = false
+    /// Whether the bubble itself is open (then the line under the ring says it, no banner needed).
+    @ObservationIgnored var bubbleShown = false
     /// Showing the code entry rather than the intro.
     var joining = false
 }
@@ -30,13 +31,15 @@ struct LinkTitle: View {
     private var chrome: LinkChrome { LinkChrome.shared }
 
     var body: some View {
-        let title = link.isLinked ? "Your group" : (chrome.joining ? "Join a group" : "Focus together")
+        // In a group the code says it all; the header stays empty.
+        let title = link.isLinked ? "" : (chrome.joining ? "Join a group" : "Focus together")
         Text(title)
             .font(.headline)
             .padding(.leading, 4)
             .contentTransition(.opacity)
             .animation(.snappy, value: title)
             .accessibilityAddTraits(.isHeader)
+            .accessibilityHidden(title.isEmpty)
     }
 }
 
@@ -261,47 +264,43 @@ struct LinkCard: View {
 
     // MARK: Linked
 
+    /// The code on top, who's here in the middle, Copy Code and Leave along the bottom.
     private var linked: some View {
-        VStack(spacing: 10) {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Group code")
-                        .font(.caption2.weight(.semibold))
-                        .textCase(.uppercase)
-                        .tracking(1)
-                        .foregroundStyle(.secondary)
-                    Text(spaced(link.code ?? ""))
-                        .font(.system(size: 26, weight: .semibold, design: .monospaced))
-                        .textSelection(.enabled)
-                }
-                Spacer()
-                Button(action: copyCode) {
-                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                        .contentTransition(.symbolEffect(.replace))
-                        .frame(width: Pill.height)
-                        .pill(square: true)
-                }
-                .buttonStyle(.plain)
-                .help("Copy the code")
-                .accessibilityLabel("Copy the code")
+        VStack(spacing: 0) {
+            VStack(spacing: 2) {
+                Text(link.status == .linked ? "Group code" : "Group code · reconnecting…")
+                    .font(.caption2.weight(.semibold))
+                    .textCase(.uppercase)
+                    .tracking(1)
+                    .foregroundStyle(.secondary)
+                    .contentTransition(.opacity)
+                Text(spaced(link.code ?? ""))
+                    .font(.system(size: 30, weight: .semibold, design: .monospaced))
+                    .textSelection(.enabled)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 18)
 
             ScrollView {
-                VStack(spacing: 6) {
+                VStack(spacing: 8) {
                     ForEach(link.members) { member in
                         memberRow(member)
                     }
                 }
             }
             .scrollIndicators(.never)
-            .frame(maxHeight: .infinity)
+            .frame(maxHeight: .infinity, alignment: .top)
 
-            HStack {
-                Text(statusText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .contentTransition(.opacity)
-                Spacer()
+            HStack(spacing: Pill.spacing) {
+                Button(action: copyCode) {
+                    Label(copied ? "Copied" : "Copy Code", systemImage: copied ? "checkmark" : "doc.on.doc")
+                        .contentTransition(.symbolEffect(.replace))
+                        .frame(maxWidth: .infinity)
+                        .pill(prominent: true)
+                }
+                .buttonStyle(.plain)
+                .help("Copy the code to send it to a friend")
+                .glassEffectID("primary", in: glass)
                 Button { link.leave() } label: {
                     Label("Leave", systemImage: "rectangle.portrait.and.arrow.right")
                         .fixedSize()
@@ -311,6 +310,7 @@ struct LinkCard: View {
                 .help("Leave the group. Your timer carries on here.")
                 .glassEffectID("secondary", in: glass)
             }
+            .padding(.top, 12)
         }
     }
 
@@ -333,12 +333,6 @@ struct LinkCard: View {
             }
         }
         .accessibilityElement(children: .combine)
-    }
-
-    private var statusText: String {
-        if link.status != .linked { return "Reconnecting…" }
-        let others = link.others.count
-        return others == 0 ? "Share the code to invite" : "\(others + 1) in sync"
     }
 
     private func spaced(_ code: String) -> String {

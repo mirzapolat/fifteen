@@ -71,7 +71,7 @@ struct FocusCalendarCard: View {
     private func yearSubtitle(_ summary: Summary) -> String {
         var parts = ["\(InsightFormat.minutes(summary.focus / 60)) focused", "\(summary.activeDays) active days"]
         if prefs.streaksEnabled {
-            parts.append("best streak \(analytics.streaks(prefs.streakRule).longest)")
+            parts.append("all-time best streak \(analytics.streaks(prefs.streakRule).longest)")
         }
         return parts.joined(separator: " · ") + " · click a day for details"
     }

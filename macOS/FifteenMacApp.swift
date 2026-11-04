@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Notifier.shared.setUp()
         let status = StatusItemController()
         statusController = status
+        Notifier.shared.openTimer = { status.showPanel() }
         MacIntegrations.shared.start(togglePanel: { status.togglePanel() }, showPanel: { status.showPanel() })
         FifteenShortcuts.updateAppShortcutParameters()
         LinkSession.shared.start()
@@ -29,7 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--open") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { status.showPanel() }
         }
-        // `--settings` opens Settings; `--settings-tab 2` picks a tab (0 General … 3 Focus).
+        // `--settings` opens Settings; `--settings-tab 2` picks a tab (0 General, 1 Keyboard, 2 Timer, 3 Sound, 4 Display, 5 Focus, 6 About).
         let args = CommandLine.arguments
         if args.contains("--settings") || args.contains("--settings-tab") {
             let tab = args.firstIndex(of: "--settings-tab").flatMap { args.indices.contains($0 + 1) ? Int(args[$0 + 1]) : nil }

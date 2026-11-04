@@ -22,13 +22,24 @@ enum AppInfo {
 }
 
 struct AboutView: View {
+    #if os(macOS)
+    @Environment(Preferences.self) private var prefs
+    #endif
+
     var body: some View {
         Form {
             Section {
                 VStack(spacing: 10) {
+                    #if os(macOS)
+                    // The icon you picked in Display (it carries its own shadow).
+                    Image(nsImage: AppIconArt.image(prefs.appIcon, size: 256))
+                        .resizable()
+                        .frame(width: 104, height: 104)
+                    #else
                     AppMark()
                         .frame(width: 88, height: 88)
                         .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
+                    #endif
                     Text(AppInfo.name)
                         .font(.title.weight(.semibold))
                     Text("Version \(AppInfo.version) (\(AppInfo.build))")
@@ -58,10 +69,15 @@ struct AboutView: View {
                 Text("Developer")
             } footer: {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Free, with no account and no ads. Your history stays on this device.")
+                    Text("Free, with no account and no ads. Your history stays on this device; Link shares only the timer.")
                     Text(AppInfo.copyright)
                 }
             }
+
+            #if os(macOS)
+            // Where Mac apps usually keep their reset buttons. (On iPhone they're in Settings.)
+            ResetSection()
+            #endif
         }
         .formStyle(.grouped)
     }

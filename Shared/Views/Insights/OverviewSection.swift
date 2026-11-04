@@ -26,6 +26,12 @@ struct OverviewSection: View {
 
                 FocusCalendarCard(analytics: analytics, period: period)
 
+                // Goals are about today and this week, so they show even when the period
+                // you're looking at is empty (that's when "0 of 8" matters most).
+                if hasProgress && summary.sessions == 0 {
+                    InsightCard(title: "Progress") { progress }
+                }
+
                 if summary.sessions > 0 {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 16, alignment: .top)],
                               alignment: .leading, spacing: 16) {

@@ -65,7 +65,9 @@ struct TimerSettingsSection: View {
         } header: {
             Text("Rhythm")
         } footer: {
-            if prefs.isFlowtime {
+            if TimerEngine.shared.isLinked {
+                Text("You're in a Link group: these are your own lengths. They're used when you start or reset the timer, and the group's timer stays as it is until then.")
+            } else if prefs.isFlowtime {
                 Text("Flowtime counts up. Work until your focus fades, press Finish, and take a break sized to the session. Shorter sessions are still saved, but don't count toward the long break.")
             } else {
                 Text(prefs.anyBreaksEnabled
@@ -73,7 +75,7 @@ struct TimerSettingsSection: View {
                      : "No breaks: each session ends and waits for you to start the next one.")
             }
         }
-        .onChange(of: prefs.timerMode) { TimerEngine.shared.reloadIdle() }
+        .onChange(of: prefs.timerMode) { if !TimerEngine.shared.isLinked { TimerEngine.shared.reloadIdle() } }
         .onChange(of: prefs.focusMinutes) { syncIdle(.focus) }
         .onChange(of: prefs.shortBreakMinutes) { syncIdle(.shortBreak) }
         .onChange(of: prefs.longBreakMinutes) { syncIdle(.longBreak) }
@@ -151,15 +153,17 @@ struct TimerSettingsSection: View {
         current > 0 && !presets.contains(current) ? (presets + [current]).sorted() : presets
     }
 
+    /// Settings follow onto an idle timer, except a Link group's, which is everyone's.
     private func syncIdle(_ phase: Phase) {
         let engine = TimerEngine.shared
+        guard !engine.isLinked else { return }
         if engine.state == .idle && engine.phase == phase { engine.select(phase) }
     }
 
     /// If the timer is waiting on a kind of break you just turned off, go back to focus.
     private func leaveDisabledBreak() {
         let engine = TimerEngine.shared
-        guard engine.state == .idle else { return }
+        guard engine.state == .idle, !engine.isLinked else { return }
         if (engine.phase == .shortBreak && !prefs.shortBreaksEnabled)
             || (engine.phase == .longBreak && !prefs.longBreaksEnabled) {
             engine.select(.focus)
@@ -349,7 +353,7 @@ struct PresetsSection: View {
                     HStack(spacing: 6) {
                         Button {
                             prefs.apply(preset)
-                            TimerEngine.shared.reloadIdle()
+                            if !TimerEngine.shared.isLinked { TimerEngine.shared.reloadIdle() }
                         } label: {
                             Image(systemName: prefs.isCurrent(preset) ? "checkmark.circle.fill" : "circle")
                         }
@@ -441,6 +445,10 @@ struct DisplaySettingsSection: View {
             .pickerStyle(.segmented)
         }
 
+        #if os(macOS)
+        AppIconSection()
+        #endif
+
         Section("Timer") {
             Toggle("Project & intention", isOn: $prefs.showIntention)
             Toggle("Cycle dots", isOn: $prefs.showCycleDots)
@@ -453,7 +461,7 @@ struct DisplaySettingsSection: View {
         } header: {
             Text("After a Session")
         } footer: {
-            Text("Write what you got done and rate how focused you were, right on the timer. Both show up in History.")
+            Text("Write what you got done and rate how it went, right on the timer. Both show up in Insights.")
         }
 
         Section {
@@ -555,3 +563,69 @@ struct InkSwitchStyle: ToggleStyle {
     private static let size = CGSize(width: 51, height: 31)
     #endif
 }
+
+/// Two ways to start over, each asked twice: settings back to factory defaults, and all history gone.
+struct ResetSection: View {
+    @Environment(Preferences.self) private var prefs
+    @Environment(HistoryStore.self) private var history
+    @Environment(TimerEngine.self) private var engine
+    @State private var confirmSettings = false
+    @State private var confirmHistory = false
+
+    var body: some View {
+        Section {
+            LabeledContent {
+                Button("Reset Settings…", role: .destructive) { confirmSettings = true }
+                    // Mid-session it would also switch off the app blocker, which is locked then.
+                    .disabled(engine.isActive)
+            } label: {
+                Text("Restore factory settings")
+                if engine.isActive {
+                    Text("Finish or reset the timer first.")
+                }
+            }
+            .confirmationDialog("Reset all settings?", isPresented: $confirmSettings) {
+                Button("Reset Settings", role: .destructive) { resetSettings() }
+            } message: {
+                Text("Every setting goes back to how Fifteen comes: timer lengths, presets, sounds, display, menu bar, app blocker and the rest. Your history and projects stay.")
+            }
+
+            LabeledContent {
+                Button("Delete History…", role: .destructive) { confirmHistory = true }
+                    .disabled(history.records.isEmpty && history.projects.isEmpty)
+            } label: {
+                Text("Delete all history")
+                Text(historySummary)
+            }
+            .confirmationDialog("Delete all history?", isPresented: $confirmHistory) {
+                Button("Delete Everything", role: .destructive) { wipeHistory() }
+            } message: {
+                Text("All sessions, notes, ratings and projects are deleted from this device, and Insights starts empty. This can't be undone. To keep a copy, export a backup from Insights first.")
+            }
+        } header: {
+            Text("Start Over")
+        }
+    }
+
+    private var historySummary: String {
+        let sessions = history.records.count, projects = history.projects.count
+        if sessions == 0 && projects == 0 { return "Nothing recorded yet." }
+        return "\(sessions) session\(sessions == 1 ? "" : "s"), \(projects) project\(projects == 1 ? "" : "s")"
+    }
+
+    private func resetSettings() {
+        withAnimation { prefs.resetToFactoryDefaults() }
+        if !engine.isLinked { engine.reloadIdle() }
+        #if os(macOS)
+        AppIconChanger.apply(prefs.appIcon)
+        DoNotDisturb.shared.sync()
+        #endif
+    }
+
+    private func wipeHistory() {
+        withAnimation { history.wipeEverything() }
+        engine.forgetHistory()
+        Haptics.play(.select)
+    }
+}
+

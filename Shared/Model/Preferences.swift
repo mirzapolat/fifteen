@@ -192,6 +192,8 @@ final class Preferences {
     var appIcon: AppIconStyle { didSet { store.set(appIcon.rawValue, forKey: Key.appIcon) } }
     /// Mac: open the timer bubble when a session ends.
     var openWhenDone: Bool { didSet { store.set(openWhenDone, forKey: Key.openWhenDone) } }
+    /// Mac, Link: a notification when someone else in the group changes the timer.
+    var linkNotifications: Bool { didSet { store.set(linkNotifications, forKey: Key.linkNotifications) } }
     var globalHotKeys: Bool { didSet { store.set(globalHotKeys, forKey: Key.globalHotKeys) } }
     var hideDistractingApps: Bool { didSet { store.set(hideDistractingApps, forKey: Key.hideDistractingApps) } }
     var blockedApps: [String] { didSet { store.set(blockedApps, forKey: Key.blockedApps) } }
@@ -250,6 +252,7 @@ final class Preferences {
             Key.menuBarIcon: MenuBarIconStyle.ring.rawValue,
             Key.appIcon: AppIconStyle.fifteenDark.rawValue,
             Key.openWhenDone: true,
+            Key.linkNotifications: true,
             Key.globalHotKeys: true,
             Key.hideDistractingApps: false,
             Key.blockedApps: [String](),
@@ -304,6 +307,7 @@ final class Preferences {
         menuBarIcon = MenuBarIconStyle(rawValue: store.string(forKey: Key.menuBarIcon) ?? "") ?? .ring
         appIcon = AppIconStyle(rawValue: store.string(forKey: Key.appIcon) ?? "") ?? .fifteenDark
         openWhenDone = store.bool(forKey: Key.openWhenDone)
+        linkNotifications = store.bool(forKey: Key.linkNotifications)
         globalHotKeys = store.bool(forKey: Key.globalHotKeys)
         hideDistractingApps = store.bool(forKey: Key.hideDistractingApps)
         blockedApps = store.stringArray(forKey: Key.blockedApps) ?? []
@@ -315,6 +319,122 @@ final class Preferences {
         liveActivity = store.bool(forKey: Key.liveActivity)
         keepScreenOn = store.bool(forKey: Key.keepScreenOn)
     }
+
+    /// Every setting back to how Fifteen ships. History, projects and Link membership are untouched.
+    func resetToFactoryDefaults() {
+        for key in Self.allKeys { store.removeObject(forKey: key) }
+        // Read everything back; with the stored values gone, these are the registered defaults.
+        focusMinutes = store.integer(forKey: Key.focusMinutes)
+        shortBreakMinutes = store.integer(forKey: Key.shortBreakMinutes)
+        longBreakMinutes = store.integer(forKey: Key.longBreakMinutes)
+        timerMode = TimerMode(rawValue: store.string(forKey: Key.timerMode) ?? "") ?? .pomodoro
+        flowtimeBreakDivisor = store.integer(forKey: Key.flowtimeBreakDivisor)
+        flowtimeMinimumMinutes = store.integer(forKey: Key.flowtimeMinimumMinutes)
+        presets = store.data(forKey: Key.presets).flatMap { try? JSONDecoder().decode([TimerPreset].self, from: $0) }
+            ?? TimerPreset.defaults
+        appearance = AppearanceMode(rawValue: store.string(forKey: Key.appearance) ?? "") ?? .system
+        ringTheme = RingTheme(rawValue: store.string(forKey: Key.ringTheme) ?? "") ?? .mono
+        showIntention = store.bool(forKey: Key.showIntention)
+        showCycleDots = store.bool(forKey: Key.showCycleDots)
+        startSwirl = store.bool(forKey: Key.startSwirl)
+        showWeekChart = store.bool(forKey: Key.showWeekChart)
+        askForReflection = store.bool(forKey: Key.askForReflection)
+        shortBreaksEnabled = store.bool(forKey: Key.shortBreaksEnabled)
+        sessionsBeforeLongBreak = store.integer(forKey: Key.sessionsBeforeLongBreak)
+        soundEnabled = store.bool(forKey: Key.soundEnabled)
+        blockAction = BlockAction(rawValue: store.string(forKey: Key.blockAction) ?? "") ?? .hide
+        dailyGoal = store.integer(forKey: Key.dailyGoal)
+        dailyGoalMinutes = store.integer(forKey: Key.dailyGoalMinutes)
+        weeklyGoalMinutes = store.integer(forKey: Key.weeklyGoalMinutes)
+        streaksEnabled = store.bool(forKey: Key.streaksEnabled)
+        streakNeedsGoal = store.bool(forKey: Key.streakNeedsGoal)
+        streakRestDays = (store.array(forKey: Key.streakRestDays) as? [Int]) ?? []
+        autoStartBreaks = store.bool(forKey: Key.autoStartBreaks)
+        autoStartFocus = store.bool(forKey: Key.autoStartFocus)
+        keepCountingAfterEnd = store.bool(forKey: Key.keepCountingAfterEnd)
+        dayStartsAtHour = store.integer(forKey: Key.dayStartsAtHour)
+        chime = Chime(rawValue: store.string(forKey: Key.chime) ?? "") ?? .bell
+        breakChime = Chime(rawValue: store.string(forKey: Key.breakChime) ?? "") ?? .bowl
+        chimeVolume = store.double(forKey: Key.chimeVolume)
+        ticking = store.bool(forKey: Key.ticking)
+        ambient = Ambient(rawValue: store.string(forKey: Key.ambient) ?? "") ?? .off
+        ambientVolume = store.double(forKey: Key.ambientVolume)
+        ambientDuringBreaks = store.bool(forKey: Key.ambientDuringBreaks)
+        notifications = store.bool(forKey: Key.notifications)
+        haptics = store.bool(forKey: Key.haptics)
+        menuBarDisplay = MenuBarDisplay(rawValue: store.string(forKey: Key.menuBarDisplay) ?? "") ?? .time
+        menuBarSeconds = store.bool(forKey: Key.menuBarSeconds)
+        menuBarIcon = MenuBarIconStyle(rawValue: store.string(forKey: Key.menuBarIcon) ?? "") ?? .ring
+        appIcon = AppIconStyle(rawValue: store.string(forKey: Key.appIcon) ?? "") ?? .fifteenDark
+        openWhenDone = store.bool(forKey: Key.openWhenDone)
+        linkNotifications = store.bool(forKey: Key.linkNotifications)
+        globalHotKeys = store.bool(forKey: Key.globalHotKeys)
+        hideDistractingApps = store.bool(forKey: Key.hideDistractingApps)
+        blockedApps = store.stringArray(forKey: Key.blockedApps) ?? []
+        breakCurtain = store.bool(forKey: Key.breakCurtain)
+        doNotDisturb = store.bool(forKey: Key.doNotDisturb)
+        pauseWhenLocked = store.bool(forKey: Key.pauseWhenLocked)
+        focusStartShortcut = store.string(forKey: Key.focusStartShortcut) ?? ""
+        focusEndShortcut = store.string(forKey: Key.focusEndShortcut) ?? ""
+        liveActivity = store.bool(forKey: Key.liveActivity)
+        keepScreenOn = store.bool(forKey: Key.keepScreenOn)
+    }
+
+    private static let allKeys = [
+        Key.focusMinutes,
+        Key.shortBreakMinutes,
+        Key.longBreakMinutes,
+        Key.sessionsBeforeLongBreak,
+        Key.shortBreaksEnabled,
+        Key.timerMode,
+        Key.flowtimeBreakDivisor,
+        Key.flowtimeMinimumMinutes,
+        Key.presets,
+        Key.appearance,
+        Key.ringTheme,
+        Key.showIntention,
+        Key.showCycleDots,
+        Key.startSwirl,
+        Key.showWeekChart,
+        Key.askForReflection,
+        Key.soundEnabled,
+        Key.blockAction,
+        Key.dailyGoal,
+        Key.dailyGoalMinutes,
+        Key.weeklyGoalMinutes,
+        Key.streaksEnabled,
+        Key.streakNeedsGoal,
+        Key.streakRestDays,
+        Key.autoStartBreaks,
+        Key.autoStartFocus,
+        Key.keepCountingAfterEnd,
+        Key.dayStartsAtHour,
+        Key.chime,
+        Key.breakChime,
+        Key.chimeVolume,
+        Key.ticking,
+        Key.ambient,
+        Key.ambientVolume,
+        Key.ambientDuringBreaks,
+        Key.notifications,
+        Key.haptics,
+        Key.menuBarDisplay,
+        Key.menuBarSeconds,
+        Key.menuBarIcon,
+        Key.appIcon,
+        Key.openWhenDone,
+        Key.linkNotifications,
+        Key.globalHotKeys,
+        Key.hideDistractingApps,
+        Key.blockedApps,
+        Key.breakCurtain,
+        Key.doNotDisturb,
+        Key.pauseWhenLocked,
+        Key.focusStartShortcut,
+        Key.focusEndShortcut,
+        Key.liveActivity,
+        Key.keepScreenOn,
+    ]
 
     func minutes(for phase: Phase) -> Int {
         switch phase {
@@ -400,6 +520,7 @@ final class Preferences {
         static let menuBarIcon = "menuBarIcon"
         static let appIcon = "appIcon"
         static let openWhenDone = "openWhenDone"
+        static let linkNotifications = "linkNotifications"
         static let globalHotKeys = "globalHotKeys"
         static let hideDistractingApps = "hideDistractingApps"
         static let blockedApps = "blockedApps"

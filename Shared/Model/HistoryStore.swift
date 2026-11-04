@@ -100,10 +100,12 @@ final class HistoryStore {
         return records.last { $0.id == id }
     }
 
-    func update(_ id: FocusRecord.ID, note: String? = nil, rating: Int? = nil) {
+    func update(_ id: FocusRecord.ID, intention: String? = nil, note: String? = nil, rating: Int? = nil) {
         guard let index = records.lastIndex(where: { $0.id == id }) else { return }
+        if let intention { records[index].intention = intention.trimmingCharacters(in: .whitespacesAndNewlines) }
         if let note { records[index].note = note.isEmpty ? nil : note }
-        if let rating { records[index].rating = rating }
+        // 0 takes a rating back.
+        if let rating { records[index].rating = rating == 0 ? nil : rating }
         save()
     }
 
@@ -122,6 +124,17 @@ final class HistoryStore {
     func deleteAll() {
         records = []
         save()
+    }
+
+    /// Every session and project gone, including the backup copies kept beside the history file.
+    func wipeEverything() {
+        records = []
+        projects = []
+        save()
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        for file in files where file.lastPathComponent.hasPrefix("history.") && file != fileURL {
+            try? FileManager.default.removeItem(at: file)
+        }
     }
 
     // MARK: Projects

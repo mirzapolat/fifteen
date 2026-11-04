@@ -35,7 +35,9 @@ final class LinkSession {
 
     private(set) var status: Status = .off
     /// The group's code, once in a group. Lasts as long as the group does.
-    private(set) var code: String?
+    private(set) var code: String? {
+        didSet { engine.isLinked = code != nil }
+    }
     private(set) var members: [Member] = []
     private(set) var myID: String?
     /// A problem to show in the Link card ("No group with that code").
@@ -117,6 +119,7 @@ final class LinkSession {
     /// Called once at launch: picks the group back up if this Mac was in one.
     func start() {
         engine.onChange = { [weak self] in self?.scheduleCheck() }
+        engine.isLinked = isLinked
         let workspace = NSWorkspace.shared.notificationCenter
         workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated { LinkSession.shared.reconnectIfNeeded(now: true) }
@@ -155,12 +158,20 @@ final class LinkSession {
         }
     }
 
-    /// "Mira's MacBook Pro" → "Mira", for the line under the ring.
+    /// The person, not the computer, for the line under the ring:
+    /// "Mira's MacBook Pro" → "Mira", "MacBook Air von Mirza" → "Mirza",
+    /// "iMac de Lucía" → "Lucía". Anything else stays as it is.
     static func shortName(_ name: String) -> String {
         for mark in ["'s ", "’s "] {
             if let range = name.range(of: mark) { return String(name[..<range.lowerBound]) }
         }
-        return String(name.split(separator: " ").first ?? Substring(name))
+        // How macOS names a Mac in other languages: "<model> von|de|di|van <name>".
+        let words = name.split(separator: " ")
+        if let i = words.lastIndex(where: { ["von", "de", "di", "da", "van", "du", "of"].contains($0.lowercased()) }),
+           i > 0, i < words.count - 1 {
+            return words[(i + 1)...].joined(separator: " ")
+        }
+        return name
     }
 
     /// Letters only, uppercase, without the look-alikes I and O.
@@ -315,10 +326,12 @@ final class LinkSession {
             let rejected = message.rejected == true
             let mine = !rejected && message.by?.id == myID
             if rejected || mine { inFlight = false }
-            if !mine, !rejected, let by = message.by, let action = message.action, !action.isEmpty {
-                LinkActivity.shared.show("\(Self.shortName(by.name)) \(action)")
-            }
             accept(timer, revision: message.revision ?? revision, adopt: !mine)
+            if !mine, !rejected, let by = message.by, let action = message.action, !action.isEmpty {
+                let line = "\(Self.shortName(by.name)) \(action)"
+                LinkActivity.shared.show(line)
+                notify(line)
+            }
 
         case "members":
             members = message.members ?? members
@@ -347,6 +360,29 @@ final class LinkSession {
 
         default:
             break
+        }
+    }
+
+    /// A banner for someone else's change, unless it's switched off or the bubble is open
+    /// (the line under the ring already says it there).
+    private func notify(_ line: String) {
+        guard Preferences.shared.linkNotifications, !LinkChrome.shared.bubbleShown else { return }
+        Notifier.shared.notifyLinkActivity(title: line, body: Self.where(engine))
+    }
+
+    /// Where the timer stands now: "Focus · 23:10 left", "Short break paused · 4:12 left".
+    private static func `where`(_ engine: TimerEngine) -> String {
+        let phase = engine.phase.title
+        switch engine.state {
+        case .idle:
+            return "\(phase) · \(TimeFormat.clock(engine.remaining)) ready to start"
+        case .running:
+            return engine.isFlowtime ? "\(phase) · \(TimeFormat.clock(engine.elapsed)) so far"
+                : "\(phase) · \(TimeFormat.clock(engine.remaining)) left"
+        case .paused:
+            return "\(phase) paused · \(TimeFormat.clock(engine.remaining)) left"
+        case .finished:
+            return engine.phase == .focus ? "Session complete" : "Break's over"
         }
     }
 

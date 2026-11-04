@@ -115,6 +115,7 @@ struct IOSSettingsView: View {
                 } footer: {
                     Text("The countdown stays on your Lock Screen and in the Dynamic Island.")
                 }
+                ResetSection()
                 Section {
                     NavigationLink {
                         AboutView()

@@ -12,14 +12,11 @@ final class SettingsTabController: NSTabViewController {
         canPropagateSelectedChildViewControllerTitle = true
         transitionOptions = [.crossfade, .allowUserInteraction]
         add("General", symbol: "gearshape", height: Self.paneHeight) { GeneralPane() }
+        add("Keyboard", symbol: "keyboard", height: Self.paneHeight) { KeyboardPane() }
         add("Timer", symbol: "timer", height: Self.paneHeight) { Form { TimerSettingsSection() }.formStyle(.grouped) }
         add("Sound", symbol: "speaker.wave.2", height: Self.paneHeight) { Form { SoundSettingsSection() }.formStyle(.grouped) }
         add("Display", symbol: "circle.lefthalf.filled", height: Self.paneHeight) {
-            Form {
-                DisplaySettingsSection()
-                AppIconSection()
-            }
-            .formStyle(.grouped)
+            Form { DisplaySettingsSection() }.formStyle(.grouped)
         }
         add("Focus", symbol: "eye.slash", height: Self.paneHeight) { FocusPane() }
         add("About", symbol: "info.circle", height: Self.paneHeight) { AboutView() }
@@ -68,17 +65,12 @@ private struct GeneralPane: View {
             }
 
             Section {
-                Toggle("Global keyboard shortcuts", isOn: $prefs.globalHotKeys)
-                Group {
-                    LabeledContent("Start or pause", value: "⌃⌥P")
-                    LabeledContent("Skip to next", value: "⌃⌥S")
-                    LabeledContent("Reset session", value: "⌃⌥R")
-                    LabeledContent("Open Fifteen", value: "⌃⌥O")
-                }
-                .disabled(!prefs.globalHotKeys)
-                LabeledContent("Start or pause from the menu bar", value: "⌥-click")
+                LinkNameField()
+                Toggle("Notify when others change the timer", isOn: $prefs.linkNotifications)
             } header: {
-                Text("Keyboard")
+                Text("Link")
+            } footer: {
+                Text("When someone in your group starts, pauses, resets or takes a break, a notification says who and what. Not while the timer is open, where it shows under the ring.")
             }
 
             Section {
@@ -88,6 +80,51 @@ private struct GeneralPane: View {
                 Text("System")
             } footer: {
                 Text("Fifteen picks up where you left off when you unlock. While linked with others, locking doesn't pause the group's timer.")
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+/// "Shown to others as": the name your group sees.
+private struct LinkNameField: View {
+    var body: some View {
+        @Bindable var link = LinkSession.shared
+        TextField("Shown to others as", text: $link.deviceName, prompt: Text(LinkSession.defaultName))
+    }
+}
+
+/// Shortcuts that work from anywhere, and the clicks the menu bar item understands.
+private struct KeyboardPane: View {
+    @Environment(Preferences.self) private var prefs
+
+    var body: some View {
+        @Bindable var prefs = prefs
+        Form {
+            Section {
+                Toggle("Global keyboard shortcuts", isOn: $prefs.globalHotKeys)
+                Group {
+                    LabeledContent("Start or pause", value: "⌃⌥P")
+                    LabeledContent("Skip to next", value: "⌃⌥S")
+                    LabeledContent("Reset session", value: "⌃⌥R")
+                    LabeledContent("Open Fifteen", value: "⌃⌥O")
+                }
+                .disabled(!prefs.globalHotKeys)
+            } header: {
+                Text("Shortcuts")
+            } footer: {
+                Text("These work in any app, without opening Fifteen.")
+            }
+
+            Section("Menu Bar") {
+                LabeledContent("Open the timer", value: "Click")
+                LabeledContent("Start or pause", value: "⌥-click")
+                LabeledContent("Quick menu", value: "Right-click")
+            }
+
+            Section("In the Timer") {
+                LabeledContent("Close", value: "Esc")
+                LabeledContent("Start with your intention", value: "Return")
             }
         }
         .formStyle(.grouped)

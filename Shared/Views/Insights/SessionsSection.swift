@@ -11,6 +11,7 @@ struct SessionsSection: View {
     @State private var sortOrder = [KeyPathComparator(\FocusRecord.end, order: .reverse)]
     @State private var selection = Set<FocusRecord.ID>()
     @State private var confirmDelete: Set<FocusRecord.ID> = []
+    @State private var editing: FocusRecord?
 
     enum ProjectFilter: Hashable {
         case all, unassigned
@@ -59,6 +60,9 @@ struct SessionsSection: View {
             }
         } message: {
             Text("This can't be undone. Export a backup first if you want a copy.")
+        }
+        .sheet(item: $editing) { record in
+            SessionEditor(record: record)
         }
     }
 
@@ -113,6 +117,12 @@ struct SessionsSection: View {
             TableColumn("Note") { record in
                 Text(record.note ?? "").foregroundStyle(.secondary)
             }
+            TableColumn("Distractions", value: \.distractions) { record in
+                Text(record.distractions == 0 ? "–" : "\(record.distractions)")
+                    .monospacedDigit()
+                    .foregroundStyle(record.distractions == 0 ? .tertiary : .primary)
+            }
+            .width(min: 40, ideal: 74)
             TableColumn("Rating") { record in
                 if let rating = record.rating { RatingDots(value: rating) } else { Text("–").foregroundStyle(.tertiary) }
             }
@@ -120,6 +130,9 @@ struct SessionsSection: View {
         }
         .contextMenu(forSelectionType: FocusRecord.ID.self) { ids in
             editMenu(ids)
+        } primaryAction: { ids in
+            // Double-click a session to edit it.
+            if ids.count == 1, let id = ids.first { editing = history.record(id) }
         }
         .onDeleteCommand { confirmDelete = selection }
         #else
@@ -137,6 +150,9 @@ struct SessionsSection: View {
     @ViewBuilder
     private func editMenu(_ ids: Set<FocusRecord.ID>) -> some View {
         if !ids.isEmpty {
+            if ids.count == 1, let id = ids.first {
+                Button("Edit…") { editing = history.record(id) }
+            }
             Menu("Project") {
                 Button("None") { history.setProject(nil, for: ids) }
                 ForEach(history.activeProjects) { project in
@@ -145,11 +161,15 @@ struct SessionsSection: View {
                     }
                 }
             }
-            Menu("Focus Rating") {
-                ForEach(1...5, id: \.self) { value in
-                    Button("\(value) – \(FocusRecord.ratingWords[value])") {
+            Menu("Rating") {
+                ForEach((1...5).reversed(), id: \.self) { value in
+                    Button("\(String(repeating: "★", count: value)) \(FocusRecord.ratingWords[value])") {
                         for id in ids { history.update(id, rating: value) }
                     }
+                }
+                Divider()
+                Button("No Rating") {
+                    for id in ids { history.update(id, rating: 0) }
                 }
             }
             Divider()
@@ -157,3 +177,45 @@ struct SessionsSection: View {
         }
     }
 }
+
+/// Intention and note for a session, after the fact.
+private struct SessionEditor: View {
+    var record: FocusRecord
+    @Environment(HistoryStore.self) private var history
+    @Environment(\.dismiss) private var dismiss
+    @State private var intention = ""
+    @State private var note = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Intention", text: $intention, prompt: Text("What's the one thing?"))
+                    TextField("Note", text: $note, prompt: Text("What did you get done?"), axis: .vertical)
+                        .lineLimit(3...8)
+                } footer: {
+                    Text("\(record.end.formatted(date: .complete, time: .omitted)), \(record.start.formatted(date: .omitted, time: .shortened)) – \(record.end.formatted(date: .omitted, time: .shortened)) · \(InsightFormat.minutes(record.duration / 60))")
+                }
+            }
+            .formStyle(.grouped)
+            .navigationTitle("Edit Session")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        history.update(record.id, intention: intention, note: note)
+                        dismiss()
+                    }
+                }
+            }
+        }
+        #if os(macOS)
+        .frame(width: 420, height: 260)
+        #endif
+        .onAppear {
+            intention = record.intention
+            note = record.note ?? ""
+        }
+    }
+}
+
