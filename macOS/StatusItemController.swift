@@ -57,7 +57,7 @@ final class StatusItemController: NSObject {
         }
         menu.addItem(action(skipTitle, symbol: "forward.end") { [engine] in engine.skip() })
         menu.addItem(.separator())
-        menu.addItem(action("Insights…", symbol: "chart.bar") { WindowRouter.shared.showHistory() })
+        menu.addItem(action("Insights…", symbol: "chart.line.uptrend.xyaxis") { WindowRouter.shared.showHistory() })
         menu.addItem(action("Settings…", symbol: "gearshape", key: ",") { WindowRouter.shared.showSettings() })
         let updates = action("Check for Updates…", symbol: "arrow.down.circle") { Updater.shared.checkNow() }
         updates.isEnabled = Updater.shared.canCheck

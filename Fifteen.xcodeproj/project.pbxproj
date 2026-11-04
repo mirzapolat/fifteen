@@ -10,6 +10,7 @@
 		00ADF6BE73B1B0F6D4FC85B8 /* ProjectChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E939D3C876E03773D0307C /* ProjectChip.swift */; };
 		01D24C46BFF47C0B046393B9 /* AppBlocker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AE322C93077A612A9357549 /* AppBlocker.swift */; };
 		06AA5E345ADF530B39919F30 /* DialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD1DB7939A72D0FF14018 /* DialView.swift */; };
+		07500C8E0CB1EC9611548BD1 /* WebBlocker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98797600442117A24F86AC3B /* WebBlocker.swift */; };
 		08ECD384978830D44CBD380B /* ControlPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACA98CA6DB9DAED7C826BFD4 /* ControlPills.swift */; };
 		12088508F0DCB7CAD26E22AB /* HotKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9482EEEDBC0094EAE9F42E5 /* HotKeys.swift */; };
 		19C62E21B4196D04F14A888E /* CalendarSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B76848DC7EFAED6F52DC188 /* CalendarSection.swift */; };
@@ -36,6 +37,7 @@
 		489BB3A25166BD67F5CAE5D9 /* SharedTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B02B704E4E4445F4B7565E34 /* SharedTimer.swift */; };
 		4A6312024A4862D3C4059849 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 81C2A7A14CF89E41C9767368 /* Sparkle */; };
 		4F4A8CE00C25D658D7500DE2 /* LinkParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73CD1DA3FE83DAB54B70795 /* LinkParts.swift */; };
+		5350FB7614929450F5CB70C6 /* Favicons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C92942C249E6E6889DF19A2 /* Favicons.swift */; };
 		5FE4E79D462A860B78C11FE5 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F8BCF59A86DD81EBA267C1 /* AboutView.swift */; };
 		62ECFBD40F73C04FA534D827 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDAF313DFAEBD65ACFD0038D /* InsightsView.swift */; };
 		648BE8FF46F363842D697DE9 /* OverviewSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACB50BD2418B94EB1FAF8CC6 /* OverviewSection.swift */; };
@@ -136,6 +138,7 @@
 		38D7C4DC16C92FE5AE048925 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		39CEBB2735502C8A2F7F37EF /* MacSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSettingsView.swift; sourceTree = "<group>"; };
 		3B5CD1DB7939A72D0FF14018 /* DialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialView.swift; sourceTree = "<group>"; };
+		3C92942C249E6E6889DF19A2 /* Favicons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Favicons.swift; sourceTree = "<group>"; };
 		497E6F2DD4558461BF20CF90 /* LinkViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkViews.swift; sourceTree = "<group>"; };
 		4B76848DC7EFAED6F52DC188 /* CalendarSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSection.swift; sourceTree = "<group>"; };
 		4DE412EA1844D20331B9B8E1 /* TimerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerEngine.swift; sourceTree = "<group>"; };
@@ -155,6 +158,7 @@
 		8D054F016B7B0A35FFAFF714 /* SessionsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsSection.swift; sourceTree = "<group>"; };
 		90B466AB6CA2153E40B275F0 /* Phase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase.swift; sourceTree = "<group>"; };
 		933C49CAEA95F38928B2CD6A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		98797600442117A24F86AC3B /* WebBlocker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebBlocker.swift; sourceTree = "<group>"; };
 		98C805D80E47B6A1588E22E4 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
 		9A63E61454FB956361E36B29 /* FifteenMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FifteenMacApp.swift; sourceTree = "<group>"; };
 		A26C703BC3375DB1C566DC3C /* SettingsSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSections.swift; sourceTree = "<group>"; };
@@ -309,6 +313,7 @@
 				151B586092ED0BF3CC3A22E0 /* AppIcon.swift */,
 				B44838093FAB0200E91B6501 /* BreakCurtain.swift */,
 				B22EFA7367C5135BC9ED9D0B /* DoNotDisturb.swift */,
+				3C92942C249E6E6889DF19A2 /* Favicons.swift */,
 				C5EA11C8926BDB4F5277AAB2 /* Fifteen.entitlements */,
 				9A63E61454FB956361E36B29 /* FifteenMacApp.swift */,
 				82EEE03C3C1F4F22C453F627 /* GlassPanel.swift */,
@@ -322,6 +327,7 @@
 				F3B38E1DA18F48D8F22B67F6 /* MenuBarIcon.swift */,
 				E92C8CF80F9E95632578E23A /* StatusItemController.swift */,
 				AA71A6154DDF0A086B74FD2B /* Updater.swift */,
+				98797600442117A24F86AC3B /* WebBlocker.swift */,
 			);
 			path = macOS;
 			sourceTree = "<group>";
@@ -587,6 +593,7 @@
 				08ECD384978830D44CBD380B /* ControlPills.swift in Sources */,
 				DA263CF8B696D756E131A94B /* DialView.swift in Sources */,
 				7C824658FAE8B14B412845C4 /* DoNotDisturb.swift in Sources */,
+				5350FB7614929450F5CB70C6 /* Favicons.swift in Sources */,
 				EDD77DE6689604F4B012F6B3 /* FifteenIntents.swift in Sources */,
 				3DD74308B405D64056CDAAE9 /* FifteenMacApp.swift in Sources */,
 				BBE9EE959DAAFB8746CB8D20 /* FocusActivityAttributes.swift in Sources */,
@@ -621,6 +628,7 @@
 				A146CF8095FAC5937657B085 /* TimerEngine.swift in Sources */,
 				7AF5F8AA75596A106C69E4CC /* TimerParts.swift in Sources */,
 				6B35F90A1DC7DEF3B97E8C8F /* Updater.swift in Sources */,
+				07500C8E0CB1EC9611548BD1 /* WebBlocker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -798,7 +806,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -820,7 +828,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -884,7 +892,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -900,7 +908,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -25,6 +25,7 @@ final class MacIntegrations {
         sync()
 
         AppBlocker.shared.start()
+        WebBlocker.shared.start()
         DoNotDisturb.shared.start()
 
         let workspace = NSWorkspace.shared.notificationCenter

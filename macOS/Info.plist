@@ -29,6 +29,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Fifteen checks which website is open so it can keep the ones you blocked closed while you focus.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Free, no account, no ads.</string>
 	<key>SUEnableAutomaticChecks</key>

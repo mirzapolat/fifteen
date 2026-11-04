@@ -178,7 +178,7 @@ struct ControlPills: View {
 
     private var historyPill: some View {
         Button { actions.showHistory() } label: {
-            Image(systemName: "chart.bar")
+            Image(systemName: "chart.line.uptrend.xyaxis")
                 .frame(width: Pill.height)
                 .pill(square: true)
         }

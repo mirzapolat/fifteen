@@ -12,7 +12,7 @@ final class AppBlocker {
 
     private let engine = TimerEngine.shared
     private let prefs = Preferences.shared
-    private let toast = BlockToast()
+    let toast = BlockToast()
     private var allowedUntil: [String: Date] = [:]
 
     /// Blocking holds for the whole focus session, pauses included; apps are released only
@@ -53,7 +53,7 @@ final class AppBlocker {
         toast.show(icon: NSImage(systemSymbolName: "eye.slash", accessibilityDescription: nil),
                    title: verbPast + " " + list(names),
                    subtitle: "They'll be here when your session ends.",
-                   allowID: nil)
+                   allow: nil)
     }
 
     /// A blocked app was opened or brought forward during focus.
@@ -67,7 +67,7 @@ final class AppBlocker {
         toast.show(icon: app.icon,
                    title: "\(name) can wait",
                    subtitle: "\(left) · distraction logged",
-                   allowID: id)
+                   allow: { AppBlocker.shared.allow(id) })
     }
 
     /// Lets one app through for a few minutes, on purpose.
@@ -122,7 +122,8 @@ final class ToastModel {
     var icon: NSImage?
     var title = ""
     var subtitle = ""
-    var allowID: String?
+    /// "Allow 5 min": lets whatever was just blocked through.
+    var allow: (() -> Void)?
 }
 
 /// A small glass card under the menu bar that fades away after a few seconds.
@@ -132,11 +133,11 @@ final class BlockToast {
     private var panel: NSPanel?
     private var hideTask: Task<Void, Never>?
 
-    func show(icon: NSImage?, title: String, subtitle: String, allowID: String?) {
+    func show(icon: NSImage?, title: String, subtitle: String, allow: (() -> Void)?) {
         model.icon = icon
         model.title = title
         model.subtitle = subtitle
-        model.allowID = allowID
+        model.allow = allow
         let panel = panel ?? makePanel()
         if let screen = NSScreen.main {
             let size = panel.frame.size
@@ -203,8 +204,8 @@ private struct ToastView: View {
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
-            if let id = model.allowID {
-                Button { AppBlocker.shared.allow(id) } label: {
+            if let allow = model.allow {
+                Button { allow() } label: {
                     Text("Allow 5 min").pill()
                 }
                 .buttonStyle(.plain)

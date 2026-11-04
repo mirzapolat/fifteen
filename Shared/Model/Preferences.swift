@@ -69,7 +69,7 @@ enum RingTheme: String, CaseIterable, Identifiable {
 
 /// The Mac app's icon: the bold "15" or a minimal ring, each in dark or light.
 enum AppIconStyle: String, CaseIterable, Identifiable {
-    case fifteenDark, fifteenLight, ringDark, ringLight
+    case fifteenDark, fifteenLight, fifteenRainbow, ringDark, ringLight, ringRainbow
     var id: Self { self }
     var title: String {
         switch self {
@@ -77,9 +77,13 @@ enum AppIconStyle: String, CaseIterable, Identifiable {
         case .fifteenLight: "15 Light"
         case .ringDark: "Ring Dark"
         case .ringLight: "Ring Light"
+        case .fifteenRainbow: "15 Rainbow"
+        case .ringRainbow: "Ring Rainbow"
         }
     }
-    var isDark: Bool { self == .fifteenDark || self == .ringDark }
+    /// The rainbow icons sit on the dark tile, where the colors glow.
+    var isDark: Bool { self != .fifteenLight && self != .ringLight }
+    var isRainbow: Bool { self == .fifteenRainbow || self == .ringRainbow }
 }
 
 /// A named rhythm, e.g. "Study" = 50 min focus + 10 min breaks.
@@ -95,6 +99,18 @@ struct TimerPreset: Codable, Identifiable, Hashable {
         TimerPreset(name: "Study", focus: 50, shortBreak: 10),
         TimerPreset(name: "Reading", focus: 30, shortBreak: 5),
     ]
+}
+
+/// Website blocking: block only the listed sites, or everything except them.
+enum SiteListMode: String, CaseIterable, Identifiable {
+    case block, allow
+    var id: Self { self }
+    var title: String {
+        switch self {
+        case .block: "Block List"
+        case .allow: "Allow List"
+        }
+    }
 }
 
 enum BlockAction: String, CaseIterable, Identifiable {
@@ -200,6 +216,17 @@ final class Preferences {
     var hideDistractingApps: Bool { didSet { store.set(hideDistractingApps, forKey: Key.hideDistractingApps) } }
     var blockedApps: [String] { didSet { store.set(blockedApps, forKey: Key.blockedApps) } }
     var blockAction: BlockAction { didSet { store.set(blockAction.rawValue, forKey: Key.blockAction) } }
+    /// Mac: keep distracting websites closed in Safari, Chrome and Firefox during focus.
+    var blockWebsites: Bool { didSet { store.set(blockWebsites, forKey: Key.blockWebsites) } }
+    /// Domains like "youtube.com"; subdomains are blocked too.
+    var blockedSites: [String] { didSet { store.set(blockedSites, forKey: Key.blockedSites) } }
+    /// Allow-list mode: only these domains (and everything under them) stay open.
+    var allowedSites: [String] { didSet { store.set(allowedSites, forKey: Key.allowedSites) } }
+    /// Listed sites that mean just that domain (and its www.), not its subdomains. Others cover all subdomains.
+    /// Browsers the website blocker leaves alone (bundle IDs). Every supported browser is watched by default.
+    var ignoredBrowsers: [String] { didSet { store.set(ignoredBrowsers, forKey: Key.ignoredBrowsers) } }
+    var exactSites: [String] { didSet { store.set(exactSites, forKey: Key.exactSites) } }
+    var siteListMode: SiteListMode { didSet { store.set(siteListMode.rawValue, forKey: Key.siteListMode) } }
     var breakCurtain: Bool { didSet { store.set(breakCurtain, forKey: Key.breakCurtain) } }
     /// Mac: switch on Do Not Disturb during focus (via two shortcuts).
     var doNotDisturb: Bool { didSet { store.set(doNotDisturb, forKey: Key.doNotDisturb) } }
@@ -258,6 +285,12 @@ final class Preferences {
             Key.globalHotKeys: true,
             Key.hideDistractingApps: false,
             Key.blockedApps: [String](),
+            Key.blockWebsites: false,
+            Key.blockedSites: [String](),
+            Key.allowedSites: [String](),
+            Key.exactSites: [String](),
+            Key.ignoredBrowsers: [String](),
+            Key.siteListMode: SiteListMode.block.rawValue,
             Key.breakCurtain: false,
             Key.doNotDisturb: false,
             Key.pauseWhenLocked: true,
@@ -313,6 +346,12 @@ final class Preferences {
         globalHotKeys = store.bool(forKey: Key.globalHotKeys)
         hideDistractingApps = store.bool(forKey: Key.hideDistractingApps)
         blockedApps = store.stringArray(forKey: Key.blockedApps) ?? []
+        blockWebsites = store.bool(forKey: Key.blockWebsites)
+        blockedSites = store.stringArray(forKey: Key.blockedSites) ?? []
+        allowedSites = store.stringArray(forKey: Key.allowedSites) ?? []
+        exactSites = store.stringArray(forKey: Key.exactSites) ?? []
+        ignoredBrowsers = store.stringArray(forKey: Key.ignoredBrowsers) ?? []
+        siteListMode = SiteListMode(rawValue: store.string(forKey: Key.siteListMode) ?? "") ?? .block
         breakCurtain = store.bool(forKey: Key.breakCurtain)
         doNotDisturb = store.bool(forKey: Key.doNotDisturb)
         pauseWhenLocked = store.bool(forKey: Key.pauseWhenLocked)
@@ -373,6 +412,12 @@ final class Preferences {
         globalHotKeys = store.bool(forKey: Key.globalHotKeys)
         hideDistractingApps = store.bool(forKey: Key.hideDistractingApps)
         blockedApps = store.stringArray(forKey: Key.blockedApps) ?? []
+        blockWebsites = store.bool(forKey: Key.blockWebsites)
+        blockedSites = store.stringArray(forKey: Key.blockedSites) ?? []
+        allowedSites = store.stringArray(forKey: Key.allowedSites) ?? []
+        exactSites = store.stringArray(forKey: Key.exactSites) ?? []
+        ignoredBrowsers = store.stringArray(forKey: Key.ignoredBrowsers) ?? []
+        siteListMode = SiteListMode(rawValue: store.string(forKey: Key.siteListMode) ?? "") ?? .block
         breakCurtain = store.bool(forKey: Key.breakCurtain)
         doNotDisturb = store.bool(forKey: Key.doNotDisturb)
         pauseWhenLocked = store.bool(forKey: Key.pauseWhenLocked)
@@ -429,6 +474,12 @@ final class Preferences {
         Key.globalHotKeys,
         Key.hideDistractingApps,
         Key.blockedApps,
+        Key.blockWebsites,
+        Key.blockedSites,
+        Key.allowedSites,
+        Key.exactSites,
+        Key.ignoredBrowsers,
+        Key.siteListMode,
         Key.breakCurtain,
         Key.doNotDisturb,
         Key.pauseWhenLocked,
@@ -526,6 +577,12 @@ final class Preferences {
         static let globalHotKeys = "globalHotKeys"
         static let hideDistractingApps = "hideDistractingApps"
         static let blockedApps = "blockedApps"
+        static let blockWebsites = "blockWebsites"
+        static let blockedSites = "blockedSites"
+        static let allowedSites = "allowedSites"
+        static let exactSites = "exactSites"
+        static let ignoredBrowsers = "ignoredBrowsers"
+        static let siteListMode = "siteListMode"
         static let breakCurtain = "breakCurtain"
         static let doNotDisturb = "doNotDisturb"
         static let pauseWhenLocked = "pauseWhenLocked"

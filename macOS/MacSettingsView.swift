@@ -168,16 +168,7 @@ private struct FocusPane: View {
         Form {
             if locked {
                 Section {
-                    Label {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Locked while a session runs")
-                            Text("You can add blocked apps, but not remove them or switch blocking off. Finish or reset the timer to change these.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    } icon: {
-                        Image(systemName: "lock.fill")
-                    }
+                    Label("Locked while a session runs", systemImage: "lock.fill")
                 }
             }
             Section {
@@ -192,10 +183,6 @@ private struct FocusPane: View {
                 }
             } header: {
                 Text("App Blocker")
-            } footer: {
-                Text(prefs.blockAction == .hide
-                     ? "Blocked apps are hidden when focus starts and whenever you open one. A small note tells you why, with a way to allow it for 5 minutes. Each attempt is logged as a distraction."
-                     : "Blocked apps are quit when focus starts and whenever you open one. Make sure your work is saved in them. A small note lets you allow one for 5 minutes.")
             }
 
             if prefs.hideDistractingApps {
@@ -204,14 +191,14 @@ private struct FocusPane: View {
                 }
             }
 
+            WebsiteBlockerSection(locked: locked)
+
             DoNotDisturbSection(locked: locked)
 
             Section {
                 Toggle("Cover the screen during breaks", isOn: $prefs.breakCurtain)
             } header: {
                 Text("Breaks")
-            } footer: {
-                Text("A calm full-screen veil so the break actually happens. Skip is always one click (or Esc) away.")
             }
         }
         .formStyle(.grouped)
@@ -248,11 +235,6 @@ private struct DoNotDisturbSection: View {
             TextField("Also run when focus ends", text: $prefs.focusEndShortcut, prompt: Text("Shortcut name"))
         } header: {
             Text("Do Not Disturb & Shortcuts")
-        } footer: {
-            Text((prefs.doNotDisturb && !dnd.isReady
-                  ? "macOS doesn't let apps switch Focus directly, so Fifteen runs two tiny shortcuts. Make each one once with the steps above, keeping the names exactly as shown."
-                  : "Notifications are silenced while you focus and come back for your breaks, when you stop, and when Fifteen quits.")
-                 + " You can also run your own shortcuts, for example to start a playlist or set your status.")
         }
         .onAppear { dnd.refresh() }
     }
@@ -445,5 +427,203 @@ private struct BlockedAppsList: View {
                 prefs.blockedApps.append(id)
             }
         }
+    }
+}
+
+/// Websites kept closed during focus: a block list, or an allow list that closes everything else.
+/// Also the one-time browser permissions it needs.
+private struct WebsiteBlockerSection: View {
+    /// During a session the rules can only get stricter: a block list can grow, an allow list can shrink.
+    var locked = false
+    @Environment(Preferences.self) private var prefs
+    @State private var draft = ""
+    @State private var firefoxTrusted = FirefoxAddressBar.isTrusted
+    private var blocker: WebBlocker { WebBlocker.shared }
+
+    private var allowMode: Bool { prefs.siteListMode == .allow }
+    /// The list the current mode edits.
+    private var sites: [String] { allowMode ? prefs.allowedSites : prefs.blockedSites }
+    private func setSites(_ new: [String]) {
+        if allowMode { prefs.allowedSites = new } else { prefs.blockedSites = new }
+    }
+    /// Locked block list: no removing. Locked allow list: no adding.
+    private var canRemove: Bool { !locked || allowMode }
+    private var canAdd: Bool { !locked || !allowMode }
+
+    var body: some View {
+        @Bindable var prefs = prefs
+        Section {
+            Toggle("Block distracting websites while focusing", isOn: $prefs.blockWebsites.animation())
+                .disabled(locked && prefs.blockWebsites)
+            if prefs.blockWebsites {
+                Picker("Mode", selection: $prefs.siteListMode.animation()) {
+                    ForEach(SiteListMode.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .disabled(locked)
+
+                if sites.isEmpty {
+                    Text(allowMode ? "No websites allowed yet, so every website is blocked." : "No websites blocked yet.")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(sites, id: \.self) { site in
+                    HStack {
+                        Group {
+                            if let icon = Favicons.shared.icon(for: site) {
+                                Image(nsImage: icon)
+                                    .resizable()
+                                    .interpolation(.high)
+                                    .aspectRatio(contentMode: .fit)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                            } else {
+                                Image(systemName: "globe")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .frame(width: 20, height: 20)
+                        Text(site)
+                        Spacer()
+                        Picker("Covers", selection: scope(site)) {
+                            Text("All Subdomains").tag(false)
+                            Text("Exact Domain").tag(true)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .fixedSize()
+                        .disabled(locked)
+                        .help(locked ? "Can't be changed during a session" : "Whether subdomains are included")
+                        if canRemove {
+                            Button {
+                                withAnimation {
+                                    setSites(sites.filter { $0 != site })
+                                    prefs.exactSites.removeAll { $0 == site }
+                                }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                            }
+                            .buttonStyle(.borderless)
+                            .foregroundStyle(.secondary)
+                            .help("Remove")
+                        } else {
+                            Image(systemName: "lock.fill")
+                                .foregroundStyle(.tertiary)
+                                .help("Can't be removed during a session")
+                        }
+                    }
+                }
+                if canAdd {
+                    HStack {
+                        TextField("Add website", text: $draft, prompt: Text("example.com"))
+                            .onSubmit { add(draft) }
+                        Button("Add") { add(draft) }
+                            .disabled(WebBlocker.normalize(draft) == nil)
+                    }
+                }
+            }
+        } header: {
+            Text("Website Blocker")
+        }
+
+        if prefs.blockWebsites {
+            Section("Browsers") {
+                ForEach(Browser.installed, id: \.id) { browser in
+                    browserRow(browser.id, kind: browser.kind)
+                }
+            }
+            .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
+                firefoxTrusted = FirefoxAddressBar.isTrusted
+            }
+        }
+    }
+    private func isExact(_ site: String) -> Bool { prefs.exactSites.contains(site) }
+
+    /// Subdomains included (false, the default) or just this domain (true).
+    private func scope(_ site: String) -> Binding<Bool> {
+        Binding {
+            isExact(site)
+        } set: { exact in
+            prefs.exactSites.removeAll { $0 == site }
+            if exact { prefs.exactSites.append(site) }
+        }
+    }
+
+    /// What a browser still needs before Fifteen can look into it: the warning and the button that fixes it.
+    private func missingPermission(_ id: String, kind: Browser.Kind) -> (text: String, button: String, action: () -> Void)? {
+        if kind == .firefox && !firefoxTrusted {
+            return ("Needs access", "Allow…", {
+                FirefoxAddressBar.requestAccess()
+                open("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+            })
+        }
+        if blocker.deniedBrowsers.contains(id) {
+            return ("Needs access", "Allow…", {
+                open("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")
+            })
+        }
+        return nil
+    }
+
+    /// One browser: watched or left alone, and what it's missing. During a session a browser can be
+    /// switched on, not off.
+    private func browserRow(_ id: String, kind: Browser.Kind) -> some View {
+        let on = !prefs.ignoredBrowsers.contains(id)
+        let missing = on ? missingPermission(id, kind: kind) : nil
+        return Toggle(isOn: Binding {
+            on
+        } set: { watch in
+            withAnimation(.snappy) {
+                prefs.ignoredBrowsers.removeAll { $0 == id }
+                if !watch { prefs.ignoredBrowsers.append(id) }
+            }
+        }) {
+            HStack(spacing: 10) {
+                if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
+                    Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                        .resizable()
+                        .frame(width: 22, height: 22)
+                }
+                Text(browserName(id))
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                if let missing {
+                    // The warning and its fix together, in one small bubble beside the switch.
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(missing.text)
+                            .foregroundStyle(.orange)
+                            .lineLimit(1)
+                        Button(missing.button, action: missing.action)
+                            .buttonStyle(.borderedProminent)
+                            .tint(.orange)
+                            .controlSize(.small)
+                    }
+                    .font(.caption)
+                    .fixedSize()
+                    .padding(.leading, 8)
+                    .padding(.trailing, 3)
+                    .padding(.vertical, 3)
+                    .background(RoundedRectangle(cornerRadius: 7).fill(Color.orange.opacity(0.12)))
+                }
+            }
+        }
+        .disabled(locked && on)
+    }
+
+    private func add(_ input: String) {
+        guard canAdd, let site = WebBlocker.normalize(input) else { return }
+        if !sites.contains(site) {
+            withAnimation { setSites(sites + [site]) }
+        }
+        draft = ""
+    }
+
+    private func browserName(_ id: String) -> String {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { return id }
+        return FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
+    }
+
+    private func open(_ link: String) {
+        if let url = URL(string: link) { NSWorkspace.shared.open(url) }
     }
 }

@@ -11,8 +11,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.1.1"
-    CURRENT_PROJECT_VERSION: "3"
+    MARKETING_VERSION: "1.2"
+    CURRENT_PROJECT_VERSION: "4"
     DEVELOPMENT_TEAM: "56746T8S3D"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_EMIT_LOC_STRINGS: YES
@@ -47,6 +47,8 @@ targets:
         LSUIElement: true
         LSApplicationCategoryType: public.app-category.productivity
         NSHumanReadableCopyright: Free, no account, no ads.
+        # Website blocking reads and redirects tabs in Safari and Chromium browsers.
+        NSAppleEventsUsageDescription: Fifteen checks which website is open so it can keep the ones you blocked closed while you focus.
         # Lets Link talk to a relay on this Mac or the local network while developing.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
@@ -57,7 +59,9 @@ targets:
         SUEnableSystemProfiling: false
     entitlements:
       path: macOS/Fifteen.entitlements
-      properties: {}
+      properties:
+        # Hardened runtime: needed to send Apple Events to browsers (website blocking).
+        com.apple.security.automation.apple-events: true
     settings:
       base:
         PRODUCT_NAME: Fifteen
