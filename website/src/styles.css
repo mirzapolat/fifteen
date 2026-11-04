@@ -757,10 +757,17 @@ p {
 }
 
 .hero h1 {
-  font-size: clamp(54px, 8.4vw, 108px);
+  font-size: clamp(48px, 7vw, 84px);
   font-weight: 700;
   letter-spacing: -0.05em;
   line-height: 0.95;
+}
+
+/* Desktop: keep "made for you." on a single line. */
+@media (min-width: 901px) {
+  .hero h1 .dim {
+    white-space: nowrap;
+  }
 }
 
 .hero .lede {
