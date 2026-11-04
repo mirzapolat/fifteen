@@ -73,7 +73,11 @@ struct FocusCalendarCard: View {
         if prefs.streaksEnabled {
             parts.append("all-time best streak \(analytics.streaks(prefs.streakRule).longest)")
         }
+        #if os(macOS)
         return parts.joined(separator: " · ") + " · click a day for details"
+        #else
+        return parts.joined(separator: " · ") + " · tap a day for details"
+        #endif
     }
 }
 

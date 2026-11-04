@@ -9,57 +9,68 @@ import Charts
 struct OverviewSection: View {
     var analytics: Analytics
     @Binding var period: Period
+    /// Stacked with the other sections on one page (iPhone and iPad): no scroll view or period
+    /// bar of its own, and no project split (the Projects section right below has it).
+    var embedded = false
 
     @Environment(Preferences.self) private var prefs
     @Environment(HistoryStore.self) private var history
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
+        if embedded {
+            content
+        } else {
+            ScrollView { content.padding(20) }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         let summary = analytics.summary(period)
         let previous = analytics.previousSummary(period)
         let style = InsightStyle(scheme: scheme)
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
+            if !embedded {
                 PeriodBar(analytics: analytics, period: $period)
+            }
 
-                hero(summary, previous: previous, style: style)
+            hero(summary, previous: previous, style: style)
 
-                FocusCalendarCard(analytics: analytics, period: period)
+            FocusCalendarCard(analytics: analytics, period: period)
 
-                // Goals are about today and this week, so they show even when the period
-                // you're looking at is empty (that's when "0 of 8" matters most).
-                if hasProgress && summary.sessions == 0 {
-                    InsightCard(title: "Progress") { progress }
-                }
+            // Goals are about today and this week, so they show even when the period
+            // you're looking at is empty (that's when "0 of 8" matters most).
+            if hasProgress && summary.sessions == 0 {
+                InsightCard(title: "Progress") { progress }
+            }
 
-                if summary.sessions > 0 {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 16, alignment: .top)],
-                              alignment: .leading, spacing: 16) {
-                        InsightCard(title: "When you focus", subtitle: peakHourText) {
-                            HourChart(hours: analytics.hourOfDay(period))
+            if summary.sessions > 0 {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 16, alignment: .top)],
+                          alignment: .leading, spacing: 16) {
+                    InsightCard(title: "When you focus", subtitle: peakHourText) {
+                        HourChart(hours: analytics.hourOfDay(period))
+                    }
+                    InsightCard(title: "Best days", subtitle: bestDayText) {
+                        WeekdayChart(days: analytics.weekdays(period))
+                    }
+                    if hasProgress {
+                        InsightCard(title: "Progress") { progress }
+                    }
+                    let shares = analytics.projectShares(period)
+                    if !embedded && !history.projects.isEmpty && !shares.isEmpty {
+                        InsightCard(title: "Projects", subtitle: "Where your focus went") {
+                            ProjectShareView(shares: shares)
                         }
-                        InsightCard(title: "Best days", subtitle: bestDayText) {
-                            WeekdayChart(days: analytics.weekdays(period))
-                        }
-                        if hasProgress {
-                            InsightCard(title: "Progress") { progress }
-                        }
-                        let shares = analytics.projectShares(period)
-                        if !history.projects.isEmpty && !shares.isEmpty {
-                            InsightCard(title: "Projects", subtitle: "Where your focus went") {
-                                ProjectShareView(shares: shares)
-                            }
-                        }
-                        let ratings = analytics.series(period).filter { $0.rating != nil }
-                        if !ratings.isEmpty {
-                            InsightCard(title: "Focus quality", subtitle: "Average rating, 1 scattered – 5 deep focus") {
-                                RatingChart(buckets: ratings, unit: analytics.bucketUnit(period))
-                            }
+                    }
+                    let ratings = analytics.series(period).filter { $0.rating != nil }
+                    if !ratings.isEmpty {
+                        InsightCard(title: "Focus quality", subtitle: "Average rating, 1 scattered – 5 deep focus") {
+                            RatingChart(buckets: ratings, unit: analytics.bucketUnit(period))
                         }
                     }
                 }
             }
-            .padding(20)
         }
     }
 

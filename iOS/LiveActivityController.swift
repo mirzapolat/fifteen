@@ -11,7 +11,12 @@ final class LiveActivityController {
     private var lastState: FocusActivityAttributes.ContentState?
 
     func start() {
-        for stale in Activity<FocusActivityAttributes>.activities {
+        // Pick up the one already showing: when its Pause or Reset button is tapped, the system
+        // launches the app in the background to run it, and that activity has to stay put.
+        // Any extras (from a crash, say) go.
+        let existing = Activity<FocusActivityAttributes>.activities
+        activity = existing.first
+        for stale in existing.dropFirst() {
             Task { await stale.end(nil, dismissalPolicy: .immediate) }
         }
         observe()

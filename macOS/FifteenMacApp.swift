@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MacIntegrations.shared.start(togglePanel: { status.togglePanel() }, showPanel: { status.showPanel() })
         FifteenShortcuts.updateAppShortcutParameters()
         LinkSession.shared.start()
+        Updater.shared.start()
 
         // `open Fifteen.app --args --open` shows the bubble right away (handy after first install).
         if CommandLine.arguments.contains("--open") {

@@ -5,6 +5,8 @@ import Charts
 struct ProjectsSection: View {
     var analytics: Analytics
     @Binding var period: Period
+    /// Stacked with the other sections on one page: no scroll view or period bar of its own.
+    var embedded = false
 
     @Environment(HistoryStore.self) private var history
     @Environment(\.colorScheme) private var scheme
@@ -24,57 +26,75 @@ struct ProjectsSection: View {
     }
 
     var body: some View {
-        let shares = analytics.projectShares(period)
-        let total = max(1, shares.reduce(0) { $0 + $1.minutes })
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                PeriodBar(analytics: analytics, period: $period)
-
-                if !shares.isEmpty {
-                    InsightCard(title: "Share of focus") {
-                        ProjectShareView(shares: shares)
-                    }
-                }
-
-                InsightCard(title: "Projects", subtitle: "Pick one from the folder button in the timer's caption box.") {
-                    VStack(spacing: 0) {
-                        ForEach(history.activeProjects) { project in
-                            projectRow(project, share: shares.first { $0.projectID == project.id }, total: total)
-                            Divider()
-                        }
-                        Button {
-                            name = ""
-                            naming = .new
-                        } label: {
-                            Label("New Project", systemImage: "plus")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.vertical, 10)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                let archived = history.projects.filter(\.isArchived)
-                if !archived.isEmpty {
-                    DisclosureGroup("Archived (\(archived.count))", isExpanded: $showArchived) {
-                        VStack(spacing: 0) {
-                            ForEach(archived) { project in
-                                projectRow(project, share: shares.first { $0.projectID == project.id }, total: total)
-                                Divider()
-                            }
-                        }
-                    }
-                    .padding(16)
-                    .background(InsightStyle(scheme: scheme).card())
-                }
+        Group {
+            if embedded {
+                content
+            } else {
+                ScrollView { content.padding(20) }
             }
-            .padding(20)
         }
         .alert(alertTitle, isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } })) {
             TextField("Name", text: $name)
             Button("Cancel", role: .cancel) {}
             Button(alertButton) { commitName() }
+        }
+    }
+
+    private var projectsHint: String {
+        #if os(macOS)
+        "Pick one from the folder button in the timer's caption box."
+        #else
+        "Pick one from the folder in the timer's intention field."
+        #endif
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        let shares = analytics.projectShares(period)
+        let total = max(1, shares.reduce(0) { $0 + $1.minutes })
+        VStack(alignment: .leading, spacing: 16) {
+            if !embedded {
+                PeriodBar(analytics: analytics, period: $period)
+            }
+
+            if !shares.isEmpty {
+                InsightCard(title: "Share of focus") {
+                    ProjectShareView(shares: shares)
+                }
+            }
+
+            InsightCard(title: "Projects", subtitle: projectsHint) {
+                VStack(spacing: 0) {
+                    ForEach(history.activeProjects) { project in
+                        projectRow(project, share: shares.first { $0.projectID == project.id }, total: total)
+                        Divider()
+                    }
+                    Button {
+                        name = ""
+                        naming = .new
+                    } label: {
+                        Label("New Project", systemImage: "plus")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 10)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            let archived = history.projects.filter(\.isArchived)
+            if !archived.isEmpty {
+                DisclosureGroup("Archived (\(archived.count))", isExpanded: $showArchived) {
+                    VStack(spacing: 0) {
+                        ForEach(archived) { project in
+                            projectRow(project, share: shares.first { $0.projectID == project.id }, total: total)
+                            Divider()
+                        }
+                    }
+                }
+                .padding(16)
+                .background(InsightStyle(scheme: scheme).card())
+            }
         }
     }
 

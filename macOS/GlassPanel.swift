@@ -153,7 +153,7 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
         position(panel)
         panel.makeKeyAndOrderFront(nil)
         anchor()?.highlight(true)
-        LinkChrome.shared.bubbleShown = true
+        LinkChrome.shared.timerVisible = true
         presentation.openCount += 1
         // Ready to type an intention when there's none yet; otherwise don't select the existing text.
         if !(engine.state == .idle && engine.intention.isEmpty) { panel.makeFirstResponder(nil) }
@@ -170,7 +170,7 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
     func close() {
         guard presentation.isOpen else { return }
         withAnimation(.spring(duration: 0.28, bounce: 0)) { presentation.isOpen = false }
-        LinkChrome.shared.bubbleShown = false
+        LinkChrome.shared.timerVisible = false
         anchor()?.highlight(false)
         if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
         clickMonitor = nil

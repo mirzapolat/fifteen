@@ -38,28 +38,12 @@ struct TimerSettingsSection: View {
                 }
             }
 
-            // How often, then how long — side by side.
-            LabeledContent("Long break") {
-                HStack(spacing: 8) {
-                    Picker("Frequency", selection: $prefs.sessionsBeforeLongBreak.animation()) {
-                        Text("Off").tag(0)
-                        Divider()
-                        ForEach(2...12, id: \.self) { count in
-                            Text("after \(count) sessions").tag(count)
-                        }
-                    }
-                    .labelsHidden()
-                    .fixedSize()
-                    if prefs.longBreaksEnabled {
-                        Picker("Length", selection: $prefs.longBreakMinutes) {
-                            ForEach(Self.options([5, 10, 15, 20, 25, 30, 45, 60], including: prefs.longBreakMinutes), id: \.self) {
-                                Text("\($0) min").tag($0)
-                            }
-                        }
-                        .labelsHidden()
-                        .fixedSize()
-                        .transition(.opacity)
-                    }
+            // How often, then how long — side by side, or under the label on a narrow screen.
+            ViewThatFits(in: .horizontal) {
+                LabeledContent("Long break") { longBreakMenus }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Long break")
+                    longBreakMenus
                 }
             }
         } header: {
@@ -83,7 +67,11 @@ struct TimerSettingsSection: View {
         .onChange(of: prefs.sessionsBeforeLongBreak) { leaveDisabledBreak() }
 
         if !prefs.isFlowtime {
+            #if os(iOS)
+            TouchPresetsSection()
+            #else
             PresetsSection()
+            #endif
         }
 
         Section {
@@ -130,6 +118,32 @@ struct TimerSettingsSection: View {
         Section {
             Button("Restore Classic Rhythm") {
                 withAnimation { prefs.resetTimerToDefaults() }
+            }
+        }
+    }
+
+    /// How often, then how long.
+    private var longBreakMenus: some View {
+        @Bindable var prefs = prefs
+        return HStack(spacing: 8) {
+            Picker("Frequency", selection: $prefs.sessionsBeforeLongBreak.animation()) {
+                Text("Off").tag(0)
+                Divider()
+                ForEach(2...12, id: \.self) { count in
+                    Text("after \(count) sessions").tag(count)
+                }
+            }
+            .labelsHidden()
+            .fixedSize()
+            if prefs.longBreaksEnabled {
+                Picker("Length", selection: $prefs.longBreakMinutes) {
+                    ForEach(Self.options([5, 10, 15, 20, 25, 30, 45, 60], including: prefs.longBreakMinutes), id: \.self) {
+                        Text("\($0) min").tag($0)
+                    }
+                }
+                .labelsHidden()
+                .fixedSize()
+                .transition(.opacity)
             }
         }
     }
@@ -472,18 +486,12 @@ struct DisplaySettingsSection: View {
                     Text("The daily focus goal is met").tag(true)
                 }
                 .disabled(prefs.dailyGoalMinutes == 0)
-                LabeledContent("Rest days") {
-                    HStack(spacing: 4) {
-                        ForEach(Self.weekdayOrder, id: \.self) { weekday in
-                            let on = prefs.streakRestDays.contains(weekday)
-                            Button(Calendar.current.veryShortWeekdaySymbols[weekday - 1]) {
-                                if on { prefs.streakRestDays.removeAll { $0 == weekday } } else { prefs.streakRestDays.append(weekday) }
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(on ? .primary : .secondary)
-                            .fontWeight(on ? .bold : .regular)
-                            .accessibilityAddTraits(on ? .isSelected : [])
-                        }
+                // Days beside the label when they fit, under it on a phone.
+                ViewThatFits(in: .horizontal) {
+                    LabeledContent("Rest days") { restDays }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Rest days")
+                        restDays
                     }
                 }
             }
@@ -491,6 +499,21 @@ struct DisplaySettingsSection: View {
             Text("Insights")
         } footer: {
             Text("Streaks only ever appear in Insights. Rest days never break one.")
+        }
+    }
+
+    private var restDays: some View {
+        HStack(spacing: 4) {
+            ForEach(Self.weekdayOrder, id: \.self) { weekday in
+                let on = prefs.streakRestDays.contains(weekday)
+                Button(Calendar.current.veryShortWeekdaySymbols[weekday - 1]) {
+                    if on { prefs.streakRestDays.removeAll { $0 == weekday } } else { prefs.streakRestDays.append(weekday) }
+                }
+                .buttonStyle(.bordered)
+                .tint(on ? .primary : .secondary)
+                .fontWeight(on ? .bold : .regular)
+                .accessibilityAddTraits(on ? .isSelected : [])
+            }
         }
     }
 }

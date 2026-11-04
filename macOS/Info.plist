@@ -31,5 +31,13 @@
 	</dict>
 	<key>NSHumanReadableCopyright</key>
 	<string>Free, no account, no ads.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUEnableSystemProfiling</key>
+	<false/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/mirzapolat/fifteen/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>D8vjG57p09kEOgZWkci15kU5ICuAEnxhiI2TMZWXNCA=</string>
 </dict>
 </plist>

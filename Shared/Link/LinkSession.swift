@@ -1,4 +1,8 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import Observation
 
 /// Link: devices in a group share one timer. Whoever changes it (start, pause, resume, reset, skip,
@@ -104,7 +108,11 @@ final class LinkSession {
     }
 
     static var defaultName: String {
+        #if os(macOS)
         Host.current().localizedName ?? "My Mac"
+        #else
+        UIDevice.current.name
+        #endif
     }
 
     private init() {
@@ -116,12 +124,20 @@ final class LinkSession {
 
     // MARK: Public
 
-    /// Called once at launch: picks the group back up if this Mac was in one.
+    /// Called once at launch: picks the group back up if this device was in one.
     func start() {
         engine.onChange = { [weak self] in self?.scheduleCheck() }
         engine.isLinked = isLinked
-        let workspace = NSWorkspace.shared.notificationCenter
-        workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
+        // After sleep (Mac) or coming back to the app (iPhone), the old connection is likely gone:
+        // open a fresh one right away rather than waiting for it to time out.
+        #if os(macOS)
+        let center = NSWorkspace.shared.notificationCenter
+        let back = NSWorkspace.didWakeNotification
+        #else
+        let center = NotificationCenter.default
+        let back = UIApplication.willEnterForegroundNotification
+        #endif
+        center.addObserver(forName: back, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated { LinkSession.shared.reconnectIfNeeded(now: true) }
         }
         if token != nil { connect() } else if code != nil { forgetGroup() }
@@ -146,7 +162,7 @@ final class LinkSession {
         welcomed ? runPending() : connect()
     }
 
-    /// Leaves the group. This Mac's timer carries on from where it is, on its own.
+    /// Leaves the group. This device's timer carries on from where it is, on its own.
     func leave() {
         send(["type": "leave"])
         forgetGroup()
@@ -363,15 +379,15 @@ final class LinkSession {
         }
     }
 
-    /// A banner for someone else's change, unless it's switched off or the bubble is open
+    /// A banner for someone else's change, unless it's switched off or the timer is on screen
     /// (the line under the ring already says it there).
     private func notify(_ line: String) {
-        guard Preferences.shared.linkNotifications, !LinkChrome.shared.bubbleShown else { return }
+        guard Preferences.shared.linkNotifications, !LinkChrome.shared.timerVisible else { return }
         Notifier.shared.notifyLinkActivity(title: line, body: Self.where(engine))
     }
 
     /// Where the timer stands now: "Focus · 23:10 left", "Short break paused · 4:12 left".
-    private static func `where`(_ engine: TimerEngine) -> String {
+    static func `where`(_ engine: TimerEngine) -> String {
         let phase = engine.phase.title
         switch engine.state {
         case .idle:

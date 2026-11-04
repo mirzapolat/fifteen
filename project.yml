@@ -13,10 +13,16 @@ settings:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: "56746T8S3D"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_EMIT_LOC_STRINGS: YES
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+packages:
+  # Updates for the direct Mac download (docs/SPARKLE_PLAN.md). Mac target only.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
 
 targets:
   Fifteen:
@@ -26,6 +32,8 @@ targets:
       - Shared
       - macOS
       - Resources
+    dependencies:
+      - package: Sparkle
     info:
       path: macOS/Info.plist
       properties:
@@ -38,6 +46,11 @@ targets:
         # Lets Link talk to a relay on this Mac or the local network while developing.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        # Sparkle: the feed is the appcast attached to the newest GitHub release.
+        SUFeedURL: https://github.com/mirzapolat/fifteen/releases/latest/download/appcast.xml
+        SUPublicEDKey: "D8vjG57p09kEOgZWkci15kU5ICuAEnxhiI2TMZWXNCA="
+        SUEnableAutomaticChecks: true
+        SUEnableSystemProfiling: false
     entitlements:
       path: macOS/Fifteen.entitlements
       properties: {}
@@ -46,9 +59,17 @@ targets:
         PRODUCT_NAME: Fifteen
         PRODUCT_BUNDLE_IDENTIFIER: com.mirzapolat.fifteen
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        CODE_SIGN_IDENTITY: "-"
-        CODE_SIGN_STYLE: Manual
         ENABLE_HARDENED_RUNTIME: YES
+      configs:
+        # Day to day: ad-hoc signed, runs on this Mac without any account.
+        Debug:
+          CODE_SIGN_IDENTITY: "-"
+          CODE_SIGN_STYLE: Manual
+        # Releases: signed by the team, then exported with Developer ID and notarized
+        # (scripts/release-mac.sh).
+        Release:
+          CODE_SIGN_STYLE: Automatic
+          CODE_SIGN_IDENTITY: "Apple Development"
     scheme: {}
 
   Fifteen-iOS:
@@ -70,6 +91,9 @@ targets:
         UIApplicationSupportsIndirectInputEvents: true
         NSSupportsLiveActivities: true
         UIBackgroundModes: [audio]
+        # Lets Link talk to a relay on this Mac or the local network while developing.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
@@ -104,6 +128,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mirzapolat.fifteen.widgets
+        # The Live Activity's buttons are compiled here too, but only the app runs them.
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) WIDGET_EXTENSION
         TARGETED_DEVICE_FAMILY: "1,2"
         SKIP_INSTALL: YES
 

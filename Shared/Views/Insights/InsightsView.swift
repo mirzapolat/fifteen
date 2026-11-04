@@ -27,6 +27,8 @@ enum InsightsSection: String, CaseIterable, Identifiable, Hashable {
 final class InsightsRoute {
     static let shared = InsightsRoute()
     var section: InsightsSection = InsightsRoute.launchSection
+    /// On the stacked page (iPhone and iPad): a section to scroll to, e.g. from "Manage Projects…".
+    var jump: InsightsSection?
 
     /// `--insights calendar` etc. picks the first section (used for screenshots).
     private static var launchSection: InsightsSection {
@@ -39,12 +41,16 @@ final class InsightsRoute {
 /// Insights: where your focus goes, over days, weeks, months and years.
 /// Every number comes from `Analytics`; this view only lays it out.
 struct InsightsView: View {
-    /// Shown on iPhone/iPad, where Insights is a sheet.
+    /// Shown when Insights is presented as a sheet.
     var onDone: (() -> Void)? = nil
+    /// iPhone and iPad: Overview, Projects and Sessions one after another on a single page,
+    /// under one period bar, with export and import at the end. (The Mac switches between them.)
+    var stacked = false
 
     @Environment(HistoryStore.self) private var history
     @Environment(Preferences.self) private var prefs
     @Bindable private var route = InsightsRoute.shared
+    @Environment(\.colorScheme) private var scheme
     @State private var period = Period(kind: .week, anchor: .now)
     @State private var exportFile: ExportFile?
     @State private var showExporter = false
@@ -54,36 +60,14 @@ struct InsightsView: View {
     var body: some View {
         let analytics = Analytics(records: history.records, calendar: .current, dayStartHour: prefs.dayStartsAtHour)
         NavigationStack {
-            Group {
-                switch route.section {
-                case .overview: OverviewSection(analytics: analytics, period: $period)
-                case .projects: ProjectsSection(analytics: analytics, period: $period)
-                case .sessions: SessionsSection(analytics: analytics, period: $period)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .navigationTitle("Insights")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                // The tabs live in the window's header, centered.
-                ToolbarItem(placement: .principal) {
-                    ViewThatFits(in: .horizontal) {
-                        InkSegmented(selection: $route.section, items: InsightsSection.allCases) { item in
-                            // Toolbars shrink labels to icons by default; keep the names visible.
-                            Label(item.title, systemImage: item.symbol).labelStyle(.titleAndIcon)
-                        }
-                        InkSegmented(selection: $route.section, items: InsightsSection.allCases, compact: true) { item in
-                            Text(item.title)
-                        }
-                    }
-                }
-                .sharedBackgroundVisibility(.hidden)
-                ToolbarItem(placement: .primaryAction) { exportMenu(analytics) }
-                if let onDone {
-                    ToolbarItem(placement: .cancellationAction) { Button("Done", action: onDone) }
-                }
+            if stacked {
+                stackedPage(analytics)
+                    #if os(iOS)
+                    // The period is the page's title; no bar above it.
+                    .toolbar(.hidden, for: .navigationBar)
+                    #endif
+            } else {
+                switcherPage(analytics)
             }
         }
         .fileExporter(isPresented: $showExporter, document: exportFile,
@@ -96,6 +80,180 @@ struct InsightsView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(importMessage ?? "")
+        }
+    }
+
+    // MARK: One page (iPhone and iPad)
+
+    private func stackedPage(_ analytics: Analytics) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    StackedPeriodHeader(analytics: analytics, period: $period)
+                        .padding(.bottom, 24)
+                        .id(InsightsSection.overview)
+
+                    OverviewSection(analytics: analytics, period: $period, embedded: true)
+
+                    ProjectsSection(analytics: analytics, period: $period, embedded: true)
+                        .id(InsightsSection.projects)
+                        .padding(.top, 16)
+
+                    moreLinks(analytics)
+                        .padding(.top, 28)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 32)
+                .frame(maxWidth: 760)
+                .frame(maxWidth: .infinity)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: route.jump) { jump(proxy) }
+            .onAppear { jump(proxy) }
+        }
+    }
+
+    private func jump(_ proxy: ScrollViewProxy) {
+        guard let section = route.jump else { return }
+        route.jump = nil
+        withAnimation(.snappy) { proxy.scrollTo(section, anchor: .top) }
+    }
+
+    /// Sessions and Your Data, each on a page of its own.
+    private func moreLinks(_ analytics: Analytics) -> some View {
+        let count = analytics.records(in: period).count
+        return VStack(spacing: 0) {
+            NavigationLink {
+                SessionsSection(analytics: analytics, period: $period)
+                    .navigationTitle("Sessions")
+                    #if os(iOS)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar(.visible, for: .navigationBar)
+                    #endif
+            } label: {
+                linkRow("Sessions", detail: "\(count) in \(analytics.title(period))", symbol: "list.bullet")
+            }
+            Divider().padding(.leading, 50)
+            NavigationLink {
+                ScrollView {
+                    dataCard(analytics)
+                        .padding(20)
+                        .frame(maxWidth: 760)
+                        .frame(maxWidth: .infinity)
+                }
+                .navigationTitle("Your Data")
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar(.visible, for: .navigationBar)
+                #endif
+            } label: {
+                linkRow("Your Data", detail: "Export or import a backup", symbol: "archivebox")
+            }
+        }
+        .buttonStyle(.plain)
+        .background(InsightStyle(scheme: scheme).card())
+    }
+
+    private func linkRow(_ title: String, detail: String, symbol: String) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: symbol)
+                .font(.body.weight(.medium))
+                .frame(width: 22)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.body.weight(.medium))
+                Text(detail)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
+    }
+
+    /// Export and import as plain rows, where they're easy to find and hard to hit by accident.
+    private func dataCard(_ analytics: Analytics) -> some View {
+        InsightCard(title: "Export & Backup", subtitle: "Your history stays on this device. Take a copy with you, or bring a backup back in.") {
+            VStack(spacing: 0) {
+                dataRow("Sessions", detail: "CSV", symbol: "tablecells") {
+                    export(Data(history.sessionsCSV.utf8), .commaSeparatedText, "Fifteen Sessions")
+                }
+                Divider()
+                dataRow("Daily Summary", detail: "CSV", symbol: "calendar") {
+                    export(Data(analytics.dailyCSV().utf8), .commaSeparatedText, "Fifteen Daily Summary")
+                }
+                Divider()
+                dataRow("Full Backup", detail: "JSON", symbol: "archivebox") {
+                    export(history.backupJSON(), .json, "Fifteen Backup")
+                }
+                Divider()
+                dataRow("Import Backup…", detail: nil, symbol: "square.and.arrow.down") { showImporter = true }
+            }
+        }
+    }
+
+    private func dataRow(_ title: String, detail: String?, symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: symbol)
+                    .frame(width: 22)
+                    .foregroundStyle(.secondary)
+                Text(title)
+                Spacer()
+                if let detail {
+                    Text(detail)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                Image(systemName: detail == nil ? "chevron.right" : "square.and.arrow.up")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Switching sections (Mac)
+
+    private func switcherPage(_ analytics: Analytics) -> some View {
+        Group {
+            switch route.section {
+            case .overview: OverviewSection(analytics: analytics, period: $period)
+            case .projects: ProjectsSection(analytics: analytics, period: $period)
+            case .sessions: SessionsSection(analytics: analytics, period: $period)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .navigationTitle("Insights")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .toolbar {
+            // The tabs live in the window's header, centered.
+            ToolbarItem(placement: .principal) {
+                ViewThatFits(in: .horizontal) {
+                    InkSegmented(selection: $route.section, items: InsightsSection.allCases) { item in
+                        // Toolbars shrink labels to icons by default; keep the names visible.
+                        Label(item.title, systemImage: item.symbol).labelStyle(.titleAndIcon)
+                    }
+                    InkSegmented(selection: $route.section, items: InsightsSection.allCases, compact: true) { item in
+                        Text(item.title)
+                    }
+                }
+            }
+            .sharedBackgroundVisibility(.hidden)
+            ToolbarItem(placement: .primaryAction) { exportMenu(analytics) }
+            if let onDone {
+                ToolbarItem(placement: .cancellationAction) { Button("Done", action: onDone) }
+            }
         }
     }
 
@@ -193,6 +351,8 @@ struct InkSegmented<Item: Hashable & Identifiable, ItemLabel: View>: View {
     @Binding var selection: Item
     var items: [Item]
     var compact = false
+    /// Stretch across the available width, each item an equal share.
+    var fill = false
     @ViewBuilder var label: (Item) -> ItemLabel
     @Environment(\.colorScheme) private var scheme
     @Namespace private var pill
@@ -211,6 +371,7 @@ struct InkSegmented<Item: Hashable & Identifiable, ItemLabel: View>: View {
                         .foregroundStyle(isSelected ? Color.ink(scheme == .dark ? .light : .dark) : Color.primary.opacity(0.7))
                         .padding(.horizontal, compact ? 10 : 14)
                         .padding(.vertical, compact ? 4 : 7)
+                        .frame(maxWidth: fill ? .infinity : nil)
                         .background {
                             if isSelected {
                                 Capsule().fill(Color.ink(scheme)).matchedGeometryEffect(id: "pill", in: pill)
@@ -225,7 +386,46 @@ struct InkSegmented<Item: Hashable & Identifiable, ItemLabel: View>: View {
         .padding(3)
         .background(Capsule().fill(style.cardFill))
         .overlay(Capsule().strokeBorder(style.cardEdge, lineWidth: 1))
-        .fixedSize()
+        .fixedSize(horizontal: !fill, vertical: true)
+    }
+}
+
+/// The top of the one-page Analytics (iPhone and iPad): the period as the page's title with
+/// back/forward beside it, and Week/Month/Year/All across the full width below.
+struct StackedPeriodHeader: View {
+    var analytics: Analytics
+    @Binding var period: Period
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(analytics.title(period))
+                    .font(.largeTitle.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .contentTransition(.numericText())
+                    .animation(.snappy, value: period)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 8)
+                HStack(spacing: 18) {
+                    Button { withAnimation(.snappy) { period = analytics.shifted(period, by: -1) } } label: {
+                        Image(systemName: "chevron.left")
+                    }
+                    .disabled(period.kind == .all)
+                    .accessibilityLabel("Previous")
+                    Button { withAnimation(.snappy) { period = analytics.shifted(period, by: 1) } } label: {
+                        Image(systemName: "chevron.right")
+                    }
+                    .disabled(analytics.isCurrent(period))
+                    .accessibilityLabel("Next")
+                }
+                .font(.title3.weight(.semibold))
+                .buttonStyle(.borderless)
+            }
+            InkSegmented(selection: Binding(get: { period.kind },
+                                            set: { kind in withAnimation(.snappy) { period = Period(kind: kind, anchor: .now) } }),
+                         items: PeriodKind.allCases, fill: true) { Text($0.title) }
+        }
     }
 }
 

@@ -42,6 +42,8 @@ final class StatusItemController: NSObject {
     private func showMenu() {
         if panel.isShown { panel.close() }
         let menu = NSMenu()
+        // Items say for themselves whether they're enabled ("Check for Updates…" waits while a check runs).
+        menu.autoenablesItems = false
         menu.addItem(action(primaryTitle, symbol: primarySymbol) { [engine] in engine.primaryAction() })
         if engine.state != .idle {
             menu.addItem(action("Reset", symbol: "arrow.counterclockwise") { [engine] in engine.reset() })
@@ -57,6 +59,9 @@ final class StatusItemController: NSObject {
         menu.addItem(.separator())
         menu.addItem(action("Insights…", symbol: "chart.bar") { WindowRouter.shared.showHistory() })
         menu.addItem(action("Settings…", symbol: "gearshape", key: ",") { WindowRouter.shared.showSettings() })
+        let updates = action("Check for Updates…", symbol: "arrow.down.circle") { Updater.shared.checkNow() }
+        updates.isEnabled = Updater.shared.canCheck
+        menu.addItem(updates)
         menu.addItem(.separator())
         menu.addItem(action("Quit Fifteen", symbol: "power", key: "q") { NSApp.terminate(nil) })
         // Attach just for this click so the menu drops from the item like a normal menu bar menu.

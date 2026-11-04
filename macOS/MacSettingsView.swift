@@ -81,8 +81,33 @@ private struct GeneralPane: View {
             } footer: {
                 Text("Fifteen picks up where you left off when you unlock. While linked with others, locking doesn't pause the group's timer.")
             }
+
+            UpdatesSection()
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Automatic checks (on by default), and a way to check right now.
+private struct UpdatesSection: View {
+    var body: some View {
+        @Bindable var updater = Updater.shared
+        Section {
+            Toggle("Check for updates automatically", isOn: $updater.checksAutomatically)
+            LabeledContent {
+                Button("Check Now") { updater.checkNow() }
+                    .disabled(!updater.canCheck)
+            } label: {
+                Text("Version \(AppInfo.version) (\(AppInfo.build))")
+                if let last = updater.lastCheck {
+                    Text("Last checked \(last.formatted(.relative(presentation: .named)))")
+                }
+            }
+        } header: {
+            Text("Updates")
+        } footer: {
+            Text("About once a day Fifteen asks GitHub whether there's a newer version. Nothing else is sent.")
+        }
     }
 }
 

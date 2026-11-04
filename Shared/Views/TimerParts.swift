@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// The phase switch on the left; on the Mac, "Link" on the right.
+/// The phase switch on the left; on the Mac, "Link" on the right; on iPhone and iPad, the
+/// timer's controls (length, or Add Time and Reset).
 /// (Today's goal progress lives in Insights → Overview, with the other goals.)
 struct PhaseHeader: View {
     var body: some View {
@@ -21,6 +22,8 @@ struct PhaseHeader: View {
                 Spacer()
                 #if os(macOS)
                 LinkButton()
+                #else
+                TimerHeaderTrailing()
                 #endif
             }
         }
