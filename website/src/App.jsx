@@ -69,12 +69,12 @@ function useLatest() {
   return latest;
 }
 
-function DownloadButton({ onDownload, large }) {
+function DownloadButton({ onDownload, from, large }) {
   return (
     <a
       className={`btn btn--prominent ${large ? 'btn--lg' : ''}`}
       href={DOWNLOAD}
-      onClick={onDownload}
+      onClick={() => onDownload(from)}
     >
       <I.Download size={18} />
       <span>Download for Mac</span>
@@ -177,7 +177,7 @@ function Nav({ go, onDownload }) {
               </Link>
             ))}
           </div>
-          <a className="btn btn--prominent btn--sm" href={DOWNLOAD} onClick={onDownload}>
+          <a className="btn btn--prominent btn--sm" href={DOWNLOAD} onClick={() => onDownload('nav')}>
             <I.Download size={16} />
             <span className="hide-xs">Download</span>
           </a>
@@ -208,7 +208,7 @@ function Nav({ go, onDownload }) {
             className="btn btn--prominent btn--lg"
             href={DOWNLOAD}
             onClick={() => {
-              onDownload();
+              onDownload('menu');
               setOpen(false);
             }}
           >
@@ -270,7 +270,7 @@ function Hero({ timer, spectrum, setSpectrum, latest, onDownload, next = 'mac' }
           in, day out. Explore what it has to offer!
         </p>
         <div className="cta-row">
-          <DownloadButton onDownload={onDownload} />
+          <DownloadButton onDownload={onDownload} from="hero" />
           <IOSButton />
         </div>
         <Meta latest={latest} />
@@ -547,7 +547,7 @@ function DownloadSection({ latest, onDownload, spectrum }) {
           <h2>Get Fifteen</h2>
           <p>What are you waiting for? Give it a try!</p>
           <div className="cta-row cta-row--center">
-            <DownloadButton onDownload={onDownload} large />
+            <DownloadButton onDownload={onDownload} from="section" large />
           </div>
           <Meta latest={latest} />
           <p className="final-note">iPhone &amp; iPad are coming soon.</p>
@@ -610,7 +610,9 @@ export default function App() {
   const toastTimer = useRef(0);
   useScreenHeight();
 
-  const onDownload = () => {
+  // Umami counts the click (not a finished download); `from` says which button.
+  const onDownload = (from) => {
+    window.umami?.track('download', { from });
     setToast(true);
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(false), 6000);
