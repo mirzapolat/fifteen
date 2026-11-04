@@ -12,6 +12,12 @@ import Sparkle
 final class Updater {
     static let shared = Updater()
 
+    #if DEBUG
+    private static let isDebugBuild = true
+    #else
+    private static let isDebugBuild = false
+    #endif
+
     /// False while a check is already under way (the menu item and button wait).
     private(set) var canCheck = false
     /// When Fifteen last asked for updates, for Settings.
@@ -30,8 +36,10 @@ final class Updater {
     @ObservationIgnored private var watchers: Set<AnyCancellable> = []
     private var updater: SPUUpdater? { controller?.updater }
 
-    /// Called once at launch.
+    /// Called once at launch. Debug builds (com.mirzapolat.fifteen.dev) never check: they're
+    /// ad-hoc signed and would only be offered the published release.
     func start() {
+        guard !Self.isDebugBuild else { return }
         let controller = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil,
                                                       userDriverDelegate: driverDelegate)
         self.controller = controller

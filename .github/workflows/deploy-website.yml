@@ -1,0 +1,70 @@
+name: Deploy website to VPS
+
+# Only the website is deployed; changes to the apps or the relay don't trigger this.
+# The download button always resolves the newest GitHub release at request time,
+# so publishing a Mac release needs no redeploy.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "website/**"
+      - ".github/workflows/deploy-website.yml"
+  workflow_dispatch:
+
+env:
+  APP_NAME: "fifteen-website"
+
+concurrency:
+  group: deploy-website
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Build check
+        working-directory: website
+        run: npm ci && npm run build
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Sync Files to VPS (Rsync)
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "mkdir -p ~/docker/apps/${{ env.APP_NAME }}"
+          rsync -avz --delete-after \
+            --filter="- node_modules/" \
+            --filter="- dist/" \
+            --filter="+ .env.example" \
+            --filter="- .env" \
+            --filter="- .env.*" \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }}" \
+            ./website/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/docker/apps/${{ env.APP_NAME }}/
+
+      - name: Build & Restart Containers
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} " \
+            cd ~/docker/apps/${{ env.APP_NAME }} && \
+            DOCKER_BUILDKIT=1 docker compose up -d --build --remove-orphans && \
+            docker image prune -f "
+
+      - name: Check site
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS https://getfifteen.de/health; then
+              curl -fsSI https://getfifteen.de/download/mac | grep -i '^location:'
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "getfifteen.de did not answer on /health" && exit 1

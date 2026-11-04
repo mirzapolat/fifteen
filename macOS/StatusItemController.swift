@@ -121,8 +121,19 @@ final class StatusItemController: NSObject {
             flow ? engine.elapsed.truncatingRemainder(dividingBy: 3600) / 3600 : 1 - engine.progress(at: engine.now)
         }
 
-        let showIcon = mode != .time
-        let showTime = mode == .time || (mode == .iconAndTime && state != .idle)
+        // In use: anything but a fresh focus session waiting to start (a break that's up next counts).
+        let inUse = state != .idle || engine.phase != .focus
+        let showIcon = switch mode {
+        case .iconAndTime, .icon: true
+        case .iconOrTime: !inUse
+        case .time: false
+        }
+        let showTime = switch mode {
+        case .iconAndTime: state != .idle
+        case .iconOrTime: inUse
+        case .icon: false
+        case .time: true
+        }
 
         // In a Link group, a small "two people" mark sits next to the time.
         let linked = LinkSession.shared.isLinked

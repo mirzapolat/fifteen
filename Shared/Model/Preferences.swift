@@ -2,11 +2,13 @@ import Foundation
 import Observation
 
 enum MenuBarDisplay: String, CaseIterable, Identifiable {
-    case iconAndTime, icon, time
+    /// `iconOrTime`: the icon while the timer sits unused, the time while it's in use.
+    case iconAndTime, iconOrTime, icon, time
     var id: Self { self }
     var title: String {
         switch self {
         case .iconAndTime: "Icon and Time"
+        case .iconOrTime: "Icon or Time"
         case .icon: "Icon Only"
         case .time: "Time Only"
         }

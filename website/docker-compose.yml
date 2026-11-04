@@ -1,0 +1,35 @@
+# fifteen-website: getfifteen.de, a single self-hosted container.
+# Fronted by the external Traefik instance (TLS + routing managed outside this project).
+# Compose reads an optional local .env file (see .env.example); nothing in it is required.
+
+services:
+  fifteen-website:
+    build:
+      context: .
+    image: fifteen-website
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      GITHUB_REPO: ${GITHUB_REPO:-mirzapolat/fifteen}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    expose:
+      - "3000"
+    networks:
+      - home
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.fifteen-website.rule: "Host(`getfifteen.de`) || Host(`www.getfifteen.de`)"
+      traefik.http.routers.fifteen-website.entrypoints: websecure
+      traefik.http.routers.fifteen-website.tls.certresolver: letsencrypt
+      traefik.http.routers.fifteen-website.middlewares: fifteen-www-redirect,secure-headers@file,compress@file
+      # www.getfifteen.de → getfifteen.de
+      traefik.http.middlewares.fifteen-www-redirect.redirectregex.regex: "^https://www\\.getfifteen\\.de/(.*)"
+      traefik.http.middlewares.fifteen-www-redirect.redirectregex.replacement: "https://getfifteen.de/$${1}"
+      traefik.http.middlewares.fifteen-www-redirect.redirectregex.permanent: "true"
+      traefik.http.services.fifteen-website.loadbalancer.server.port: "3000"
+    restart: unless-stopped
+
+# Joins the existing Traefik network (created/managed outside this project).
+networks:
+  home:
+    external: true

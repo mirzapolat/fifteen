@@ -374,7 +374,10 @@ struct PresetsSection: View {
                         .help(prefs.isCurrent(preset) ? "In use" : "Use this preset")
                         .accessibilityLabel(prefs.isCurrent(preset) ? "In use" : "Use this preset")
                         Button {
-                            withAnimation(.snappy) { prefs.presets.removeAll { $0.id == preset.id } }
+                            // Read the id first: `preset` comes through a binding into `presets`, and
+                            // reading it while removeAll is changing `presets` traps (exclusive access).
+                            let id = preset.id
+                            withAnimation(.snappy) { prefs.presets.removeAll { $0.id == id } }
                         } label: {
                             Image(systemName: "trash").foregroundStyle(.secondary)
                         }

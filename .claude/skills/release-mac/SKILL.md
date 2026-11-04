@@ -47,7 +47,9 @@ further check-ins unless something fails.
 
 Write `release-notes/<version>.html`: an `<h2>Fifteen <version></h2>`, one short line, then a `<ul>` of
 3–6 user-facing changes from the git log, in the app's voice (short, plain, no jargon, no internal
-refactors). The same file is shown in Sparkle's update window and on the GitHub release.
+refactors). The same file is shown in Sparkle's update window, on the GitHub release, and in the app's
+What's New window after the update (the `release-notes` folder is bundled into the app, so the file
+must exist before the build, and keep to the `<h2>`, `<p>`, `<ul><li>` shape: that's what the window reads).
 
 Show the user the version, build number and the notes, and ask once: publish this? Apply any
 changes they ask for.

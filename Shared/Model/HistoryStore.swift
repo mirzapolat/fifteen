@@ -13,12 +13,20 @@ final class HistoryStore {
     private(set) var records: [FocusRecord] = []
     private(set) var projects: [Project] = []
 
-    @ObservationIgnored private let folder: URL = {
+    /// Where history.json lives. On the Mac, Fifteen Dev (Debug builds from Xcode) keeps its own,
+    /// so trying things out never touches the sessions of the installed Fifteen.
+    nonisolated static let folder: URL = {
+        #if DEBUG && os(macOS)
+        let name = "Fifteen Dev"
+        #else
+        let name = "Fifteen"
+        #endif
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Fifteen", isDirectory: true)
+            .appendingPathComponent(name, isDirectory: true)
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         return base
     }()
+    @ObservationIgnored private var folder: URL { Self.folder }
     @ObservationIgnored private var fileURL: URL { folder.appendingPathComponent("history.json") }
 
     /// `--demo`: generated history for previews and screenshots. Kept in memory only, never saved.

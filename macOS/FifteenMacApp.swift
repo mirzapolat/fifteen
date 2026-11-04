@@ -25,11 +25,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MacIntegrations.shared.start(togglePanel: { status.togglePanel() }, showPanel: { status.showPanel() })
         FifteenShortcuts.updateAppShortcutParameters()
         LinkSession.shared.start()
+        // Before Sparkle starts: it marks the app as launched before, which tells an update from a new install.
+        let greeting = Greeting.forThisLaunch()
         Updater.shared.start()
+        LaunchAtLogin.enableOnFirstLaunch()
 
         // `open Fifteen.app --args --open` shows the bubble right away (handy after first install).
         if CommandLine.arguments.contains("--open") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { status.showPanel() }
+        }
+        // A welcome on a new install, what's new after an update. `--welcome` and `--whats-new`
+        // show them anyway, to try them out.
+        let forced: Greeting? = CommandLine.arguments.contains("--welcome") ? .welcome
+            : CommandLine.arguments.contains("--whats-new") ? .whatsNew(Greeting.currentNotes) : nil
+        if let shown = forced ?? greeting {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                switch shown {
+                case .welcome:
+                    WindowRouter.shared.showWelcome {
+                        Notifier.shared.requestAuthorizationIfNeeded()
+                        status.showPanel()
+                    }
+                case .whatsNew(let notes):
+                    WindowRouter.shared.showWhatsNew(notes)
+                }
+            }
         }
         // `--settings` opens Settings; `--settings-tab 2` picks a tab (0 General, 1 Keyboard, 2 Timer, 3 Sound, 4 Display, 5 Focus, 6 About).
         let args = CommandLine.arguments
@@ -93,6 +113,49 @@ final class WindowRouter {
         bringToFront(window)
         // Don't drop the cursor into the first text field (a preset name) on open.
         DispatchQueue.main.async { window.makeFirstResponder(nil) }
+    }
+
+    /// The first-launch welcome. Begin closes it and runs `begin` (which opens the timer).
+    func showWelcome(begin: @escaping () -> Void) {
+        showCard(id: "welcome", title: "Welcome to Fifteen") { [weak self] in
+            WelcomeView {
+                self?.close("welcome")
+                begin()
+            }
+        }
+    }
+
+    /// What's new after an update.
+    func showWhatsNew(_ notes: [ReleaseNotes]) {
+        guard !notes.isEmpty else { return }
+        showCard(id: "whatsNew", title: "What's New in Fifteen") { [weak self] in
+            WhatsNewView(notes: notes) { self?.close("whatsNew") }
+        }
+    }
+
+    private func close(_ id: String) {
+        windows[id]?.close()
+        windows[id] = nil
+    }
+
+    /// A small fixed-size window with no visible title bar, sized to its content.
+    private func showCard<Content: View>(id: String, title: String, @ViewBuilder content: () -> Content) {
+        if let window = windows[id] {
+            bringToFront(window)
+            return
+        }
+        let host = NSHostingController(rootView: content().environment(Preferences.shared))
+        host.sizingOptions = [.preferredContentSize]
+        let window = NSWindow(contentViewController: host)
+        window.title = title
+        window.styleMask = [.titled, .closable, .fullSizeContentView]
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.isMovableByWindowBackground = true
+        window.isReleasedWhenClosed = false
+        window.center()
+        windows[id] = window
+        bringToFront(window)
     }
 
     private func show<Content: View>(id: String, title: String, size: NSSize, @ViewBuilder content: () -> Content) {

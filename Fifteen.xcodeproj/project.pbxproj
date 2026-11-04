@@ -31,6 +31,7 @@
 		421C4F8701BC38C155F6AEC6 /* SessionsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D054F016B7B0A35FFAFF714 /* SessionsSection.swift */; };
 		42255440CD15D31EC41DB9FB /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2D339DDCC9D04FAE96E5E9 /* Analytics.swift */; };
 		429DC823F52D8CF3D64DF353 /* Records.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23E31540E674DD908BB1486A /* Records.swift */; };
+		448C2361AE3D281E80361E56 /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B414080CEB5321C421F852A /* LaunchAtLogin.swift */; };
 		45CBC4F54559CA819C470F3C /* TimerParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D292AEBDA8FA9EC8D597A936 /* TimerParts.swift */; };
 		489BB3A25166BD67F5CAE5D9 /* SharedTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B02B704E4E4445F4B7565E34 /* SharedTimer.swift */; };
 		4A6312024A4862D3C4059849 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 81C2A7A14CF89E41C9767368 /* Sparkle */; };
@@ -60,6 +61,7 @@
 		9137A8BA5C6E875C59B249CB /* TimerActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4B9EC6B899AF31F2910433 /* TimerActivityIntents.swift */; };
 		91F940DA9B3429F6C0AFEA8B /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50BAF72348FC9FD1A77A598 /* Haptics.swift */; };
 		95AF27EFDAD36093D604DE02 /* TimerActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4B9EC6B899AF31F2910433 /* TimerActivityIntents.swift */; };
+		9A9FD32E2DDA881369A62EC6 /* release-notes in Resources */ = {isa = PBXBuildFile; fileRef = B555BDCC391F2ADC8BC2CC7B /* release-notes */; };
 		9E8826762790E070145A26F9 /* FifteenWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BFB429C6ECCE1BA450981A1 /* FifteenWidgets.swift */; };
 		A146CF8095FAC5937657B085 /* TimerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DE412EA1844D20331B9B8E1 /* TimerEngine.swift */; };
 		A239B52E44B4086F26CF8EB8 /* StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92C8CF80F9E95632578E23A /* StatusItemController.swift */; };
@@ -75,6 +77,7 @@
 		BBE9EE959DAAFB8746CB8D20 /* FocusActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB8D333B48C27E6A8DA8460 /* FocusActivityAttributes.swift */; };
 		BE5D4EF6B06C2E7811C21706 /* SettingsSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26C703BC3375DB1C566DC3C /* SettingsSections.swift */; };
 		C0C0506611A685851C3CE1A8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03E02919F70FE57EBE7CFFA6 /* Preferences.swift */; };
+		C4C0EBEA09FB865B969708C3 /* Greeting.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3225318C2229DF6A6492691 /* Greeting.swift */; };
 		C588F0792F51FC8B9AFBF9C7 /* MacSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39CEBB2735502C8A2F7F37EF /* MacSettingsView.swift */; };
 		C75919EDD46D46493508F601 /* ProjectChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E939D3C876E03773D0307C /* ProjectChip.swift */; };
 		CB7F9172B98B0843D395B6A2 /* SettingsSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26C703BC3375DB1C566DC3C /* SettingsSections.swift */; };
@@ -135,6 +138,7 @@
 		4B76848DC7EFAED6F52DC188 /* CalendarSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSection.swift; sourceTree = "<group>"; };
 		4DE412EA1844D20331B9B8E1 /* TimerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerEngine.swift; sourceTree = "<group>"; };
 		5AE322C93077A612A9357549 /* AppBlocker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBlocker.swift; sourceTree = "<group>"; };
+		6B414080CEB5321C421F852A /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
 		6E60D82F37CB68E097F02925 /* SoundEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEngine.swift; sourceTree = "<group>"; };
 		6EEED4E291115CE03CD754A9 /* ProjectsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsSection.swift; sourceTree = "<group>"; };
 		7B0E69F42A90D7E800E9650E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -161,6 +165,7 @@
 		B0E939D3C876E03773D0307C /* ProjectChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectChip.swift; sourceTree = "<group>"; };
 		B22EFA7367C5135BC9ED9D0B /* DoNotDisturb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoNotDisturb.swift; sourceTree = "<group>"; };
 		B44838093FAB0200E91B6501 /* BreakCurtain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreakCurtain.swift; sourceTree = "<group>"; };
+		B555BDCC391F2ADC8BC2CC7B /* release-notes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "release-notes"; sourceTree = SOURCE_ROOT; };
 		B6952402BEBA2C2D2889121F /* AnalyticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsTests.swift; sourceTree = "<group>"; };
 		BB2D339DDCC9D04FAE96E5E9 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
 		BC9B2C406E0C36105AB2A064 /* Fifteen-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "Fifteen-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -173,6 +178,7 @@
 		E92C8CF80F9E95632578E23A /* StatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusItemController.swift; sourceTree = "<group>"; };
 		E9482EEEDBC0094EAE9F42E5 /* HotKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeys.swift; sourceTree = "<group>"; };
 		EDAF313DFAEBD65ACFD0038D /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		F3225318C2229DF6A6492691 /* Greeting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Greeting.swift; sourceTree = "<group>"; };
 		F3B38E1DA18F48D8F22B67F6 /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
 		F6833A631DB471F5D7FB45B6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -302,8 +308,10 @@
 				C5EA11C8926BDB4F5277AAB2 /* Fifteen.entitlements */,
 				9A63E61454FB956361E36B29 /* FifteenMacApp.swift */,
 				82EEE03C3C1F4F22C453F627 /* GlassPanel.swift */,
+				F3225318C2229DF6A6492691 /* Greeting.swift */,
 				E9482EEEDBC0094EAE9F42E5 /* HotKeys.swift */,
 				F6833A631DB471F5D7FB45B6 /* Info.plist */,
+				6B414080CEB5321C421F852A /* LaunchAtLogin.swift */,
 				497E6F2DD4558461BF20CF90 /* LinkViews.swift */,
 				101B4780DEA218187E9B6B60 /* MacIntegrations.swift */,
 				39CEBB2735502C8A2F7F37EF /* MacSettingsView.swift */,
@@ -346,6 +354,7 @@
 				AC23646D6D071F8D15FBFEA7 /* Shared */,
 				4AD31519EA5114251544937D /* Tests */,
 				45BFA675DECF917BD1AF09B4 /* Widgets */,
+				B555BDCC391F2ADC8BC2CC7B /* release-notes */,
 				3891F1C473A7A3C33A11C438 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -505,6 +514,7 @@
 			files = (
 				26270955069E7EBC183ADD36 /* AppIcon.icon in Resources */,
 				D08977D6A7326F57060C7B51 /* Assets.xcassets in Resources */,
+				9A9FD32E2DDA881369A62EC6 /* release-notes in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -576,10 +586,12 @@
 				3DD74308B405D64056CDAAE9 /* FifteenMacApp.swift in Sources */,
 				BBE9EE959DAAFB8746CB8D20 /* FocusActivityAttributes.swift in Sources */,
 				2C0D62A24FAB8AF7F79238A6 /* GlassPanel.swift in Sources */,
+				C4C0EBEA09FB865B969708C3 /* Greeting.swift in Sources */,
 				91F940DA9B3429F6C0AFEA8B /* Haptics.swift in Sources */,
 				FDE5B169375161395FA2D27D /* HistoryStore.swift in Sources */,
 				12088508F0DCB7CAD26E22AB /* HotKeys.swift in Sources */,
 				AC7DF2EF2C97ED7CF457C0F0 /* InsightsView.swift in Sources */,
+				448C2361AE3D281E80361E56 /* LaunchAtLogin.swift in Sources */,
 				4F4A8CE00C25D658D7500DE2 /* LinkParts.swift in Sources */,
 				AEA4A4B1DD6FBE6427C52BD5 /* LinkSession.swift in Sources */,
 				67F12FA8EDCD20708BEEAA9D /* LinkViews.swift in Sources */,
@@ -640,6 +652,7 @@
 		13BFBC3F1A0777856B09527D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APP_DISPLAY_NAME = Fifteen;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = macOS/Fifteen.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -779,7 +792,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -801,7 +814,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -865,7 +878,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -881,7 +894,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -895,6 +908,7 @@
 		E9F1A2D28672BAC58883F006 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APP_DISPLAY_NAME = "Fifteen Dev";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = macOS/Fifteen.entitlements;
 				CODE_SIGN_IDENTITY = "-";
@@ -906,7 +920,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.mirzapolat.fifteen;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mirzapolat.fifteen.dev;
 				PRODUCT_NAME = Fifteen;
 				SDKROOT = macosx;
 			};

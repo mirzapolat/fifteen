@@ -11,8 +11,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.1"
+    CURRENT_PROJECT_VERSION: "2"
     DEVELOPMENT_TEAM: "56746T8S3D"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_EMIT_LOC_STRINGS: YES
@@ -32,12 +32,16 @@ targets:
       - Shared
       - macOS
       - Resources
+      # Shown in the What's New window after an update (the same files Sparkle and GitHub show).
+      - path: release-notes
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: Sparkle
     info:
       path: macOS/Info.plist
       properties:
-        CFBundleDisplayName: Fifteen
+        CFBundleDisplayName: $(APP_DISPLAY_NAME)
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true
@@ -60,11 +64,16 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.mirzapolat.fifteen
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
+        APP_DISPLAY_NAME: Fifteen
       configs:
         # Day to day: ad-hoc signed, runs on this Mac without any account.
+        # Its own bundle ID, so it keeps its own settings and sessions, can run next to the
+        # installed Fifteen, and never takes Sparkle updates (Updater skips Debug builds).
         Debug:
           CODE_SIGN_IDENTITY: "-"
           CODE_SIGN_STYLE: Manual
+          PRODUCT_BUNDLE_IDENTIFIER: com.mirzapolat.fifteen.dev
+          APP_DISPLAY_NAME: Fifteen Dev
         # Releases: signed by the team, then exported with Developer ID and notarized
         # (scripts/release-mac.sh).
         Release:

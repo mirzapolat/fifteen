@@ -148,6 +148,7 @@ Resources/           AppIcon.icon (Icon Composer, Liquid Glass), AccentColor
 scripts/             release-mac.sh (notarized DMG, Sparkle appcast, GitHub release)
 release-notes/       <version>.html, shown in the update window
 server/link          The Link relay (Node, Docker)
+website/             getfifteen.de (React + Vite, deploys on push to main via deploy-website.yml)
 ```
 
 History lives in `~/Library/Application Support/Fifteen/history.json`. An unreadable file is set
