@@ -241,9 +241,9 @@ function Hero({ timer, spectrum, setSpectrum, latest, onDownload }) {
     <section className="hero">
       <div className="hero-copy">
         <h1>
-          One timer.
+          Simple, free
           <br />
-          <span className="dim">Your time.</span>
+          <span className="dim">Pomodoro timer.</span>
         </h1>
         <p className="lede">
           Fifteen is a feature-rich, free and open‑source Pomodoro timer to keep you focused, day
