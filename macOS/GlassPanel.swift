@@ -308,7 +308,7 @@ struct PopoverView: View {
         .padding(16)
         .padding(.top, Self.arrowHeight)
         .frame(width: Self.width)
-        .glassEffect(.regular, in: BubbleShape(arrowX: arrowX))
+        .glassPanel(in: BubbleShape(arrowX: arrowX))
         .contentShape(BubbleShape(arrowX: arrowX))
     }
 }

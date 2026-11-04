@@ -12,35 +12,35 @@ struct ControlPills: View {
 
     var body: some View {
         // Less than the gap between pills, so each stays its own drop of glass instead of melting
-        // into its neighbour; glassEffectID still morphs pills in and out.
-        GlassEffectContainer(spacing: 2) {
+        // into its neighbour; glassID still morphs pills in and out (macOS 26+).
+        GlassGroup(spacing: 2) {
             // Left: this session (length, project/intention, reset) — it changes as the session does.
             // Right: the app (Insights, •••) — fixed in the corner, never shifting.
             HStack(spacing: Pill.spacing) {
                 if engine.state == .finished {
                     nextPill
-                        .glassEffectID("leading", in: glass)
+                        .glassID("leading", in: glass)
                 } else {
                     lengthPill
-                        .glassEffectID("leading", in: glass)
+                        .glassID("leading", in: glass)
                 }
                 if showsDetailsPill {
                     detailsPill
-                        .glassEffectID("details", in: glass)
+                        .glassID("details", in: glass)
                 }
                 // Reset morphs in only when there's something to reset; last in its group, away
                 // from the main pill, so it isn't hit by accident.
                 if engine.state != .idle {
                     resetPill
-                        .glassEffectID("reset", in: glass)
+                        .glassID("reset", in: glass)
                 }
                 if engine.state != .finished {
                     Spacer(minLength: 0)
                 }
                 historyPill
-                    .glassEffectID("history", in: glass)
+                    .glassID("history", in: glass)
                 morePill
-                    .glassEffectID("more", in: glass)
+                    .glassID("more", in: glass)
             }
         }
         .animation(Pill.morph, value: engine.state)

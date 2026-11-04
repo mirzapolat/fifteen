@@ -5,7 +5,7 @@ import SwiftUI
 /// (Today's goal progress lives in Insights → Overview, with the other goals.)
 struct PhaseHeader: View {
     var body: some View {
-        GlassEffectContainer(spacing: 2) {
+        GlassGroup(spacing: 2) {
             HStack {
                 #if os(macOS)
                 // While the Link card is open, its title takes the switcher's place.

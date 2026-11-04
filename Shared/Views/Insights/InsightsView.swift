@@ -238,21 +238,27 @@ struct InsightsView: View {
         #endif
         .toolbar {
             // The tabs live in the window's header, centered.
-            ToolbarItem(placement: .principal) {
-                ViewThatFits(in: .horizontal) {
-                    InkSegmented(selection: $route.section, items: InsightsSection.allCases) { item in
-                        // Toolbars shrink labels to icons by default; keep the names visible.
-                        Label(item.title, systemImage: item.symbol).labelStyle(.titleAndIcon)
-                    }
-                    InkSegmented(selection: $route.section, items: InsightsSection.allCases, compact: true) { item in
-                        Text(item.title)
-                    }
-                }
+            if #available(macOS 26, iOS 26, *) {
+                ToolbarItem(placement: .principal) { sectionTabs }
+                    .sharedBackgroundVisibility(.hidden)
+            } else {
+                ToolbarItem(placement: .principal) { sectionTabs }
             }
-            .sharedBackgroundVisibility(.hidden)
             ToolbarItem(placement: .primaryAction) { exportMenu(analytics) }
             if let onDone {
                 ToolbarItem(placement: .cancellationAction) { Button("Done", action: onDone) }
+            }
+        }
+    }
+
+    private var sectionTabs: some View {
+        ViewThatFits(in: .horizontal) {
+            InkSegmented(selection: $route.section, items: InsightsSection.allCases) { item in
+                // Toolbars shrink labels to icons by default; keep the names visible.
+                Label(item.title, systemImage: item.symbol).labelStyle(.titleAndIcon)
+            }
+            InkSegmented(selection: $route.section, items: InsightsSection.allCases, compact: true) { item in
+                Text(item.title)
             }
         }
     }

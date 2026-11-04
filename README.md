@@ -7,7 +7,7 @@ Explore what it has to offer!
 
 [**Download for Mac**](https://getfifteen.de/download/mac) · Download for iOS (soon)
 
-Available for macOS 26 or later · [getfifteen.de](https://getfifteen.de)
+Available for macOS 14 or later · [getfifteen.de](https://getfifteen.de)
 
 ---
 
@@ -70,7 +70,7 @@ the same timer, on Mac and iPhone. Only the timer is shared.
 
 What are you waiting for? Give it a try!
 
-[**Download for Mac**](https://getfifteen.de/download/mac). Available for macOS 26 or later.
+[**Download for Mac**](https://getfifteen.de/download/mac). Available for macOS 14 or later.
 iPhone & iPad are coming soon.
 
 ---

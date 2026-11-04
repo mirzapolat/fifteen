@@ -213,7 +213,7 @@ private struct ToastView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .frame(width: 400, height: 58)
-        .glassEffect(.regular, in: .capsule)
+        .glassPanel(in: .capsule)
         .scaleEffect(model.visible ? 1 : 0.85, anchor: .top)
         .offset(y: model.visible ? 0 : -16)
         .opacity(model.visible ? 1 : 0)

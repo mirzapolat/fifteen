@@ -57,6 +57,7 @@
 		8037C04850B9522BCBE62EB7 /* IOSSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF167591E15C7CC3FAD779B9 /* IOSSettingsView.swift */; };
 		806D03B7420B8B9827C234D7 /* ControlPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACA98CA6DB9DAED7C826BFD4 /* ControlPills.swift */; };
 		849F5B4860A1C4D76B67B814 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38D7C4DC16C92FE5AE048925 /* Theme.swift */; };
+		8C78DB0BA0409887DE0A9EBF /* GlassCompat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AAF464355C6A7D8E416E81B /* GlassCompat.swift */; };
 		8DEF41AFC803071522B580B0 /* LinkTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A754011F0B0A9EB5FA252C /* LinkTab.swift */; };
 		9137A8BA5C6E875C59B249CB /* TimerActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4B9EC6B899AF31F2910433 /* TimerActivityIntents.swift */; };
 		91F940DA9B3429F6C0AFEA8B /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50BAF72348FC9FD1A77A598 /* Haptics.swift */; };
@@ -86,6 +87,7 @@
 		D0118BF02DA8F33F53FD0559 /* Notifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32E917808F6BA630A36F853C /* Notifier.swift */; };
 		D08977D6A7326F57060C7B51 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 933C49CAEA95F38928B2CD6A /* Assets.xcassets */; };
 		D5A54165B1F76E1BCC0ED5B2 /* LinkSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABEA5F4D138A0C749F72AC93 /* LinkSession.swift */; };
+		D90D5ABB01BD6A77E698B784 /* GlassCompat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AAF464355C6A7D8E416E81B /* GlassCompat.swift */; };
 		DA263CF8B696D756E131A94B /* DialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD1DB7939A72D0FF14018 /* DialView.swift */; };
 		DB3A8408131AFEAB8C9A8342 /* ProjectsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EEED4E291115CE03CD754A9 /* ProjectsSection.swift */; };
 		DC32FB41C074E0E6E5F34ACB /* SessionsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D054F016B7B0A35FFAFF714 /* SessionsSection.swift */; };
@@ -141,6 +143,7 @@
 		6B414080CEB5321C421F852A /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
 		6E60D82F37CB68E097F02925 /* SoundEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEngine.swift; sourceTree = "<group>"; };
 		6EEED4E291115CE03CD754A9 /* ProjectsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsSection.swift; sourceTree = "<group>"; };
+		7AAF464355C6A7D8E416E81B /* GlassCompat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCompat.swift; sourceTree = "<group>"; };
 		7B0E69F42A90D7E800E9650E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7BB8D333B48C27E6A8DA8460 /* FocusActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusActivityAttributes.swift; sourceTree = "<group>"; };
 		7D4B9EC6B899AF31F2910433 /* TimerActivityIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerActivityIntents.swift; sourceTree = "<group>"; };
@@ -272,6 +275,7 @@
 				87F8BCF59A86DD81EBA267C1 /* AboutView.swift */,
 				ACA98CA6DB9DAED7C826BFD4 /* ControlPills.swift */,
 				3B5CD1DB7939A72D0FF14018 /* DialView.swift */,
+				7AAF464355C6A7D8E416E81B /* GlassCompat.swift */,
 				B0E939D3C876E03773D0307C /* ProjectChip.swift */,
 				A26C703BC3375DB1C566DC3C /* SettingsSections.swift */,
 				38D7C4DC16C92FE5AE048925 /* Theme.swift */,
@@ -542,6 +546,7 @@
 				B04D1921DF97BB350D497DA5 /* FifteenIntents.swift in Sources */,
 				2275578EDFFA073B2E3CFD31 /* FifteeniOSApp.swift in Sources */,
 				69A1133FE93212AD550F1D3A /* FocusActivityAttributes.swift in Sources */,
+				D90D5ABB01BD6A77E698B784 /* GlassCompat.swift in Sources */,
 				ACE903BA57330D08B4AF3FD7 /* Haptics.swift in Sources */,
 				2FCFCA4981F7A737AC971254 /* HistoryStore.swift in Sources */,
 				8037C04850B9522BCBE62EB7 /* IOSSettingsView.swift in Sources */,
@@ -585,6 +590,7 @@
 				EDD77DE6689604F4B012F6B3 /* FifteenIntents.swift in Sources */,
 				3DD74308B405D64056CDAAE9 /* FifteenMacApp.swift in Sources */,
 				BBE9EE959DAAFB8746CB8D20 /* FocusActivityAttributes.swift in Sources */,
+				8C78DB0BA0409887DE0A9EBF /* GlassCompat.swift in Sources */,
 				2C0D62A24FAB8AF7F79238A6 /* GlassPanel.swift in Sources */,
 				C4C0EBEA09FB865B969708C3 /* Greeting.swift in Sources */,
 				91F940DA9B3429F6C0AFEA8B /* Haptics.swift in Sources */,
@@ -792,7 +798,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -813,8 +819,8 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.1;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.1.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -878,7 +884,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -893,8 +899,8 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.1;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.1.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

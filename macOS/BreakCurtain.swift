@@ -61,7 +61,7 @@ private struct CurtainView: View {
                     .frame(width: 300, height: 300)
                 Text(BreakTips.tip(for: engine.sessionStart))
                     .font(.title2.weight(.light))
-                GlassEffectContainer(spacing: 10) {
+                GlassGroup(spacing: 10) {
                     HStack(spacing: 10) {
                         Button { engine.extend(by: 60) } label: {
                             Label("1 More Minute", systemImage: "plus").pill()

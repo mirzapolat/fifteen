@@ -91,7 +91,7 @@ struct LinkCard: View {
     private enum Field { case name, code }
 
     var body: some View {
-        GlassEffectContainer(spacing: 2) {
+        GlassGroup(spacing: 2) {
             Group {
                 if link.isLinked {
                     linked.transition(.blurReplace)
@@ -131,7 +131,7 @@ struct LinkCard: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(link.busy)
-                .glassEffectID("primary", in: glass)
+                .glassID("primary", in: glass)
                 Button {
                     link.problem = nil
                     withAnimation(Pill.morph) { chrome.joining = true }
@@ -142,7 +142,7 @@ struct LinkCard: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(link.busy)
-                .glassEffectID("secondary", in: glass)
+                .glassID("secondary", in: glass)
             }
             problem
         }
@@ -180,7 +180,7 @@ struct LinkCard: View {
                 }
                 .buttonStyle(.plain)
                 .help("Back")
-                .glassEffectID("secondary", in: glass)
+                .glassID("secondary", in: glass)
                 Button(action: submitCode) {
                     Label(link.busy ? "Joining…" : "Join", systemImage: "arrow.right")
                         .frame(maxWidth: .infinity)
@@ -188,7 +188,7 @@ struct LinkCard: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(link.busy || code.count < 6)
-                .glassEffectID("primary", in: glass)
+                .glassID("primary", in: glass)
             }
             problem
         }
@@ -249,7 +249,7 @@ struct LinkCard: View {
                 }
                 .buttonStyle(.plain)
                 .help("Copy the code to send it to a friend")
-                .glassEffectID("primary", in: glass)
+                .glassID("primary", in: glass)
                 Button { link.leave() } label: {
                     Label("Leave", systemImage: "rectangle.portrait.and.arrow.right")
                         .fixedSize()
@@ -257,7 +257,7 @@ struct LinkCard: View {
                 }
                 .buttonStyle(.plain)
                 .help("Leave the group. Your timer carries on here.")
-                .glassEffectID("secondary", in: glass)
+                .glassID("secondary", in: glass)
             }
             .padding(.top, 12)
         }

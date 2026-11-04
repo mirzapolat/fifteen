@@ -95,7 +95,7 @@ function IOSButton() {
 function Meta({ latest }) {
   return (
     <p className="meta">
-      Available for macOS 26 or later{latest?.version && <> · <span className="nowrap">Version {latest.version}</span></>}
+      Available for macOS 14 or later{latest?.version && <> · <span className="nowrap">Version {latest.version}</span></>}
     </p>
   );
 }

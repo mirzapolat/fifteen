@@ -54,7 +54,7 @@ struct PillStyle: ViewModifier {
             .frame(minWidth: Pill.height, minHeight: Pill.height, maxHeight: Pill.height)
             .foregroundStyle(prominent ? (scheme == .dark ? Color.black : Color.white) : Color.primary)
             .contentShape(.capsule)
-            .glassEffect(prominent ? .regular.tint(.primary).interactive() : .regular.interactive(), in: .capsule)
+            .glassSurface(in: .capsule, tint: prominent ? .primary : nil, interactive: true)
     }
 }
 
