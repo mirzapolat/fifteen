@@ -859,7 +859,6 @@ p {
   .hero {
     --hero-h: max(100lvh, var(--screen-h, 0px));
     min-height: var(--hero-h);
-    padding: 96px 20px 88px;
     align-content: center;
   }
   .hero .lede {
@@ -867,6 +866,39 @@ p {
   }
   .cta-row {
     justify-content: center;
+  }
+}
+
+/* Phones: center the pitch in what's actually visible (between the nav and the scroll arrow),
+   keep the headline to two lines, and stack the buttons at one width. */
+@media (max-width: 560px) {
+  .hero {
+    /* Extra bottom padding cancels the part of the hero hidden under Safari's toolbars. */
+    padding: 92px 24px calc(var(--hero-h) - 100svh + 100px);
+  }
+  .hero h1 {
+    font-size: clamp(32px, 11vw, 60px);
+    line-height: 1;
+  }
+  .hero .lede {
+    margin-top: 20px;
+    max-width: 34ch;
+    font-size: 17px;
+    text-wrap: balance;
+  }
+  .hero .cta-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+    max-width: 320px;
+    margin: 32px auto 0;
+  }
+  .hero .cta-row .btn {
+    justify-content: center;
+  }
+  .hero .meta {
+    margin-top: 14px;
   }
 }
 

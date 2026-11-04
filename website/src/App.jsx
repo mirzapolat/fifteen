@@ -105,8 +105,8 @@ function Meta({ latest }) {
 const MENU = [
   ['Mac', 'For Mac', '/#mac', I.Laptop],
   ['iPhone', 'For iPhone & iPad', '/#iphone', I.Phone],
-  ['Features', 'Explore Features', '/#features', I.Sparkles],
   ['Link', 'Link Devices', '/#link', I.People],
+  ['Features', 'Explore Features', '/#features', I.Sparkles],
 ];
 
 // On touch devices, size the hero to the physical screen: iOS Safari's toolbars float over
@@ -654,8 +654,8 @@ export default function App() {
             />
             <MacSection timer={timer} spectrum={spectrum} />
             <PhoneSection timer={timer} spectrum={spectrum} />
-            <Features />
             <LinkSection timer={timer} spectrum={spectrum} />
+            <Features />
             <DownloadSection latest={latest} onDownload={onDownload} spectrum={spectrum} />
           </>
         )}
