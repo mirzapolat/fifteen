@@ -207,14 +207,22 @@ enum AppIconArt {
 /// Applies the chosen icon to the running app and to the app in Finder, the Dock and Spotlight.
 @MainActor
 enum AppIconChanger {
-    /// On launch: only the running app's icon (nothing written to disk).
+    /// On launch: the running app's icon, plus the Finder icon if it went missing. An update
+    /// replaces the whole app bundle, which drops the custom icon stored inside it.
     static func applyAtLaunch(_ style: AppIconStyle) {
         NSApp.applicationIconImage = style == .fifteenDark ? nil : AppIconArt.image(style)
+        let hasFinderIcon = FileManager.default.fileExists(atPath: Bundle.main.bundlePath + "/Icon\r")
+        if style != .fifteenDark && !hasFinderIcon { writeFinderIcon(style) }
     }
 
     /// From Settings: also changes the icon Finder shows. "15 Dark" restores the built-in icon.
     static func apply(_ style: AppIconStyle) {
-        applyAtLaunch(style)
+        NSApp.applicationIconImage = style == .fifteenDark ? nil : AppIconArt.image(style)
+        writeFinderIcon(style)
+    }
+
+    /// A custom Finder icon on a bundle lives in an `Icon\r` file inside it.
+    private static func writeFinderIcon(_ style: AppIconStyle) {
         let path = Bundle.main.bundlePath
         let image: NSImage? = style == .fifteenDark ? nil : AppIconArt.image(style)
         NSWorkspace.shared.setIcon(image, forFile: path, options: [])

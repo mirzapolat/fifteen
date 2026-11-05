@@ -63,7 +63,6 @@ private struct GeneralPane: View {
         Form {
             Section {
                 LaunchAtLoginToggle()
-                Toggle("Open the timer when a session ends", isOn: $prefs.openWhenDone)
                 Toggle("Pause focus while the Mac is locked", isOn: $prefs.pauseWhenLocked)
             } header: {
                 Text("System")

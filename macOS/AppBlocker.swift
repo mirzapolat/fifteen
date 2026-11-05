@@ -14,6 +14,7 @@ final class AppBlocker {
     private let prefs = Preferences.shared
     let toast = BlockToast()
     private var allowedUntil: [String: Date] = [:]
+    private var lastCaught: [String: Date] = [:]
 
     /// Blocking holds for the whole focus session, pauses included; apps are released only
     /// when the session finishes or is reset.
@@ -23,7 +24,11 @@ final class AppBlocker {
 
     func start() {
         let workspace = NSWorkspace.shared.notificationCenter
-        for name in [NSWorkspace.didActivateApplicationNotification, NSWorkspace.didLaunchApplicationNotification] {
+        // Unhide matters for apps that are already running: clicking a hidden app's Dock icon
+        // unhides it, and that can land after the activation we already handled.
+        for name in [NSWorkspace.didActivateApplicationNotification,
+                     NSWorkspace.didLaunchApplicationNotification,
+                     NSWorkspace.didUnhideApplicationNotification] {
             workspace.addObserver(forName: name, object: nil, queue: .main) { note in
                 let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
                 MainActor.assumeIsolated { AppBlocker.shared.caught(app) }
@@ -60,6 +65,10 @@ final class AppBlocker {
     private func caught(_ app: NSRunningApplication?) {
         guard isActive, let app, isBlocked(app), let id = app.bundleIdentifier else { return }
         block(app)
+        enforce(app)
+        // Launch, activate and unhide often arrive together for one attempt; count it once.
+        if let last = lastCaught[id], Date().timeIntervalSince(last) < 2 { return }
+        lastCaught[id] = Date()
         engine.logDistraction()
         let name = app.localizedName ?? "That app"
         let left = engine.state == .paused ? "Focus paused"
@@ -68,6 +77,21 @@ final class AppBlocker {
                    title: "\(name) can wait",
                    subtitle: "\(left) · distraction logged",
                    allow: { AppBlocker.shared.allow(id) })
+    }
+
+    /// macOS ignores a hide sent while an app is still coming forward, which is exactly when the
+    /// notifications arrive. Check again shortly after and put it away if it got through.
+    private func enforce(_ app: NSRunningApplication) {
+        Task { @MainActor in
+            for delay in [150, 400, 1000] {
+                try? await Task.sleep(for: .milliseconds(delay))
+                guard AppBlocker.shared.isActive, !app.isTerminated,
+                      AppBlocker.shared.isBlocked(app) else { return }
+                let stillThere = AppBlocker.shared.prefs.blockAction == .quit || !app.isHidden || app.isActive
+                guard stillThere else { return }
+                AppBlocker.shared.block(app)
+            }
+        }
     }
 
     /// Lets one app through for a few minutes, on purpose.

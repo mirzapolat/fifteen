@@ -516,6 +516,9 @@ struct DisplaySettingsSection: View {
             Toggle("Cycle dots", isOn: $prefs.showCycleDots)
                 .disabled(!prefs.longBreaksEnabled)
             Toggle("Swirl when a session starts", isOn: $prefs.startSwirl)
+            #if os(macOS)
+            Toggle("Pop up when a session ends", isOn: $prefs.openWhenDone)
+            #endif
         }
     }
 }
