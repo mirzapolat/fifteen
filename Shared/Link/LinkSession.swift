@@ -140,6 +140,11 @@ final class LinkSession {
         center.addObserver(forName: back, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated { LinkSession.shared.reconnectIfNeeded(now: true) }
         }
+        guard Preferences.shared.linkEnabled else {
+            // Switched off: no group, no connection.
+            if code != nil { forgetGroup() }
+            return
+        }
         if token != nil { connect() } else if code != nil { forgetGroup() }
     }
 
@@ -344,13 +349,24 @@ final class LinkSession {
             if rejected || mine { inFlight = false }
             accept(timer, revision: message.revision ?? revision, adopt: !mine)
             if !mine, !rejected, let by = message.by, let action = message.action, !action.isEmpty {
-                let line = "\(Self.shortName(by.name)) \(action)"
-                LinkActivity.shared.show(line)
-                notify(line)
+                announce("\(Self.shortName(by.name)) \(action)", detail: Self.where(engine))
             }
 
         case "members":
-            members = message.members ?? members
+            guard let incoming = message.members else { return }
+            // Someone new in the group, or someone gone from it. Not on our own first look at the
+            // list, and not for devices that only went away or came back.
+            if status == .linked && !members.isEmpty {
+                let before = Set(members.map(\.id))
+                let after = Set(incoming.map(\.id))
+                for member in incoming where !before.contains(member.id) && member.id != myID {
+                    announce("\(Self.shortName(member.name)) joined", detail: groupSize(incoming.count))
+                }
+                for member in members where !after.contains(member.id) && member.id != myID {
+                    announce("\(Self.shortName(member.name)) left", detail: groupSize(incoming.count))
+                }
+            }
+            members = incoming
 
         case "error":
             switch message.code {
@@ -381,9 +397,27 @@ final class LinkSession {
 
     /// A banner for someone else's change, unless it's switched off or the timer is on screen
     /// (the line under the ring already says it there).
-    private func notify(_ line: String) {
-        guard Preferences.shared.linkNotifications, !LinkChrome.shared.timerVisible else { return }
-        Notifier.shared.notifyLinkActivity(title: line, body: Self.where(engine))
+    private func announce(_ line: String, detail: String) {
+        LinkActivity.shared.show(line, detail: detail)
+        let prefs = Preferences.shared
+        guard prefs.linkNotifications, !LinkChrome.shared.timerVisible else { return }
+        #if os(macOS)
+        // The Mac can show a popup under the menu bar item, a system notification, or both.
+        let style = prefs.linkAlertStyle
+        if style.showsPopup { LinkActivity.shared.popup?(line, detail) }
+        guard style.showsNotification else { return }
+        #endif
+        Notifier.shared.notifyLinkActivity(title: line, body: detail)
+    }
+
+    #if DEBUG
+    /// Plays a change as if someone in the group made it (`--demo-link-popup`).
+    func simulate(_ line: String, detail: String) { announce(line, detail: detail) }
+    #endif
+
+    /// "Just you now", "3 in the group".
+    private func groupSize(_ count: Int) -> String {
+        count <= 1 ? "Just you now" : "\(count) in the group"
     }
 
     /// Where the timer stands now: "Focus · 23:10 left", "Short break paused · 4:12 left".

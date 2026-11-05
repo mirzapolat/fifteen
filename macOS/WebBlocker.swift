@@ -400,7 +400,8 @@ struct Browser {
         if let error {
             let code = error[NSAppleScript.errorNumber] as? Int
             Logger(subsystem: "com.mirzapolat.fifteen", category: "WebBlocker")
-                .error("\(bundleID, privacy: .public) script failed \(code ?? 0): \(error[NSAppleScript.errorMessage] as? String ?? "", privacy: .public)")
+                // The message can quote the page's address, so it stays private; the code is enough to diagnose.
+                .error("\(bundleID, privacy: .public) script failed \(code ?? 0, privacy: .public): \(error[NSAppleScript.errorMessage] as? String ?? "", privacy: .private)")
             return .failure(code == -1743 ? .notAuthorized : .failed)
         }
         return .success(output.stringValue ?? "")

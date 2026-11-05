@@ -1,5 +1,8 @@
 import Foundation
 import UserNotifications
+#if os(iOS)
+import UIKit
+#endif
 
 /// Schedules one notification for the moment the current session ends,
 /// with actions to move on or snooze straight from the banner.
@@ -22,12 +25,15 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         center.setNotificationCategories([
             UNNotificationCategory(identifier: category, actions: [next, snooze], intentIdentifiers: [])
         ])
+        NotificationAccess.shared.refresh()
     }
 
     func requestAuthorizationIfNeeded() {
         guard !asked else { return }
         asked = true
-        center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        center.requestAuthorization(options: [.alert, .sound]) { _, _ in
+            Task { @MainActor in NotificationAccess.shared.refresh() }
+        }
     }
 
     func sync(with engine: TimerEngine) {
@@ -97,5 +103,48 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             }
             completionHandler()
         }
+    }
+}
+
+/// Whether Fifteen may show notifications, kept current so Settings can warn when it can't.
+@MainActor @Observable
+final class NotificationAccess {
+    static let shared = NotificationAccess()
+
+    private(set) var status: UNAuthorizationStatus = .notDetermined
+
+    /// Allowed in any form (provisional and ephemeral count, too).
+    var isAllowed: Bool {
+        #if os(iOS)
+        if status == .ephemeral { return true }
+        #endif
+        return status == .authorized || status == .provisional
+    }
+
+    func refresh() {
+        Task {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            if settings.authorizationStatus != status { status = settings.authorizationStatus }
+        }
+    }
+
+    /// Asks once if never asked; refused before, so only System Settings can change it.
+    func request(open: (URL) -> Void) {
+        if status == .notDetermined {
+            Task {
+                _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+                refresh()
+            }
+        } else if let url = Self.settingsURL {
+            open(url)
+        }
+    }
+
+    static var settingsURL: URL? {
+        #if os(macOS)
+        URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(Bundle.main.bundleIdentifier ?? "")")
+        #else
+        URL(string: UIApplication.openNotificationSettingsURLString)
+        #endif
     }
 }

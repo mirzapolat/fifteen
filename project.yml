@@ -153,6 +153,8 @@ targets:
       - Tests
       - Shared/Model/Records.swift
       - Shared/Analytics
+      - Shared/Model/Phase.swift
+      - Shared/Link/SharedTimer.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mirzapolat.fifteen.tests

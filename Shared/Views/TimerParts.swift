@@ -21,7 +21,7 @@ struct PhaseHeader: View {
                 #endif
                 Spacer()
                 #if os(macOS)
-                LinkButton()
+                if Preferences.shared.linkEnabled { LinkButton() }
                 #else
                 TimerHeaderTrailing()
                 #endif
@@ -126,11 +126,11 @@ struct IntentionField: View {
 
     private var content: Content? {
         if let id = engine.lastRecordID, engine.phase == .focus, engine.state == .finished,
-           prefs.askForReflection, history.record(id) != nil {
+           prefs.reflectionActive, history.record(id) != nil {
             return .reflection(id)
         }
-        if engine.phase.isBreak { return prefs.showIntention || prefs.askForReflection ? .tip : nil }
-        return prefs.showIntention && chrome.detailsShown ? .intention : nil
+        if engine.phase.isBreak { return prefs.showIntention || prefs.reflectionActive ? .tip : nil }
+        return (prefs.showIntention || prefs.projectsActive) && chrome.detailsShown ? .intention : nil
     }
 
     var body: some View {
@@ -153,22 +153,29 @@ struct IntentionField: View {
                         Text(BreakTips.tip(for: engine.sessionStart))
                             .foregroundStyle(.secondary)
                     case .intention:
-                        HStack(spacing: 4) {
-                            ProjectChip()
-                            TextField("What's the one thing?", text: $engine.intention)
-                                .textFieldStyle(.plain)
-                                .focused($focused)
-                                .onSubmit {
-                                    focused = false
-                                    if engine.state == .idle { engine.start() }
-                                }
-                            // Balances the chip so the text stays centred.
-                            Color.clear.frame(width: 22, height: 1)
+                        if prefs.showIntention {
+                            HStack(spacing: 4) {
+                                if prefs.projectsActive { ProjectChip() }
+                                TextField("What's the one thing?", text: $engine.intention)
+                                    .textFieldStyle(.plain)
+                                    .focused($focused)
+                                    .onSubmit {
+                                        focused = false
+                                        if engine.state == .idle { engine.start() }
+                                    }
+                                // Balances the chip so the text stays centred.
+                                if prefs.projectsActive { Color.clear.frame(width: 22, height: 1) }
+                            }
+                            .padding(.horizontal, prefs.projectsActive ? -6 : 0)
+                            .fieldBox(focused: focused)
+                            // Revealed on purpose, so it's ready to type into.
+                            .onAppear { if engine.intention.isEmpty { focused = true } }
+                        } else {
+                            // Projects without the intention: just the picker, with its name.
+                            ProjectChip(showsName: true)
+                                .frame(maxWidth: .infinity)
+                                .fieldBox(focused: false)
                         }
-                        .padding(.horizontal, -6)
-                        .fieldBox(focused: focused)
-                        // Revealed on purpose, so it's ready to type into.
-                        .onAppear { if engine.intention.isEmpty { focused = true } }
                     }
                 }
                 .multilineTextAlignment(.center)

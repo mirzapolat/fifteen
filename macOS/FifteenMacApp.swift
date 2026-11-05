@@ -34,6 +34,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--open") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { status.showPanel() }
         }
+        #if DEBUG
+        // `--demo-link-popup` plays a few sample Link popups, to see how they look without a group.
+        if CommandLine.arguments.contains("--demo-link-popup") {
+            let samples = [("Mira started 25 min of focus", "Focus · 25:00 left"),
+                           ("Jonas paused", "Focus paused · 18:42 left"),
+                           ("Jonas joined", "3 in the group")]
+            for (i, sample) in samples.enumerated() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5 + Double(i) * 7) {
+                    LinkSession.shared.simulate(sample.0, detail: sample.1)
+                }
+            }
+        }
+        #endif
         // A welcome on a new install, what's new after an update. `--welcome` and `--whats-new`
         // show them anyway, to try them out.
         let forced: Greeting? = CommandLine.arguments.contains("--welcome") ? .welcome
@@ -51,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
-        // `--settings` opens Settings; `--settings-tab 2` picks a tab (0 General, 1 Keyboard, 2 Timer, 3 Sound, 4 Display, 5 Focus, 6 About).
+        // `--settings` opens Settings; `--settings-tab 2` picks a tab (0 General, 1 Keyboard, 2 Timer, 3 Sound, 4 Display, 5 Insights, 6 Link, 7 Focus, 8 About).
         let args = CommandLine.arguments
         if args.contains("--settings") || args.contains("--settings-tab") {
             let tab = args.firstIndex(of: "--settings-tab").flatMap { args.indices.contains($0 + 1) ? Int(args[$0 + 1]) : nil }
@@ -89,6 +102,7 @@ final class WindowRouter {
     private var windows: [String: NSWindow] = [:]
 
     func showHistory() {
+        guard Preferences.shared.insightsEnabled else { return }
         show(id: "history", title: "Insights", size: NSSize(width: 980, height: 700)) {
             InsightsView()
                 .frame(minWidth: 760, minHeight: 520)
@@ -132,6 +146,9 @@ final class WindowRouter {
             WhatsNewView(notes: notes) { self?.close("whatsNew") }
         }
     }
+
+    /// Insights was switched off in Settings.
+    func closeHistory() { close("history") }
 
     private func close(_ id: String) {
         windows[id]?.close()

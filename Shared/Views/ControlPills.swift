@@ -37,8 +37,10 @@ struct ControlPills: View {
                 if engine.state != .finished {
                     Spacer(minLength: 0)
                 }
-                historyPill
-                    .glassID("history", in: glass)
+                if prefs.insightsEnabled {
+                    historyPill
+                        .glassID("history", in: glass)
+                }
                 morePill
                     .glassID("more", in: glass)
             }
@@ -103,13 +105,13 @@ struct ControlPills: View {
                         }
                     }
                 }
-                Picker("Mode", selection: Binding(
-                    get: { prefs.timerMode },
-                    set: { prefs.timerMode = $0; engine.reloadIdle() }
-                )) {
-                    ForEach(TimerMode.allCases) { Text($0.title).tag($0) }
+                Divider()
+                // Only two modes, so one item flips between them.
+                Button(prefs.isFlowtime ? "Switch to Pomodoro" : "Switch to Flowtime",
+                       systemImage: prefs.isFlowtime ? "timer" : "infinity") {
+                    prefs.timerMode = prefs.isFlowtime ? .pomodoro : .flowtime
+                    engine.reloadIdle()
                 }
-                .pickerStyle(.menu)
             } else {
                 Section("Add Time") {
                     Button("1 Minute", systemImage: "plus") { engine.extend(by: 60) }
@@ -173,7 +175,7 @@ struct ControlPills: View {
 
     /// Hidden in breaks, and after a session, when the "What did you get done?" note takes the field's place.
     private var showsDetailsPill: Bool {
-        prefs.showIntention && !engine.phase.isBreak && engine.state != .finished
+        (prefs.showIntention || prefs.projectsActive) && !engine.phase.isBreak && engine.state != .finished
     }
 
     private var historyPill: some View {

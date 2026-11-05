@@ -12,14 +12,16 @@ struct DialView: View {
     @State private var hovering = false
     /// When the start swirl began; it plays once each time a session starts.
     @State private var swirlStart: Date?
+    /// When the session ended; the finished ring jiggles hardest right after, then settles.
+    @State private var doneStart: Date?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private static let swirlDuration: TimeInterval = 1.3
 
     var body: some View {
         GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height)
-            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: engine.state != .running)) { context in
-                let date = engine.state == .running ? context.date : engine.now
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: engine.state != .running && !celebrating)) { context in
+                let date = engine.state == .running || celebrating ? context.date : engine.now
                 dial(size: size, fraction: fraction(at: date), date: date)
             }
             .frame(width: size, height: size)
@@ -40,7 +42,9 @@ struct DialView: View {
             if new == .running && (old == .idle || old == .finished) && !reduceMotion && prefs.startSwirl {
                 swirlStart = .now
             }
+            if new == .finished { doneStart = .now }
         }
+        .onAppear { if engine.state == .finished { doneStart = .now } }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(engine.phase.title), \(clockText) \(engine.state == .paused ? "paused" : "")")
         .accessibilityAddTraits(.isButton)
@@ -53,9 +57,10 @@ struct DialView: View {
         let flowing = isFlowing
         // Flowtime focus has no fill and no dot: just the track and, once started, the current.
         let flowFocus = engine.isFlowtime && engine.phase == .focus && engine.state != .finished
-        let knobHidden = flowFocus || (engine.state == .idle && dragMinutes == nil && !engine.isFlowtime)
-        // While running, the rainbow drifts slowly around the ring (one lap every 24 s).
-        let drift = rainbow && engine.state == .running
+        let done = engine.state == .finished && dragMinutes == nil
+        let knobHidden = done || flowFocus || (engine.state == .idle && dragMinutes == nil && !engine.isFlowtime)
+        // While running (and once done), the rainbow drifts slowly around the ring (one lap every 24 s).
+        let drift = rainbow && (engine.state == .running || celebrating)
             ? date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 24) / 24 : 0
         return ZStack {
             BreathingDisc(active: engine.phase.isBreak && engine.state == .running)
@@ -64,6 +69,12 @@ struct DialView: View {
             Circle()
                 .inset(by: lineWidth / 2)
                 .stroke(Color.primary.opacity(0.1), lineWidth: lineWidth)
+                .opacity(done ? 0 : 1)
+
+            if done {
+                doneRing(at: date, drift: drift)
+                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
+            }
 
             Group {
                 Group {
@@ -77,7 +88,7 @@ struct DialView: View {
                         arc(fraction).stroke(Color.ink(scheme), style: stroke(lineWidth))
                     }
                 }
-                .opacity(flowFocus ? 0 : 1)
+                .opacity(flowFocus || done ? 0 : 1)
 
                 if flowing {
                     flowCurrent(at: date, drift: drift)
@@ -98,6 +109,40 @@ struct DialView: View {
         }
         .animation(.spring(duration: 0.6, bounce: 0.2), value: engine.state)
         .animation(.spring(duration: 0.5, bounce: 0.3), value: dragMinutes)
+    }
+
+    /// Whether the finished ring is animating (it holds still with Reduce Motion on).
+    private var celebrating: Bool {
+        engine.state == .finished && dragMinutes == nil && !reduceMotion
+    }
+
+    /// The session is over: a full ring with no dot that jiggles like struck jelly for a few
+    /// seconds, then keeps breathing in a slow, even wobble until you move on.
+    private func doneRing(at date: Date, drift: Double) -> some View {
+        let time = reduceMotion ? 0 : date.timeIntervalSinceReferenceDate
+        let since = doneStart.map { date.timeIntervalSince($0) } ?? 10
+        // A big burst that dies away over ~3 s, on top of a gentle wobble that never stops.
+        let burst = reduceMotion ? 0 : exp(-max(0, since) / 1.1)
+        let calm = reduceMotion ? 0 : 0.35
+        let shape = WobbleRing(time: time, wild: burst, calm: calm, amplitude: lineWidth * 1.6)
+        let rainbow = prefs.ringTheme == .rainbow
+        // The glow swells with each breath.
+        let glow = 0.55 + 0.45 * (reduceMotion ? 1 : (0.5 + 0.5 * sin(time * 2.4)))
+        return ZStack {
+            if rainbow {
+                shape.stroke(Self.spectrum(scheme, offset: drift), style: stroke(lineWidth * 1.6))
+                    .blur(radius: lineWidth * 1.8)
+                    .opacity((scheme == .dark ? 0.9 : 0.6) * glow)
+                shape.stroke(Self.spectrum(scheme, offset: drift), style: stroke(lineWidth))
+            } else {
+                shape.stroke(Color.ink(scheme), style: stroke(lineWidth * 1.6))
+                    .blur(radius: lineWidth * 1.8)
+                    .opacity(0.35 * glow)
+                shape.stroke(Color.ink(scheme), style: stroke(lineWidth))
+            }
+        }
+        .padding(lineWidth / 2)
+        .allowsHitTesting(false)
     }
 
     /// A bright comet that whips around the ring twice as a session starts, slowing and fading out.
@@ -264,7 +309,7 @@ struct DialView: View {
 
     /// After focus, ask how it went (if enabled and the session was recorded).
     private var showsRating: Bool {
-        engine.state == .finished && engine.phase == .focus && prefs.askForReflection
+        engine.state == .finished && engine.phase == .focus && prefs.reflectionActive
             && engine.lastRecordID != nil && !engine.isCountingOvertime
     }
 
@@ -308,7 +353,10 @@ struct DialView: View {
 
     private var subtitle: String {
         // "Mira paused": someone in the Link group just changed the timer.
+        // (On the Mac a strip slides out under the bubble instead.)
+        #if os(iOS)
         if let message = LinkActivity.shared.message, !hovering, dragMinutes == nil { return message }
+        #endif
         return switch engine.state {
         case .idle: dragMinutes == nil ? "Start" : "Release to set"
         case .running: hovering ? "Pause" : (engine.isFlowtime ? "Flowtime" : engine.phase.title)
@@ -389,6 +437,40 @@ struct FocusRating: View {
             .animation(.snappy(duration: 0.15), value: shown)
             .onChange(of: current) { Haptics.play(.select) }
         }
+    }
+}
+
+/// A ring whose edge ripples: a few sine waves travel around it in opposite directions, so it
+/// looks wild while `wild` is high and like slow, harmonic breathing at `calm`.
+struct WobbleRing: Shape {
+    var time: Double
+    /// 0…1: the jiggly burst right after finishing.
+    var wild: Double
+    /// 0…1: the gentle wobble that stays.
+    var calm: Double
+    /// The farthest the edge moves, in points, at full strength.
+    var amplitude: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let base = min(rect.width, rect.height) / 2
+        let t = time
+        // The whole ring breathes in and out a little, too.
+        let breath = sin(t * 2.4) * (0.35 * calm + 0.5 * wild)
+        var path = Path()
+        let steps = 180
+        for i in 0...steps {
+            let a = Double(i) / Double(steps) * 2 * .pi
+            // Calm: two slow lobes drifting round in harmony. Wild: faster, higher ripples.
+            let gentle = 0.6 * sin(3 * a + t * 1.6) + 0.4 * sin(2 * a - t * 1.1)
+            let jiggle = 0.5 * sin(5 * a - t * 9) + 0.35 * sin(7 * a + t * 13) + 0.25 * sin(4 * a + t * 17)
+            let offset = (gentle * calm + jiggle * wild + breath) * amplitude
+            let r = base + offset
+            let p = CGPoint(x: center.x + r * sin(a), y: center.y - r * cos(a))
+            if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+        }
+        path.closeSubpath()
+        return path
     }
 }
 

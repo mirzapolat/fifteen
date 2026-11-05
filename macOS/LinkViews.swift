@@ -385,3 +385,57 @@ private struct CodeTextField: NSViewRepresentable {
         }
     }
 }
+
+/// "Jonas paused": while the bubble is open, someone else's change slides out from under its
+/// bottom edge for a few seconds, tucked behind it like a drawer. Click it to see the group.
+struct LinkActivityStrip: View {
+    /// The most the strip needs below the bubble.
+    static let room: CGFloat = 64
+
+    private var activity: LinkActivity { LinkActivity.shared }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            if let message = activity.message {
+                Button {
+                    activity.dismiss()
+                    withAnimation(Pill.morph) { LinkChrome.shared.isOpen = true }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "person.2.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(message)
+                                .font(.system(size: 13, weight: .semibold))
+                                .lineLimit(1)
+                            if let detail = activity.detail {
+                                Text(detail)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                                    .lineLimit(1)
+                            }
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 18) // the part tucked under the bubble
+                    .padding(.bottom, 10)
+                    .frame(width: PopoverView.width - 36)
+                    .glassPanel(in: UnevenRoundedRectangle(bottomLeadingRadius: 18, bottomTrailingRadius: 18))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Show your group")
+                .padding(.top, -10)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isButton)
+            }
+        }
+        .frame(width: PopoverView.width, alignment: .top)
+        .clipped() // slides out from behind the bubble, not from above it
+        .animation(.spring(duration: 0.45, bounce: 0.25), value: activity.message)
+    }
+}

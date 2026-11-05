@@ -43,32 +43,63 @@ struct SharedTimer: Equatable, Sendable {
         }
     }
 
-    /// What a change looks like to the others: "paused", "added 5 min", "started a short break".
+    /// What a change looks like to the others, after their name: "paused", "added 5 min",
+    /// "skipped to a short break", "started Flowtime". The relay passes it on as is (60 chars max).
     static func describe(from old: SharedTimer, to new: SharedTimer) -> String {
-        let newSession = old.phase != new.phase || old.startedAt == nil
+        let phaseChanged = old.phase != new.phase
+        let newSession = phaseChanged || old.startedAt == nil
             || abs((old.startedAt?.timeIntervalSince1970 ?? 0) - (new.startedAt?.timeIntervalSince1970 ?? 0)) > 1.5
-        let started: String = switch new.phase {
-        case .focus: "started focus"
-        case .shortBreak: "started a short break"
-        case .longBreak: "started a long break"
-        }
+        // Mid-session (running or paused), as opposed to waiting to start or already over.
+        let wasActive = old.state == .running || old.state == .paused
+        let wasFlowing = old.mode == .flowtime && old.phase == .focus && wasActive
+        let minutes = Int((new.total / 60).rounded())
         let added = Int(((new.total - old.total) / 60).rounded())
+
+        // Leaving a session that hadn't ended for the next phase is a skip.
+        if phaseChanged && wasActive {
+            if wasFlowing { return "stopped Flowtime" }
+            return new.phase == .focus ? "skipped to the next focus" : "skipped to \(named(new.phase))"
+        }
+
         switch new.state {
         case .idle:
+            if phaseChanged {
+                // Moving on from a finished session, or skipping ahead before starting.
+                if old.state == .finished {
+                    return new.phase == .focus ? "is ready for the next focus" : "switched to \(named(new.phase))"
+                }
+                return new.phase == .focus ? "skipped to the next focus" : "skipped to \(named(new.phase))"
+            }
             if old.state != .idle { return "reset the timer" }
-            if old.phase != new.phase { return "switched to \(new.phase.title.lowercased())" }
             if old.mode != new.mode { return "switched to \(new.mode.title)" }
-            return "set \(Int((new.total / 60).rounded())) min"
+            return "set the timer to \(minutes) min"
         case .running:
-            if newSession { return started }
-            if old.state == .paused { return "resumed" }
+            if newSession {
+                if new.phase == .focus {
+                    return new.mode == .flowtime ? "started Flowtime" : "started \(minutes) min of focus"
+                }
+                return "started \(named(new.phase))"
+            }
+            if old.state == .paused { return added > 0 ? "resumed and added \(added) min" : "resumed" }
             if old.state == .finished { return "added \(max(1, added)) min" }
-            return added > 0 ? "added \(added) min" : "changed the timer"
+            if added > 0 { return "added \(added) min" }
+            return "changed the time"
         case .paused:
-            if newSession { return started }
-            return old.state == .paused && added > 0 ? "added \(added) min" : "paused"
+            if newSession { return "started and paused \(named(new.phase))" }
+            if old.state == .paused && added > 0 { return "added \(added) min" }
+            return "paused"
         case .finished:
-            return "finished early"
+            if wasFlowing { return "stopped Flowtime" }
+            return old.phase == .focus ? "finished focus early" : "ended the break early"
+        }
+    }
+
+    /// "a short break", "a long break", "focus".
+    private static func named(_ phase: Phase) -> String {
+        switch phase {
+        case .focus: "focus"
+        case .shortBreak: "a short break"
+        case .longBreak: "a long break"
         }
     }
 }
@@ -79,15 +110,28 @@ struct SharedTimer: Equatable, Sendable {
 final class LinkActivity {
     static let shared = LinkActivity()
     private(set) var message: String?
+    /// Where the timer stands after the change: "Focus paused · 18:42 left".
+    private(set) var detail: String?
     @ObservationIgnored private var clear: Task<Void, Never>?
+    /// Mac: shows a small popup under the menu bar item when the timer isn't open (title, detail).
+    @ObservationIgnored var popup: ((String, String) -> Void)?
 
-    func show(_ text: String) {
+    func show(_ text: String, detail: String? = nil) {
         message = text
+        self.detail = detail
         clear?.cancel()
         clear = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(4))
+            try? await Task.sleep(for: .seconds(5))
             guard !Task.isCancelled else { return }
             self.message = nil
+            self.detail = nil
         }
+    }
+
+    /// Clears it early (the Mac's strip under the bubble was clicked).
+    func dismiss() {
+        clear?.cancel()
+        message = nil
+        detail = nil
     }
 }

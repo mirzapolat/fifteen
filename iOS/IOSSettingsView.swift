@@ -14,9 +14,13 @@ struct IOSSettingsView: View {
                     page("Display", symbol: "circle.lefthalf.filled", summary: prefs.appearance.title) {
                         DisplaySettingsSection()
                     }
+                    page("Insights", symbol: "chart.line.uptrend.xyaxis", summary: insightsSummary) {
+                        InsightsSettingsSection()
+                    }
                 }
                 Section {
-                    page("Link", symbol: "person.2", summary: LinkSession.shared.isLinked ? "In a group" : nil) {
+                    page("Link", symbol: "person.2",
+                         summary: !prefs.linkEnabled ? "Off" : LinkSession.shared.isLinked ? "In a group" : nil) {
                         LinkSettingsSection()
                     }
                     page("Lock Screen", symbol: "lock", summary: prefs.liveActivity ? "Live Activity" : "Off") {
@@ -62,6 +66,11 @@ struct IOSSettingsView: View {
             : "\(prefs.focusMinutes) min"
     }
 
+    private var insightsSummary: String? {
+        guard prefs.insightsEnabled else { return "Off" }
+        return prefs.streaksEnabled ? "Streaks on" : nil
+    }
+
     private var soundSummary: String {
         prefs.soundEnabled ? prefs.chime.title : "Off"
     }
@@ -75,33 +84,37 @@ private struct LinkSettingsSection: View {
     var body: some View {
         @Bindable var prefs = prefs
         @Bindable var link = LinkSession.shared
-        Section {
-            LabeledContent("Shown to others as") {
-                TextField("Name", text: $link.deviceName, prompt: Text(LinkSession.defaultName))
-                    .multilineTextAlignment(.trailing)
-                    .textContentType(.name)
-                    .submitLabel(.done)
-            }
-            Toggle("Notify when others change the timer", isOn: $prefs.linkNotifications)
-        } footer: {
-            Text("When someone in your group starts, pauses, resets or takes a break, a notification says who and what. Not while you're on the Timer tab, where it shows under the ring.")
-        }
-
-        if let code = link.code {
+        LinkMasterToggle()
+        if prefs.linkEnabled {
             Section {
-                LabeledContent("Group code") {
-                    Text(code).monospaced()
+                LabeledContent("Shown to others as") {
+                    TextField("Name", text: $link.deviceName, prompt: Text(LinkSession.defaultName))
+                        .multilineTextAlignment(.trailing)
+                        .textContentType(.name)
+                        .submitLabel(.done)
                 }
-                Button("Leave Group", role: .destructive) { confirmLeave = true }
-                    .confirmationDialog("Leave the group?", isPresented: $confirmLeave, titleVisibility: .visible) {
-                        Button("Leave Group", role: .destructive) { link.leave() }
-                    } message: {
-                        Text("Your timer carries on here, on its own.")
-                    }
-            } header: {
-                Text("Your Group")
+                Toggle("Notify when others change the timer", isOn: $prefs.linkNotifications)
+                if prefs.linkNotifications && !prefs.notifications { NotificationAccessWarning() }
             } footer: {
-                Text("While linked, changing your focus length here doesn't change the group's timer until you start or reset it.")
+                Text("When someone in your group starts, pauses, resets or takes a break, a notification says who and what. Not while you're on the Timer tab, where it shows under the ring.")
+            }
+
+            if let code = link.code {
+                Section {
+                    LabeledContent("Group code") {
+                        Text(code).monospaced()
+                    }
+                    Button("Leave Group", role: .destructive) { confirmLeave = true }
+                        .confirmationDialog("Leave the group?", isPresented: $confirmLeave, titleVisibility: .visible) {
+                            Button("Leave Group", role: .destructive) { link.leave() }
+                        } message: {
+                            Text("Your timer carries on here, on its own.")
+                        }
+                } header: {
+                    Text("Your Group")
+                } footer: {
+                    Text("While linked, changing your focus length here doesn't change the group's timer until you start or reset it.")
+                }
             }
         }
     }

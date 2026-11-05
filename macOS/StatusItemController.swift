@@ -10,6 +10,7 @@ final class StatusItemController: NSObject {
     private let engine = TimerEngine.shared
     private let prefs = Preferences.shared
     private lazy var panel = GlassPanelController(anchor: { [weak self] in self?.item.button })
+    private lazy var toast = LinkToastController(anchor: { [weak self] in self?.item.button })
 
     override init() {
         super.init()
@@ -22,10 +23,15 @@ final class StatusItemController: NSObject {
             button.setAccessibilityLabel("Fifteen timer")
         }
         render()
+        toast.onClick = { [weak self] in self?.showPanel() }
+        LinkActivity.shared.popup = { [weak self] title, detail in self?.toast.show(title: title, detail: detail) }
     }
 
     func togglePanel() { panel.toggle() }
-    func showPanel() { if !panel.isShown { panel.open() } }
+    func showPanel() {
+        toast.dismiss()
+        if !panel.isShown { panel.open() }
+    }
 
     @objc private func clicked() {
         let event = NSApp.currentEvent
@@ -34,6 +40,7 @@ final class StatusItemController: NSObject {
         } else if event?.modifierFlags.contains(.option) == true {
             engine.primaryAction()
         } else {
+            toast.dismiss()
             panel.toggle()
         }
     }
@@ -57,7 +64,9 @@ final class StatusItemController: NSObject {
         }
         menu.addItem(action(skipTitle, symbol: "forward.end") { [engine] in engine.skip() })
         menu.addItem(.separator())
-        menu.addItem(action("Insights…", symbol: "chart.line.uptrend.xyaxis") { WindowRouter.shared.showHistory() })
+        if prefs.insightsEnabled {
+            menu.addItem(action("Insights…", symbol: "chart.line.uptrend.xyaxis") { WindowRouter.shared.showHistory() })
+        }
         menu.addItem(action("Settings…", symbol: "gearshape", key: ",") { WindowRouter.shared.showSettings() })
         let updates = action("Check for Updates…", symbol: "arrow.down.circle") { Updater.shared.checkNow() }
         updates.isEnabled = Updater.shared.canCheck

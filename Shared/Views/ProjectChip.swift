@@ -5,6 +5,8 @@ struct ProjectChip: View {
     @Environment(TimerEngine.self) private var engine
     @Environment(HistoryStore.self) private var history
     @Environment(\.appActions) private var actions
+    /// Shows the project's name (or "Choose a project") beside the folder.
+    var showsName = false
 
     var body: some View {
         let current = history.project(engine.projectID)
@@ -22,14 +24,23 @@ struct ProjectChip: View {
                 }
             }
             .pickerStyle(.inline)
-            Divider()
-            Button("Manage Projects…", systemImage: "folder.badge.gearshape") { actions.showInsights(.projects) }
+            if Preferences.shared.insightsEnabled {
+                Divider()
+                Button("Manage Projects…", systemImage: "folder.badge.gearshape") { actions.showInsights(.projects) }
+            }
         } label: {
-            Image(systemName: current?.symbol ?? "folder")
-                .font(.callout)
-                .foregroundStyle(current == nil ? .tertiary : .primary)
-                .frame(width: 22, height: 22)
-                .contentShape(Rectangle())
+            HStack(spacing: 6) {
+                Image(systemName: current?.symbol ?? "folder")
+                    .font(.callout)
+                    .foregroundStyle(current == nil ? .tertiary : .primary)
+                    .frame(width: 22, height: 22)
+                if showsName {
+                    Text(current?.name ?? "Choose a project")
+                        .foregroundStyle(current == nil ? .secondary : .primary)
+                        .lineLimit(1)
+                }
+            }
+            .contentShape(Rectangle())
         }
         .menuStyle(.button)
         .buttonStyle(.plain)

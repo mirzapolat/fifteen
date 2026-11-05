@@ -87,35 +87,6 @@ struct TimerSettingsSection: View {
         }
 
         Section {
-            Picker("Daily session goal", selection: $prefs.dailyGoal) {
-                Text("Off").tag(0)
-                Divider()
-                ForEach(1...24, id: \.self) { count in
-                    Text("\(count) session\(count == 1 ? "" : "s")").tag(count)
-                }
-            }
-            Picker("Daily focus goal", selection: $prefs.dailyGoalMinutes) {
-                Text("Off").tag(0)
-                Divider()
-                ForEach([30, 60, 90, 120, 180, 240, 300, 360], id: \.self) { Text(TimeFormat.duration(TimeInterval($0 * 60))).tag($0) }
-            }
-            Picker("Weekly focus goal", selection: $prefs.weeklyGoalMinutes) {
-                Text("Off").tag(0)
-                Divider()
-                ForEach([5, 10, 15, 20, 25, 30, 40], id: \.self) { Text("\($0)h").tag($0 * 60) }
-            }
-            Picker("New day starts at", selection: $prefs.dayStartsAtHour) {
-                ForEach(0..<12, id: \.self) { hour in
-                    Text(hour == 0 ? "Midnight" : "\(hour) AM").tag(hour)
-                }
-            }
-        } header: {
-            Text("Day")
-        } footer: {
-            Text("Goals appear in Insights as progress rings in Overview; the daily focus goal is also a line on the per-day chart. A daily focus goal can also be what keeps a streak going.")
-        }
-
-        Section {
             Button("Restore Classic Rhythm") {
                 withAnimation { prefs.resetTimerToDefaults() }
             }
@@ -235,10 +206,12 @@ struct SoundSettingsSection: View {
             }
 
             Section {
-                LabeledContent("Ticking clock") {
+                // InkSwitchStyle always draws the label (it ignores .labelsHidden()), so the
+                // preview button rides inside it, just left of the switch.
+                Toggle(isOn: $prefs.ticking) {
                     HStack(spacing: 8) {
-                        Toggle("Ticking clock", isOn: $prefs.ticking)
-                            .labelsHidden()
+                        Text("Ticking clock")
+                        Spacer(minLength: 8)
                         PreviewButton { SoundEngine.shared.previewTicks() }
                     }
                 }
@@ -271,6 +244,13 @@ struct SoundSettingsSection: View {
 
         Section {
             Toggle("Notify when a session ends", isOn: $prefs.notifications)
+                .onChange(of: prefs.notifications) {
+                    // Turning it on is the moment to ask, if Fifteen never has.
+                    if prefs.notifications && NotificationAccess.shared.status == .notDetermined {
+                        NotificationAccess.shared.request { _ in }
+                    }
+                }
+            if prefs.notifications { NotificationAccessWarning() }
             Toggle("Haptic feedback", isOn: $prefs.haptics)
         } header: {
             Text("Notifications & Haptics")
@@ -298,6 +278,75 @@ struct SoundSettingsSection: View {
         } else {
             SoundEngine.shared.preview(prefs.ambient, volume: prefs.ambientVolume)
         }
+    }
+}
+
+/// Link's master switch. Turning it off while in a group asks first, then leaves the group.
+struct LinkMasterToggle: View {
+    @Environment(Preferences.self) private var prefs
+    @State private var confirmOff = false
+
+    var body: some View {
+        Section {
+            Toggle("Link", isOn: Binding {
+                prefs.linkEnabled
+            } set: { on in
+                if !on && LinkSession.shared.isLinked {
+                    confirmOff = true
+                } else {
+                    withAnimation { prefs.linkEnabled = on }
+                }
+            })
+            .confirmationDialog("Turn off Link?", isPresented: $confirmOff, titleVisibility: .visible) {
+                Button("Leave Group and Turn Off", role: .destructive) {
+                    LinkSession.shared.leave()
+                    withAnimation { prefs.linkEnabled = false }
+                }
+            } message: {
+                Text("You'll leave your group. Your timer carries on here, on its own.")
+            }
+        } footer: {
+            Text(prefs.linkEnabled
+                 ? "Focus together: everyone in a group shares one timer."
+                 : "Link is hidden everywhere and Fifteen doesn't connect to the Link relay.")
+        }
+        .onChange(of: prefs.linkEnabled) {
+            if !prefs.linkEnabled { LinkChrome.shared.isOpen = false }
+        }
+    }
+}
+
+/// Shown under a notification switch when notifications are on in Fifteen but the system won't
+/// show them: never asked yet (asks right here) or turned off (opens System Settings).
+struct NotificationAccessWarning: View {
+    @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
+    private var access: NotificationAccess { .shared }
+
+    var body: some View {
+        Group {
+            if !access.isAllowed {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text(access.status == .denied ? "Notifications are turned off for Fifteen" : "Fifteen can't notify you yet")
+                        .foregroundStyle(.orange)
+                        .lineLimit(2)
+                    Spacer(minLength: 8)
+                    Button(access.status == .denied ? "Open Settings…" : "Allow") {
+                        access.request { openURL($0) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+                    .controlSize(.small)
+                }
+                .font(.callout)
+            }
+        }
+        .onAppear { access.refresh() }
+        .onChange(of: scenePhase) { if scenePhase == .active { access.refresh() } }
+        // Coming back from System Settings doesn't always change the scene phase on the Mac.
+        .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in access.refresh() }
     }
 }
 
@@ -444,11 +493,6 @@ struct PresetsSection: View {
 struct DisplaySettingsSection: View {
     @Environment(Preferences.self) private var prefs
 
-    /// Weekdays in the user's order (Monday first in most of Europe).
-    static var weekdayOrder: [Int] {
-        (0..<7).map { (Calendar.current.firstWeekday - 1 + $0) % 7 + 1 }
-    }
-
     var body: some View {
         @Bindable var prefs = prefs
         Section("Appearance") {
@@ -463,22 +507,89 @@ struct DisplaySettingsSection: View {
         }
 
         #if os(macOS)
+        MenuBarSettingsSection()
         AppIconSection()
         #endif
 
         Section("Timer") {
-            Toggle("Project & intention", isOn: $prefs.showIntention)
+            Toggle("Intention: \u{201C}What's the one thing?\u{201D}", isOn: $prefs.showIntention)
             Toggle("Cycle dots", isOn: $prefs.showCycleDots)
                 .disabled(!prefs.longBreaksEnabled)
             Toggle("Swirl when a session starts", isOn: $prefs.startSwirl)
         }
+    }
+}
 
+/// What Insights measures you against: goals, when a day starts, and streaks.
+struct InsightsSettingsSection: View {
+    @Environment(Preferences.self) private var prefs
+
+    /// Weekdays in the user's order (Monday first in most of Europe).
+    static var weekdayOrder: [Int] {
+        (0..<7).map { (Calendar.current.firstWeekday - 1 + $0) % 7 + 1 }
+    }
+
+    var body: some View {
+        @Bindable var prefs = prefs
         Section {
-            Toggle("Notes and focus rating after each session", isOn: $prefs.askForReflection)
-        } header: {
-            Text("After a Session")
+            Toggle("Insights", isOn: $prefs.insightsEnabled.animation())
         } footer: {
-            Text("Write what you got done and rate how it went, right on the timer. Both show up in Insights.")
+            Text(prefs.insightsEnabled
+                 ? "Charts, goals, streaks and your session history, all on this device."
+                 : "Insights, projects and the after-session rating are hidden everywhere. Sessions are still recorded, so nothing is lost if you turn it back on.")
+        }
+
+        if prefs.insightsEnabled {
+            Section {
+                Toggle("Projects", isOn: $prefs.showProjects)
+            } header: {
+                Text("While Focusing")
+            } footer: {
+                Text("Pick a project on the timer, and see where your focus goes in Insights → Projects.")
+            }
+
+            Section {
+                Toggle("Notes and focus rating", isOn: $prefs.askForReflection)
+            } header: {
+                Text("After a Session")
+            } footer: {
+                Text("Write what you got done and rate how it went, right on the timer. Both show up in Insights.")
+            }
+
+            goalsAndStreaks
+        }
+    }
+
+    @ViewBuilder
+    private var goalsAndStreaks: some View {
+        @Bindable var prefs = prefs
+        Section {
+            Picker("Daily session goal", selection: $prefs.dailyGoal) {
+                Text("Off").tag(0)
+                Divider()
+                ForEach(1...24, id: \.self) { count in
+                    Text("\(count) session\(count == 1 ? "" : "s")").tag(count)
+                }
+            }
+            Picker("Daily focus goal", selection: $prefs.dailyGoalMinutes) {
+                Text("Off").tag(0)
+                Divider()
+                ForEach([30, 60, 90, 120, 180, 240, 300, 360], id: \.self) { Text(TimeFormat.duration(TimeInterval($0 * 60))).tag($0) }
+            }
+            Picker("Weekly focus goal", selection: $prefs.weeklyGoalMinutes) {
+                Text("Off").tag(0)
+                Divider()
+                ForEach([5, 10, 15, 20, 25, 30, 40], id: \.self) { Text("\($0)h").tag($0 * 60) }
+            }
+            Picker("New day starts at", selection: $prefs.dayStartsAtHour) {
+                ForEach(0..<12, id: \.self) { hour in
+                    Text(hour == 0 ? "Midnight" : "\(hour) AM").tag(hour)
+                }
+            }
+        } header: {
+            Text("Goals")
+        } footer: {
+            Text("Goals appear as progress rings in Overview; the daily focus goal is also a line on the per-day chart. A daily focus goal can also be what keeps a streak going.")
         }
 
         Section {
@@ -499,7 +610,7 @@ struct DisplaySettingsSection: View {
                 }
             }
         } header: {
-            Text("Insights")
+            Text("Streaks")
         } footer: {
             Text("Streaks only ever appear in Insights. Rest days never break one.")
         }

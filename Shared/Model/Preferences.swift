@@ -1,6 +1,21 @@
 import Foundation
 import Observation
 
+/// Mac, Link: how someone else's change to the timer is shown.
+enum LinkAlertStyle: String, CaseIterable, Identifiable {
+    case popup, notification, both
+    var id: Self { self }
+    var title: String {
+        switch self {
+        case .popup: "Popup"
+        case .notification: "Notification"
+        case .both: "Both"
+        }
+    }
+    var showsPopup: Bool { self != .notification }
+    var showsNotification: Bool { self != .popup }
+}
+
 enum MenuBarDisplay: String, CaseIterable, Identifiable {
     /// `iconOrTime`: the icon while the timer sits unused, the time while it's in use.
     case iconAndTime, iconOrTime, icon, time
@@ -195,11 +210,17 @@ final class Preferences {
     // Display — what the timer shows
     var appearance: AppearanceMode { didSet { store.set(appearance.rawValue, forKey: Key.appearance) } }
     var ringTheme: RingTheme { didSet { store.set(ringTheme.rawValue, forKey: Key.ringTheme) } }
+    /// "What's the one thing?" on the timer. Works on its own, with or without Insights.
     var showIntention: Bool { didSet { store.set(showIntention, forKey: Key.showIntention) } }
+    /// A project picker on the timer, so sessions can be sorted in Insights.
+    var showProjects: Bool { didSet { store.set(showProjects, forKey: Key.showProjects) } }
     var showCycleDots: Bool { didSet { store.set(showCycleDots, forKey: Key.showCycleDots) } }
     var showWeekChart: Bool { didSet { store.set(showWeekChart, forKey: Key.showWeekChart) } }
     /// After focus: "What did you get done?" and a 1–5 focus rating.
     var askForReflection: Bool { didSet { store.set(askForReflection, forKey: Key.askForReflection) } }
+    /// Projects and the after-session note and rating only show up in Insights, so they're off with it.
+    var projectsActive: Bool { insightsEnabled && showProjects }
+    var reflectionActive: Bool { insightsEnabled && askForReflection }
     /// A comet swirls around the ring as a session starts (Pomodoro and Flowtime).
     var startSwirl: Bool { didSet { store.set(startSwirl, forKey: Key.startSwirl) } }
 
@@ -212,6 +233,13 @@ final class Preferences {
     var openWhenDone: Bool { didSet { store.set(openWhenDone, forKey: Key.openWhenDone) } }
     /// Mac, Link: a notification when someone else in the group changes the timer.
     var linkNotifications: Bool { didSet { store.set(linkNotifications, forKey: Key.linkNotifications) } }
+    /// Mac, Link: how someone else's change is shown — a popup under the menu bar item, a
+    /// system notification, or both.
+    var linkAlertStyle: LinkAlertStyle { didSet { store.set(linkAlertStyle.rawValue, forKey: Key.linkAlertStyle) } }
+    /// Link at all: off hides it everywhere and leaves any group.
+    var linkEnabled: Bool { didSet { store.set(linkEnabled, forKey: Key.linkEnabled) } }
+    /// Insights at all: off hides its window/tab and every way in. Sessions are still recorded.
+    var insightsEnabled: Bool { didSet { store.set(insightsEnabled, forKey: Key.insightsEnabled) } }
     var globalHotKeys: Bool { didSet { store.set(globalHotKeys, forKey: Key.globalHotKeys) } }
     var hideDistractingApps: Bool { didSet { store.set(hideDistractingApps, forKey: Key.hideDistractingApps) } }
     var blockedApps: [String] { didSet { store.set(blockedApps, forKey: Key.blockedApps) } }
@@ -249,6 +277,7 @@ final class Preferences {
             Key.appearance: AppearanceMode.system.rawValue,
             Key.ringTheme: RingTheme.mono.rawValue,
             Key.showIntention: true,
+            Key.showProjects: true,
             Key.showCycleDots: true,
             Key.startSwirl: true,
             Key.showWeekChart: true,
@@ -282,6 +311,9 @@ final class Preferences {
             Key.appIcon: AppIconStyle.fifteenDark.rawValue,
             Key.openWhenDone: true,
             Key.linkNotifications: true,
+            Key.linkAlertStyle: LinkAlertStyle.popup.rawValue,
+            Key.linkEnabled: true,
+            Key.insightsEnabled: true,
             Key.globalHotKeys: true,
             Key.hideDistractingApps: false,
             Key.blockedApps: [String](),
@@ -310,6 +342,11 @@ final class Preferences {
         appearance = AppearanceMode(rawValue: store.string(forKey: Key.appearance) ?? "") ?? .system
         ringTheme = RingTheme(rawValue: store.string(forKey: Key.ringTheme) ?? "") ?? .mono
         showIntention = store.bool(forKey: Key.showIntention)
+        // Projects used to share one switch with the intention: carry that choice over once.
+        if Self.hasOwnValue(Key.showIntention) && !Self.hasOwnValue(Key.showProjects) {
+            store.set(store.bool(forKey: Key.showIntention), forKey: Key.showProjects)
+        }
+        showProjects = store.bool(forKey: Key.showProjects)
         showCycleDots = store.bool(forKey: Key.showCycleDots)
         startSwirl = store.bool(forKey: Key.startSwirl)
         showWeekChart = store.bool(forKey: Key.showWeekChart)
@@ -343,6 +380,9 @@ final class Preferences {
         appIcon = AppIconStyle(rawValue: store.string(forKey: Key.appIcon) ?? "") ?? .fifteenDark
         openWhenDone = store.bool(forKey: Key.openWhenDone)
         linkNotifications = store.bool(forKey: Key.linkNotifications)
+        linkAlertStyle = LinkAlertStyle(rawValue: store.string(forKey: Key.linkAlertStyle) ?? "") ?? .popup
+        linkEnabled = store.bool(forKey: Key.linkEnabled)
+        insightsEnabled = store.bool(forKey: Key.insightsEnabled)
         globalHotKeys = store.bool(forKey: Key.globalHotKeys)
         hideDistractingApps = store.bool(forKey: Key.hideDistractingApps)
         blockedApps = store.stringArray(forKey: Key.blockedApps) ?? []
@@ -376,6 +416,7 @@ final class Preferences {
         appearance = AppearanceMode(rawValue: store.string(forKey: Key.appearance) ?? "") ?? .system
         ringTheme = RingTheme(rawValue: store.string(forKey: Key.ringTheme) ?? "") ?? .mono
         showIntention = store.bool(forKey: Key.showIntention)
+        showProjects = store.bool(forKey: Key.showProjects)
         showCycleDots = store.bool(forKey: Key.showCycleDots)
         startSwirl = store.bool(forKey: Key.startSwirl)
         showWeekChart = store.bool(forKey: Key.showWeekChart)
@@ -409,6 +450,9 @@ final class Preferences {
         appIcon = AppIconStyle(rawValue: store.string(forKey: Key.appIcon) ?? "") ?? .fifteenDark
         openWhenDone = store.bool(forKey: Key.openWhenDone)
         linkNotifications = store.bool(forKey: Key.linkNotifications)
+        linkAlertStyle = LinkAlertStyle(rawValue: store.string(forKey: Key.linkAlertStyle) ?? "") ?? .popup
+        linkEnabled = store.bool(forKey: Key.linkEnabled)
+        insightsEnabled = store.bool(forKey: Key.insightsEnabled)
         globalHotKeys = store.bool(forKey: Key.globalHotKeys)
         hideDistractingApps = store.bool(forKey: Key.hideDistractingApps)
         blockedApps = store.stringArray(forKey: Key.blockedApps) ?? []
@@ -440,6 +484,7 @@ final class Preferences {
         Key.appearance,
         Key.ringTheme,
         Key.showIntention,
+        Key.showProjects,
         Key.showCycleDots,
         Key.startSwirl,
         Key.showWeekChart,
@@ -471,6 +516,9 @@ final class Preferences {
         Key.appIcon,
         Key.openWhenDone,
         Key.linkNotifications,
+        Key.linkAlertStyle,
+        Key.linkEnabled,
+        Key.insightsEnabled,
         Key.globalHotKeys,
         Key.hideDistractingApps,
         Key.blockedApps,
@@ -488,6 +536,12 @@ final class Preferences {
         Key.liveActivity,
         Key.keepScreenOn,
     ]
+
+    /// Whether the user ever set this key themselves (registered defaults don't count).
+    private static func hasOwnValue(_ key: String) -> Bool {
+        guard let id = Bundle.main.bundleIdentifier else { return false }
+        return UserDefaults.standard.persistentDomain(forName: id)?[key] != nil
+    }
 
     func minutes(for phase: Phase) -> Int {
         switch phase {
@@ -543,6 +597,7 @@ final class Preferences {
         static let appearance = "appearance"
         static let ringTheme = "ringTheme"
         static let showIntention = "showIntention"
+        static let showProjects = "showProjects"
         static let showCycleDots = "showCycleDots"
         static let startSwirl = "startSwirl"
         static let showWeekChart = "showWeekChart"
@@ -574,6 +629,9 @@ final class Preferences {
         static let appIcon = "appIcon"
         static let openWhenDone = "openWhenDone"
         static let linkNotifications = "linkNotifications"
+        static let linkAlertStyle = "linkAlertStyle"
+        static let linkEnabled = "linkEnabled"
+        static let insightsEnabled = "insightsEnabled"
         static let globalHotKeys = "globalHotKeys"
         static let hideDistractingApps = "hideDistractingApps"
         static let blockedApps = "blockedApps"

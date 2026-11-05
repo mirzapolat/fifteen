@@ -436,7 +436,7 @@ final class TimerEngine {
             let record = FocusRecord(start: start, end: end, duration: total,
                                      intention: intention.trimmingCharacters(in: .whitespacesAndNewlines),
                                      distractions: distractions,
-                                     projectID: history.project(projectID) == nil ? nil : projectID,
+                                     projectID: prefs.projectsActive && history.project(projectID) != nil ? projectID : nil,
                                      mode: sessionMode,
                                      plannedDuration: plannedDuration,
                                      endedEarly: endedEarly,

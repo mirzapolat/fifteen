@@ -61,14 +61,18 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $router.tab) {
-            Tab("Link", systemImage: "person.2", value: AppTab.link) {
-                LinkTab()
+            if prefs.linkEnabled {
+                Tab("Link", systemImage: "person.2", value: AppTab.link) {
+                    LinkTab()
+                }
             }
             Tab("Timer", systemImage: "timer", value: AppTab.timer) {
                 TimerTab()
             }
-            Tab("Analytics", systemImage: "chart.bar", value: AppTab.analytics) {
-                InsightsView(stacked: true)
+            if prefs.insightsEnabled {
+                Tab("Analytics", systemImage: "chart.bar", value: AppTab.analytics) {
+                    InsightsView(stacked: true)
+                }
             }
             Tab("Settings", systemImage: "gearshape", value: AppTab.settings) {
                 IOSSettingsView()
@@ -80,6 +84,7 @@ struct RootView: View {
         .modifier(RunningTimerAccessory(enabled: router.tab != .timer && engine.state != .idle))
         .environment(\.appActions, AppActions(
             showInsights: { section in
+                guard prefs.insightsEnabled else { return }
                 InsightsRoute.shared.jump = section
                 router.tab = .analytics
             },
@@ -91,6 +96,11 @@ struct RootView: View {
         .onChange(of: engine.state, initial: true) { updateIdleTimer() }
         .onChange(of: prefs.keepScreenOn) { updateIdleTimer() }
         .onChange(of: router.tab, initial: true) { updateTimerVisible() }
+        // A tab that's been switched off can't stay selected.
+        .onChange(of: prefs.linkEnabled, initial: true) { if !prefs.linkEnabled && router.tab == .link { router.tab = .timer } }
+        .onChange(of: prefs.insightsEnabled, initial: true) {
+            if !prefs.insightsEnabled && router.tab == .analytics { router.tab = .timer }
+        }
         .onChange(of: scenePhase) { updateTimerVisible() }
         .preferredColorScheme(prefs.appearance.colorScheme)
     }

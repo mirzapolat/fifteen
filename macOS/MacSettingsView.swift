@@ -18,19 +18,29 @@ final class SettingsTabController: NSTabViewController {
         add("Display", symbol: "circle.lefthalf.filled", height: Self.paneHeight) {
             Form { DisplaySettingsSection() }.formStyle(.grouped)
         }
+        add("Insights", symbol: "chart.line.uptrend.xyaxis", height: Self.paneHeight) {
+            Form { InsightsSettingsSection() }
+                .formStyle(.grouped)
+                .onChange(of: Preferences.shared.insightsEnabled) {
+                    if !Preferences.shared.insightsEnabled { WindowRouter.shared.closeHistory() }
+                }
+        }
+        add("Link", symbol: "person.2", height: Self.paneHeight) { LinkPane() }
         add("Focus", symbol: "eye.slash", height: Self.paneHeight) { FocusPane() }
         add("About", symbol: "info.circle", height: Self.paneHeight) { AboutView() }
     }
 
     /// Every tab is the same size, so switching tabs never resizes the window; longer panes scroll.
     private static let paneHeight: CGFloat = 620
+    /// Wide enough for all nine toolbar tabs.
+    private static let paneWidth: CGFloat = 620
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
 
     private func add<Content: View>(_ title: String, symbol: String, height: CGFloat,
                                     @ViewBuilder content: () -> Content) {
         let root = content()
-            .frame(width: 500, height: height)
+            .frame(width: Self.paneWidth, height: height)
             .toggleStyle(InkSwitchStyle())
             .environment(TimerEngine.shared)
             .environment(Preferences.shared)
@@ -51,30 +61,9 @@ private struct GeneralPane: View {
     var body: some View {
         @Bindable var prefs = prefs
         Form {
-            Section("Menu Bar") {
-                Picker("Show", selection: $prefs.menuBarDisplay) {
-                    ForEach(MenuBarDisplay.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                if prefs.menuBarDisplay != .time {
-                    MenuBarIconPicker()
-                }
-                Toggle("Show seconds", isOn: $prefs.menuBarSeconds)
-                    .disabled(prefs.menuBarDisplay == .icon)
-                Toggle("Open the timer when a session ends", isOn: $prefs.openWhenDone)
-            }
-
-            Section {
-                LinkNameField()
-                Toggle("Notify when others change the timer", isOn: $prefs.linkNotifications)
-            } header: {
-                Text("Link")
-            } footer: {
-                Text("When someone in your group starts, pauses, resets or takes a break, a notification says who and what. Not while the timer is open, where it shows under the ring.")
-            }
-
             Section {
                 LaunchAtLoginToggle()
+                Toggle("Open the timer when a session ends", isOn: $prefs.openWhenDone)
                 Toggle("Pause focus while the Mac is locked", isOn: $prefs.pauseWhenLocked)
             } header: {
                 Text("System")
@@ -83,6 +72,36 @@ private struct GeneralPane: View {
             }
 
             UpdatesSection()
+        }
+        .formStyle(.grouped)
+    }
+}
+
+/// Link: the master switch, your name in the group, and how others' changes reach you.
+private struct LinkPane: View {
+    @Environment(Preferences.self) private var prefs
+
+    var body: some View {
+        @Bindable var prefs = prefs
+        Form {
+            LinkMasterToggle()
+            if prefs.linkEnabled {
+                Section {
+                    LinkNameField()
+                    Toggle("Notify when others change the timer", isOn: $prefs.linkNotifications.animation())
+                    if prefs.linkNotifications {
+                        Picker("Show as", selection: $prefs.linkAlertStyle.animation()) {
+                            ForEach(LinkAlertStyle.allCases) { Text($0.title).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        if prefs.linkAlertStyle.showsNotification && !prefs.notifications { NotificationAccessWarning() }
+                    }
+                } header: {
+                    Text("In a Group")
+                } footer: {
+                    Text("When someone in your group starts, pauses, resets or takes a break, a small popup under the menu bar, a system notification or both say who and what. Not while the timer is open, where it shows under the ring.")
+                }
+            }
         }
         .formStyle(.grouped)
     }
@@ -257,6 +276,26 @@ private struct DoNotDisturbSection: View {
     }
 }
 
+/// What the menu bar item shows: the time, an icon, or both. Lives in Display.
+struct MenuBarSettingsSection: View {
+    @Environment(Preferences.self) private var prefs
+
+    var body: some View {
+        @Bindable var prefs = prefs
+        Section("Menu Bar") {
+            Picker("Show", selection: $prefs.menuBarDisplay) {
+                ForEach(MenuBarDisplay.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            if prefs.menuBarDisplay != .time {
+                MenuBarIconPicker()
+            }
+            Toggle("Show seconds", isOn: $prefs.menuBarSeconds)
+                .disabled(prefs.menuBarDisplay == .icon)
+        }
+    }
+}
+
 /// One tile per menu bar icon style, each previewed mid-session exactly as it will look.
 private struct MenuBarIconPicker: View {
     @Environment(Preferences.self) private var prefs
@@ -350,34 +389,6 @@ private struct BlockedAppsList: View {
                 }
             }
         }
-        if !suggestions.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Suggestions")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        ForEach(suggestions, id: \.self) { id in
-                            Button {
-                                withAnimation { prefs.blockedApps.append(id) }
-                            } label: {
-                                HStack(spacing: 5) {
-                                    Image(nsImage: icon(for: id))
-                                        .resizable()
-                                        .frame(width: 16, height: 16)
-                                    Text(name(for: id))
-                                    Image(systemName: "plus")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                            .buttonBorderShape(.capsule)
-                        }
-                    }
-                }
-            }
-        }
         HStack {
             Menu("Add Running App") {
                 ForEach(runningApps, id: \.self) { id in
@@ -386,7 +397,27 @@ private struct BlockedAppsList: View {
             }
             .fixedSize()
             Button("Choose App…") { chooseApps() }
+            // Common time sinks that are installed, one click away.
+            if !suggestions.isEmpty {
+                Menu("Suggestions") {
+                    ForEach(suggestions, id: \.self) { id in
+                        Button {
+                            withAnimation { prefs.blockedApps.append(id) }
+                        } label: {
+                            Label { Text(name(for: id)) } icon: { Image(nsImage: menuIcon(for: id)) }
+                        }
+                    }
+                }
+                .fixedSize()
+            }
         }
+    }
+
+    /// Menus draw an app icon at its full size; this one is shrunk to fit a menu row.
+    private func menuIcon(for id: String) -> NSImage {
+        let image = icon(for: id).copy() as? NSImage ?? NSImage()
+        image.size = NSSize(width: 16, height: 16)
+        return image
     }
 
     private var suggestions: [String] {

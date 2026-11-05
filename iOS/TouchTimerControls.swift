@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The iPhone's caption under the ring. What shows follows Settings, with no toggle button:
-/// - focus, with "Project & intention" on: a glass capsule with the project chip and the intention
+/// - focus, with the intention or projects on: a glass capsule with the project and/or the intention
 /// - after a focus session, with notes on: "What did you get done?"
 /// - during a break: a small suggestion
 struct TouchIntentionField: View {
@@ -14,12 +14,12 @@ struct TouchIntentionField: View {
 
     private var content: Content? {
         if let id = engine.lastRecordID, engine.phase == .focus, engine.state == .finished,
-           prefs.askForReflection, history.record(id) != nil {
+           prefs.reflectionActive, history.record(id) != nil {
             return .reflection(id)
         }
-        if engine.phase.isBreak { return prefs.showIntention || prefs.askForReflection ? .tip : nil }
+        if engine.phase.isBreak { return prefs.showIntention || prefs.reflectionActive ? .tip : nil }
         if engine.state == .finished { return nil }
-        return prefs.showIntention ? .intention : nil
+        return prefs.showIntention || prefs.projectsActive ? .intention : nil
     }
 
     var body: some View {
@@ -45,27 +45,32 @@ struct TouchIntentionField: View {
     private var intention: some View {
         @Bindable var engine = engine
         return HStack(spacing: 0) {
-            ProjectPill()
-                .padding(.leading, 6)
-            TextField("What's the one thing?", text: $engine.intention)
-                .focused($focused)
-                .submitLabel(engine.state == .idle ? .go : .done)
-                .onSubmit {
-                    focused = false
-                    if engine.state == .idle { engine.start() }
+            if prefs.projectsActive {
+                ProjectPill(showsName: !prefs.showIntention)
+                    .padding(.leading, 6)
+                    .frame(maxWidth: prefs.showIntention ? nil : .infinity)
+            }
+            if prefs.showIntention {
+                TextField("What's the one thing?", text: $engine.intention)
+                    .focused($focused)
+                    .submitLabel(engine.state == .idle ? .go : .done)
+                    .onSubmit {
+                        focused = false
+                        if engine.state == .idle { engine.start() }
+                    }
+                    .padding(.leading, 10)
+                if !engine.intention.isEmpty && focused {
+                    Button {
+                        engine.intention = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.tertiary)
+                            .frame(width: 36, height: 36)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear")
+                    .transition(.opacity)
                 }
-                .padding(.leading, 10)
-            if !engine.intention.isEmpty && focused {
-                Button {
-                    engine.intention = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.tertiary)
-                        .frame(width: 36, height: 36)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Clear")
-                .transition(.opacity)
             }
         }
         .padding(.trailing, 6)
@@ -116,6 +121,8 @@ private struct ProjectPill: View {
     @Environment(HistoryStore.self) private var history
     @Environment(\.appActions) private var actions
     @Environment(\.colorScheme) private var scheme
+    /// Alone in the capsule (no intention): say "Choose a project" until one is picked.
+    var showsName = false
 
     var body: some View {
         let current = history.project(engine.projectID)
@@ -134,8 +141,10 @@ private struct ProjectPill: View {
                 }
             }
             .pickerStyle(.inline)
-            Divider()
-            Button("Manage Projects…", systemImage: "folder.badge.gearshape") { actions.showInsights(.projects) }
+            if Preferences.shared.insightsEnabled {
+                Divider()
+                Button("Manage Projects…", systemImage: "folder.badge.gearshape") { actions.showInsights(.projects) }
+            }
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: current?.symbol ?? "folder")
@@ -144,11 +153,16 @@ private struct ProjectPill: View {
                         .lineLimit(1)
                         .frame(maxWidth: 110, alignment: .leading)
                         .fixedSize(horizontal: true, vertical: false)
+                } else if showsName {
+                    Text("Choose a project")
+                        .lineLimit(1)
+                        .frame(maxWidth: 110, alignment: .leading)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
             }
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(current == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(Color.ink(scheme == .dark ? .light : .dark)))
-            .padding(.horizontal, current == nil ? 0 : 12)
+            .padding(.horizontal, current == nil && !showsName ? 0 : 12)
             .frame(minWidth: 32, minHeight: 32)
             .background(Capsule().fill(current == nil ? ink.opacity(0.07) : ink))
             .contentShape(.capsule)
@@ -231,13 +245,13 @@ struct TouchControlPills: View {
                     }
                 }
             }
-            Picker("Mode", selection: Binding(
-                get: { prefs.timerMode },
-                set: { prefs.timerMode = $0; engine.reloadIdle() }
-            )) {
-                ForEach(TimerMode.allCases) { Text($0.title).tag($0) }
+            Divider()
+            // Only two modes, so one item flips between them.
+            Button(prefs.isFlowtime ? "Switch to Pomodoro" : "Switch to Flowtime",
+                   systemImage: prefs.isFlowtime ? "timer" : "infinity") {
+                prefs.timerMode = prefs.isFlowtime ? .pomodoro : .flowtime
+                engine.reloadIdle()
             }
-            .pickerStyle(.menu)
         } label: {
             Label(engine.isFlowtime ? "Flow" : "\(Int(engine.total / 60)) min",
                   systemImage: engine.isFlowtime ? "infinity" : "timer")

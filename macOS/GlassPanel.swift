@@ -149,7 +149,8 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
         // Measured fresh each time (settings can change the bubble), plus room for the
         // project/intention field to slide in without the window ever resizing.
         let size = panel.host.fittingSize
-        panel.setContentSize(NSSize(width: size.width, height: size.height + Pill.height + 10))
+        // Room below for the project/intention field and for the Link strip to slide out.
+        panel.setContentSize(NSSize(width: size.width, height: size.height + Pill.height + 10 + LinkActivityStrip.room))
         position(panel)
         panel.makeKeyAndOrderFront(nil)
         anchor()?.highlight(true)
@@ -252,7 +253,11 @@ struct PopoverRoot: View {
 
     var body: some View {
         let tip = UnitPoint(x: presentation.arrowX / PopoverView.width, y: 0)
-        PopoverView(arrowX: presentation.arrowX)
+        VStack(spacing: 0) {
+            PopoverView(arrowX: presentation.arrowX)
+                .zIndex(1)
+            LinkActivityStrip()
+        }
             .scaleEffect(presentation.isOpen ? 1 : 0.4, anchor: tip)
             .opacity(presentation.isOpen ? 1 : 0)
             .blur(radius: presentation.isOpen ? 0 : 12)
