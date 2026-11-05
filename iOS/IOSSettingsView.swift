@@ -145,12 +145,10 @@ private struct LockScreenSection: View {
         } footer: {
             Text("The countdown stays on your Lock Screen and in the Dynamic Island, and keeps going while Fifteen is closed. Pause, add five minutes or reset right from there, and start the break when it's over.")
         }
-        if prefs.liveActivity {
-            Section {
-                Toggle("Show intention and project", isOn: $prefs.liveActivityShowsDetails)
-            } footer: {
-                Text("Anyone who glances at your phone can see them. Off, the Lock Screen shows only the phase and the time.")
-            }
+        Section {
+            Toggle("Show intention and project", isOn: $prefs.liveActivityShowsDetails)
+        } footer: {
+            Text("On the Live Activity and in notifications, where anyone who glances at your phone can see them. Off, they show only the phase and the time.")
         }
         Section {
             Toggle("Notify when a session ends", isOn: $prefs.notifications)

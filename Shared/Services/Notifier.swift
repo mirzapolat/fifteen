@@ -108,8 +108,11 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
         let prefs = Preferences.shared
         let next = engine.nextPhase
+        // Banners show on the Lock Screen too, so the same switch as the Live Activity decides
+        // whether they quote your intention.
+        let intention = prefs.liveActivityShowsDetails ? engine.intention : ""
         let words = SessionWords.done(phase: engine.phase, next: next,
-                                      minutes: Int((engine.total / 60).rounded()), intention: engine.intention)
+                                      minutes: Int((engine.total / 60).rounded()), intention: intention)
         let content = UNMutableNotificationContent()
         content.title = words.title
         content.body = words.message
@@ -124,7 +127,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             let minutes = prefs.minutes(for: next)
             content.body = engine.phase == .focus
                 ? "Your \(minutes)-minute break starts now. \(BreakTips.tip(for: end))"
-                : SessionWords.quoted(engine.intention).map { "Focus starts now: \($0)." }
+                : SessionWords.quoted(intention).map { "Focus starts now: \($0)." }
                     ?? "Your next \(minutes)-minute focus starts now."
         } else {
             category = switch (engine.phase, next) {
