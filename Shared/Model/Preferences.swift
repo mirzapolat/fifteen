@@ -265,6 +265,8 @@ final class Preferences {
     // iPhone & iPad
     var liveActivity: Bool { didSet { store.set(liveActivity, forKey: Key.liveActivity) } }
     var keepScreenOn: Bool { didSet { store.set(keepScreenOn, forKey: Key.keepScreenOn) } }
+    /// The intention and project on the Lock Screen and in the Dynamic Island (others can see them there).
+    var liveActivityShowsDetails: Bool { didSet { store.set(liveActivityShowsDetails, forKey: Key.liveActivityShowsDetails) } }
 
     private init() {
         store.register(defaults: [
@@ -330,6 +332,7 @@ final class Preferences {
             Key.focusEndShortcut: "",
             Key.liveActivity: true,
             Key.keepScreenOn: false,
+            Key.liveActivityShowsDetails: true,
         ])
         focusMinutes = store.integer(forKey: Key.focusMinutes)
         shortBreakMinutes = store.integer(forKey: Key.shortBreakMinutes)
@@ -399,6 +402,7 @@ final class Preferences {
         focusEndShortcut = store.string(forKey: Key.focusEndShortcut) ?? ""
         liveActivity = store.bool(forKey: Key.liveActivity)
         keepScreenOn = store.bool(forKey: Key.keepScreenOn)
+        liveActivityShowsDetails = store.bool(forKey: Key.liveActivityShowsDetails)
     }
 
     /// Every setting back to how Fifteen ships. History, projects and Link membership are untouched.
@@ -469,6 +473,7 @@ final class Preferences {
         focusEndShortcut = store.string(forKey: Key.focusEndShortcut) ?? ""
         liveActivity = store.bool(forKey: Key.liveActivity)
         keepScreenOn = store.bool(forKey: Key.keepScreenOn)
+        liveActivityShowsDetails = store.bool(forKey: Key.liveActivityShowsDetails)
     }
 
     private static let allKeys = [
@@ -535,6 +540,7 @@ final class Preferences {
         Key.focusEndShortcut,
         Key.liveActivity,
         Key.keepScreenOn,
+        Key.liveActivityShowsDetails,
     ]
 
     /// Whether the user ever set this key themselves (registered defaults don't count).
@@ -648,6 +654,7 @@ final class Preferences {
         static let focusEndShortcut = "focusEndShortcut"
         static let liveActivity = "liveActivity"
         static let keepScreenOn = "keepScreenOn"
+        static let liveActivityShowsDetails = "liveActivityShowsDetails"
     }
 }
 

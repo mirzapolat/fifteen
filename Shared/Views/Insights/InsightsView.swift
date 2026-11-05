@@ -120,21 +120,9 @@ struct InsightsView: View {
         withAnimation(.snappy) { proxy.scrollTo(section, anchor: .top) }
     }
 
-    /// Sessions and Your Data, each on a page of its own.
+    /// Your Data, on a page of its own. (Sessions have a tab of their own.)
     private func moreLinks(_ analytics: Analytics) -> some View {
-        let count = analytics.records(in: period).count
-        return VStack(spacing: 0) {
-            NavigationLink {
-                SessionsSection(analytics: analytics, period: $period)
-                    .navigationTitle("Sessions")
-                    #if os(iOS)
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar(.visible, for: .navigationBar)
-                    #endif
-            } label: {
-                linkRow("Sessions", detail: "\(count) in \(analytics.title(period))", symbol: "list.bullet")
-            }
-            Divider().padding(.leading, 50)
+        VStack(spacing: 0) {
             NavigationLink {
                 ScrollView {
                     dataCard(analytics)

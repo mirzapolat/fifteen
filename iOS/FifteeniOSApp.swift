@@ -6,10 +6,12 @@ struct FifteeniOSApp: App {
 
     init() {
         Notifier.shared.setUp()
-        // Tapping a Link banner brings you to the timer it's about.
-        Notifier.shared.openTimer = { AppRouter.shared.tab = .timer }
+        // Tapping a session banner brings you to the timer; a Link banner to your group.
+        Notifier.shared.openTimer = { AppRouter.shared.showTimer() }
+        Notifier.shared.openLink = { AppRouter.shared.showLink() }
         LiveActivityController.shared.start()
         LinkSession.shared.start()
+        FifteenShortcuts.updateAppShortcutParameters()
         // `--start` starts a session right away (for screenshots of the running timer).
         if CommandLine.arguments.contains("--start") { TimerEngine.shared.start() }
     }
@@ -22,36 +24,52 @@ struct FifteeniOSApp: App {
                 .environment(HistoryStore.shared)
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { TimerEngine.shared.refresh() }
+            if phase == .active {
+                TimerEngine.shared.refresh()
+                Notifier.shared.clearDelivered()
+            }
         }
     }
 }
 
 enum AppTab: Hashable {
-    case link, timer, analytics, settings
+    case timer, sessions, insights, settings
 }
 
-/// Which tab is showing, so any view can switch tabs.
+/// Which tab is showing, and whether the Link sheet is up, so any view can switch.
 @Observable
 @MainActor
 final class AppRouter {
     static let shared = AppRouter()
     var tab: AppTab = AppRouter.launchTab
+    /// The Link sheet, opened from the top right of the timer.
+    var linkShown = CommandLine.arguments.contains("--link")
 
-    /// `--tab link|timer|analytics|settings` picks the first tab; Timer otherwise.
+    func showTimer() {
+        tab = .timer
+    }
+
+    func showLink() {
+        guard Preferences.shared.linkEnabled else { return showTimer() }
+        tab = .timer
+        linkShown = true
+    }
+
+    /// `--tab timer|sessions|insights|settings` picks the first tab (`--link` opens the Link sheet).
     private static var launchTab: AppTab {
         let args = CommandLine.arguments
         guard let i = args.firstIndex(of: "--tab"), args.indices.contains(i + 1) else { return .timer }
         return switch args[i + 1] {
-        case "link": .link
-        case "analytics", "insights": .analytics
+        case "sessions", "history": .sessions
+        case "analytics", "insights": .insights
         case "settings": .settings
         default: .timer
         }
     }
 }
 
-/// Four tabs on a Liquid Glass bar: Link, Timer (where the app opens), Analytics and Settings.
+/// Four tabs on a Liquid Glass bar: Timer (where the app opens), Sessions, Insights and Settings.
+/// Link lives on the timer itself, top right, the way the Mac's bubble has it.
 struct RootView: View {
     @Environment(TimerEngine.self) private var engine
     @Environment(Preferences.self) private var prefs
@@ -61,16 +79,14 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $router.tab) {
-            if prefs.linkEnabled {
-                Tab("Link", systemImage: "person.2", value: AppTab.link) {
-                    LinkTab()
-                }
-            }
             Tab("Timer", systemImage: "timer", value: AppTab.timer) {
                 TimerTab()
             }
             if prefs.insightsEnabled {
-                Tab("Analytics", systemImage: "chart.bar", value: AppTab.analytics) {
+                Tab("Sessions", systemImage: "clock.arrow.circlepath", value: AppTab.sessions) {
+                    SessionsTab()
+                }
+                Tab("Insights", systemImage: "chart.line.uptrend.xyaxis", value: AppTab.insights) {
                     InsightsView(stacked: true)
                 }
             }
@@ -78,15 +94,27 @@ struct RootView: View {
                 IOSSettingsView()
             }
         }
-        // Long Insights pages get the room back; the bar returns as you scroll up.
-        .tabBarMinimizeBehavior(.onScrollDown)
+        // While a session is on, scrolling down shrinks the bar so the running timer above it
+        // gets the room; otherwise there's nothing to make room for, so the bar stays put.
+        .tabBarMinimizeBehavior(engine.state == .idle ? .never : .onScrollDown)
         // Away from the Timer tab, a running session rides along just above the bar.
         .modifier(RunningTimerAccessory(enabled: router.tab != .timer && engine.state != .idle))
+        // Someone in your group changed the timer while you're on another tab.
+        .overlay(alignment: .top) { LinkBanner(visible: router.tab != .timer) }
+        .sheet(isPresented: $router.linkShown) {
+            LinkSheet()
+        }
+        .background { BreakCoverHost() }
         .environment(\.appActions, AppActions(
             showInsights: { section in
                 guard prefs.insightsEnabled else { return }
-                InsightsRoute.shared.jump = section
-                router.tab = .analytics
+                router.linkShown = false
+                if section == .sessions {
+                    router.tab = .sessions
+                } else {
+                    InsightsRoute.shared.jump = section
+                    router.tab = .insights
+                }
             },
             showSettings: { router.tab = .settings }
         ))
@@ -95,13 +123,13 @@ struct RootView: View {
         }
         .onChange(of: engine.state, initial: true) { updateIdleTimer() }
         .onChange(of: prefs.keepScreenOn) { updateIdleTimer() }
-        .onChange(of: router.tab, initial: true) { updateTimerVisible() }
-        // A tab that's been switched off can't stay selected.
-        .onChange(of: prefs.linkEnabled, initial: true) { if !prefs.linkEnabled && router.tab == .link { router.tab = .timer } }
+        .onChange(of: router.tab, initial: true) { updateVisibility() }
+        // A tab that's been switched off can't stay selected, nor can Link stay open.
         .onChange(of: prefs.insightsEnabled, initial: true) {
-            if !prefs.insightsEnabled && router.tab == .analytics { router.tab = .timer }
+            if !prefs.insightsEnabled && (router.tab == .sessions || router.tab == .insights) { router.tab = .timer }
         }
-        .onChange(of: scenePhase) { updateTimerVisible() }
+        .onChange(of: prefs.linkEnabled, initial: true) { if !prefs.linkEnabled { router.linkShown = false } }
+        .onChange(of: scenePhase, initial: true) { updateVisibility() }
         .preferredColorScheme(prefs.appearance.colorScheme)
     }
 
@@ -109,13 +137,17 @@ struct RootView: View {
         UIApplication.shared.isIdleTimerDisabled = prefs.keepScreenOn && engine.state == .running
     }
 
-    /// On the Timer tab, a Link change shows under the ring, so no banner is needed.
-    private func updateTimerVisible() {
-        LinkChrome.shared.timerVisible = scenePhase == .active && router.tab == .timer
+    /// On the Timer tab (and in the Link sheet over it), a Link change shows under the ring or on
+    /// the group's card, so no banner is needed.
+    private func updateVisibility() {
+        let active = scenePhase == .active
+        LinkChrome.shared.appActive = active
+        LinkChrome.shared.timerVisible = active && router.tab == .timer
     }
 }
 
-/// The timer, filling the screen. Controls float at the bottom as glass pills, above the tab bar.
+/// The timer, filling the screen: the phase and Link on top, the ring, then the intention and the
+/// controls underneath, as glass pills. The same order as the Mac's bubble.
 struct TimerTab: View {
     @Environment(TimerEngine.self) private var engine
 
@@ -124,14 +156,15 @@ struct TimerTab: View {
             let landscape = geo.size.width > geo.size.height * 1.15
             if landscape {
                 // Ring on the left; header, caption and controls in a column on the right.
-                let dial = min(geo.size.height * 0.8, geo.size.width * 0.5, 600)
+                let dial = min(geo.size.height * 0.82, geo.size.width * 0.5, 600)
                 HStack(spacing: 48) {
                     DialView(lineWidth: dial > 380 ? 9 : 7)
                         .frame(width: dial, height: dial)
-                    VStack(spacing: 20) {
+                    VStack(spacing: 0) {
                         PhaseHeader()
-                        Spacer(minLength: 0)
+                        Spacer(minLength: 16)
                         TouchIntentionField()
+                        TouchControlPills()
                     }
                     .frame(maxWidth: 400)
                     .padding(.vertical, 16)
@@ -141,7 +174,7 @@ struct TimerTab: View {
             } else {
                 // One column; header, caption and controls share its width so their edges line up.
                 let column = min(geo.size.width - 32, 520)
-                let dial = min(geo.size.width - 56, geo.size.height * 0.56, 560)
+                let dial = min(geo.size.width - 56, geo.size.height * 0.52, 560)
                 VStack(spacing: 0) {
                     PhaseHeader()
                         .frame(width: column)
@@ -150,9 +183,12 @@ struct TimerTab: View {
                     DialView(lineWidth: dial > 380 ? 9 : 7)
                         .frame(width: dial, height: dial)
                     Spacer(minLength: 16)
-                    TouchIntentionField()
-                        .frame(width: column)
-                        .padding(.bottom, 16)
+                    VStack(spacing: 0) {
+                        TouchIntentionField()
+                        TouchControlPills()
+                    }
+                    .frame(width: column)
+                    .padding(.bottom, 16)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -162,10 +198,10 @@ struct TimerTab: View {
     }
 }
 
-/// The header's right side on iPhone and iPad: the timer's controls (length, or Add Time and Reset).
+/// The header's right side on iPhone and iPad: Link, the way the Mac has it.
 struct TimerHeaderTrailing: View {
     var body: some View {
-        TouchControlPills()
+        if Preferences.shared.linkEnabled { LinkHeaderButton() }
     }
 }
 
@@ -241,6 +277,7 @@ private struct MiniTimer: View {
 
     /// What it's for, or who it's with.
     private var detail: String? {
+        if engine.state == .finished { return engine.nextPhase.startTitle }
         if !engine.intention.isEmpty && engine.phase == .focus { return engine.intention }
         let others = LinkSession.shared.others.count
         if LinkSession.shared.isLinked && others > 0 { return "With \(others) other\(others == 1 ? "" : "s")" }
@@ -308,40 +345,48 @@ enum TimerProgress {
 
 // MARK: - Onboarding
 
-/// One screen, shown once.
+/// One screen, shown once: what Fifteen is, and where everything lives.
 struct OnboardingView: View {
     var done: () -> Void
     @State private var appeared = false
 
     var body: some View {
-        VStack(spacing: 28) {
-            Spacer()
-            ZStack {
-                Circle().stroke(Color.primary.opacity(0.12), lineWidth: 8)
-                Circle()
-                    .trim(from: 0, to: appeared ? 0.78 : 0)
-                    .stroke(Color.primary, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-            }
-            .frame(width: 140, height: 140)
-            .animation(.spring(duration: 1.4, bounce: 0.2).delay(0.2), value: appeared)
+        ScrollView {
+            VStack(spacing: 28) {
+                ZStack {
+                    Circle().stroke(Color.primary.opacity(0.12), lineWidth: 8)
+                    Circle()
+                        .trim(from: 0, to: appeared ? 0.78 : 0)
+                        .stroke(Color.primary, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                }
+                .frame(width: 128, height: 128)
+                .animation(.spring(duration: 1.4, bounce: 0.2).delay(0.2), value: appeared)
+                .padding(.top, 40)
 
-            VStack(spacing: 10) {
-                Text("One timer. One thing.")
-                    .font(.largeTitle.weight(.semibold))
-                Text("Focus for 25 minutes, then rest for 5. After four rounds, take a longer break.")
-                    .foregroundStyle(.secondary)
-            }
-            .multilineTextAlignment(.center)
+                VStack(spacing: 10) {
+                    Text("One timer. One thing.")
+                        .font(.largeTitle.weight(.semibold))
+                    Text("Focus for 25 minutes, then rest for 5. After four rounds, take a longer break.")
+                        .foregroundStyle(.secondary)
+                }
+                .multilineTextAlignment(.center)
 
-            VStack(alignment: .leading, spacing: 14) {
-                Label("Drag around the ring to set the time.", systemImage: "hand.draw")
-                Label("Tap the ring to start or pause.", systemImage: "hand.tap")
-                Label("Your countdown follows you to the Lock Screen.", systemImage: "lock")
-                Label("Focus together with friends in Link.", systemImage: "person.2")
+                VStack(alignment: .leading, spacing: 16) {
+                    row("hand.draw", "Drag around the ring to set the time. Tap it to start or pause.")
+                    row("lock", "The countdown follows you to the Lock Screen and the Dynamic Island.")
+                    row("clock.arrow.circlepath", "Every session lands in Sessions, with what you did and how it went.")
+                    row("laptopcomputer.and.iphone", "Tap Link at the top right to focus together with friends.")
+                    row("bell", "Fifteen lets you know when it's time for a break, even when it's closed.")
+                }
+                .font(.callout)
+                .frame(maxWidth: 420, alignment: .leading)
             }
-            .font(.callout)
-            Spacer()
+            .padding(.horizontal, 28)
+            .frame(maxWidth: .infinity)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom) {
             Button {
                 Notifier.shared.requestAuthorizationIfNeeded()
                 done()
@@ -349,8 +394,19 @@ struct OnboardingView: View {
                 Text("Begin").frame(maxWidth: .infinity).pill(prominent: true)
             }
             .buttonStyle(.plain)
+            .frame(maxWidth: 420)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 12)
         }
-        .padding(24)
         .onAppear { appeared = true }
+    }
+
+    private func row(_ symbol: String, _ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 14) {
+            Image(systemName: symbol)
+                .frame(width: 24)
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }

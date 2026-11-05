@@ -10,6 +10,8 @@ final class LinkChrome {
     /// Whether the timer is on screen: the Mac's bubble is open, or the iPhone is on the Timer tab.
     /// Then the line under the ring says what changed, and no banner is needed.
     @ObservationIgnored var timerVisible = false
+    /// iPhone and iPad: Fifteen is open and in front, so a change can show in the app itself.
+    @ObservationIgnored var appActive = false
     /// Showing the code entry rather than the intro.
     var joining = false
 }

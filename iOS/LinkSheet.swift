@@ -1,11 +1,13 @@
 import SwiftUI
 import UIKit
 
-/// Link on iPhone and iPad: start a group, join one with a code, or see who's in yours.
+/// Link on iPhone and iPad, as a sheet from the top right of the timer (the Mac's Link card):
+/// start a group, join one with a code, or see who's in yours.
 /// Same black-and-white glass as the timer, one calm column, big type for the code.
-struct LinkTab: View {
+struct LinkSheet: View {
     private var link: LinkSession { LinkSession.shared }
     @State private var joining = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
@@ -34,7 +36,15 @@ struct LinkTab: View {
             .animation(Pill.morph, value: link.isLinked)
             .animation(.snappy, value: link.problem)
             .onChange(of: link.isLinked) { if link.isLinked { joining = false } }
+            .navigationTitle(link.isLinked ? "Your Group" : "")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done", systemImage: "checkmark") { dismiss() }
+                }
+            }
         }
+        .presentationDragIndicator(.visible)
     }
 }
 
@@ -435,14 +445,15 @@ private struct SmallCaps: ViewModifier {
     }
 }
 
-/// The group's timer at a glance; tap it to go to the Timer tab.
+/// The group's timer at a glance; tap it to go back to the timer.
 /// Says who changed it last for a few seconds ("Mira paused").
 private struct SharedTimerCard: View {
     @Environment(TimerEngine.self) private var engine
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        Button { AppRouter.shared.tab = .timer } label: {
+        Button { dismiss() } label: {
             HStack(spacing: 14) {
                 ProgressRing(progress: TimerProgress.fraction(engine), lineWidth: 4)
                     .frame(width: 40, height: 40)

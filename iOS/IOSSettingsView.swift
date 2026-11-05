@@ -23,6 +23,9 @@ struct IOSSettingsView: View {
                          summary: !prefs.linkEnabled ? "Off" : LinkSession.shared.isLinked ? "In a group" : nil) {
                         LinkSettingsSection()
                     }
+                    page("Focus", symbol: "eye.slash", summary: focusSummary) {
+                        FocusSection()
+                    }
                     page("Lock Screen", symbol: "lock", summary: prefs.liveActivity ? "Live Activity" : "Off") {
                         LockScreenSection()
                     }
@@ -71,6 +74,15 @@ struct IOSSettingsView: View {
         return prefs.streaksEnabled ? "Streaks on" : nil
     }
 
+    private var focusSummary: String? {
+        switch (prefs.breakCurtain, prefs.keepScreenOn) {
+        case (true, true): "Break cover, screen on"
+        case (true, false): "Break cover"
+        case (false, true): "Screen on"
+        case (false, false): nil
+        }
+    }
+
     private var soundSummary: String {
         prefs.soundEnabled ? prefs.chime.title : "Off"
     }
@@ -93,10 +105,12 @@ private struct LinkSettingsSection: View {
                         .textContentType(.name)
                         .submitLabel(.done)
                 }
-                Toggle("Notify when others change the timer", isOn: $prefs.linkNotifications)
-                if prefs.linkNotifications && !prefs.notifications { NotificationAccessWarning() }
+                Toggle("Tell me when others change the timer", isOn: $prefs.linkNotifications)
+                if prefs.linkNotifications { NotificationAccessWarning() }
+            } header: {
+                Text("In a Group")
             } footer: {
-                Text("When someone in your group starts, pauses, resets or takes a break, a notification says who and what. Not while you're on the Timer tab, where it shows under the ring.")
+                Text("When someone in your group starts, pauses, resets or takes a break, you'll know who and what: under the ring on the timer, in a banner at the top elsewhere in Fifteen, and as a notification while it's closed.")
             }
 
             if let code = link.code {
@@ -120,18 +134,51 @@ private struct LinkSettingsSection: View {
     }
 }
 
+/// The Lock Screen and Dynamic Island: whether the session shows there, and how much of it.
 private struct LockScreenSection: View {
     @Environment(Preferences.self) private var prefs
 
     var body: some View {
         @Bindable var prefs = prefs
         Section {
-            Toggle("Live Activity", isOn: $prefs.liveActivity)
+            Toggle("Live Activity", isOn: $prefs.liveActivity.animation())
         } footer: {
-            Text("The countdown stays on your Lock Screen and in the Dynamic Island, and ticks even while Fifteen is closed.")
+            Text("The countdown stays on your Lock Screen and in the Dynamic Island, and keeps going while Fifteen is closed. Pause, add five minutes or reset right from there, and start the break when it's over.")
+        }
+        if prefs.liveActivity {
+            Section {
+                Toggle("Show intention and project", isOn: $prefs.liveActivityShowsDetails)
+            } footer: {
+                Text("Anyone who glances at your phone can see them. Off, the Lock Screen shows only the phase and the time.")
+            }
+        }
+        Section {
+            Toggle("Notify when a session ends", isOn: $prefs.notifications)
+            if prefs.notifications { NotificationAccessWarning() }
+        } footer: {
+            Text("A banner says what's next, with buttons to start it or take five more minutes. The same switch is in Sound.")
+        }
+    }
+}
+
+/// Helping the break happen and the timer stay in view. (The Mac's Focus pane; the app and website
+/// blockers there need a Mac.)
+private struct FocusSection: View {
+    @Environment(Preferences.self) private var prefs
+
+    var body: some View {
+        @Bindable var prefs = prefs
+        Section {
+            Toggle("Cover the screen during breaks", isOn: $prefs.breakCurtain)
+        } header: {
+            Text("Breaks")
+        } footer: {
+            Text("While a break runs, Fifteen fills the screen with the ring and a small thing to do, so the break actually happens. One more minute and Skip are right there.")
         }
         Section {
             Toggle("Keep screen on while running", isOn: $prefs.keepScreenOn)
+        } header: {
+            Text("Screen")
         } footer: {
             Text("Handy with the phone on a stand: the timer stays in view instead of the screen going dark.")
         }

@@ -34,6 +34,8 @@ struct TouchIntentionField: View {
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: Pill.height, maxHeight: Pill.height)
+                // The gap to the controls below; none when there's nothing to show.
+                .padding(.bottom, 12)
                 .transition(.blurReplace.combined(with: .scale(0.96, anchor: .bottom)))
             }
         }
@@ -176,10 +178,11 @@ private struct ProjectPill: View {
     }
 }
 
-/// The timer's controls, top right in the header. Idle: the length. Running or paused: Add Time
-/// and Reset. Finished: move on, and Reset. Skipping, finishing early and logging a distraction
-/// sit in the Add Time menu, so there's no "more" button. When the phase name beside them is long
-/// or the screen narrow, Add Time and the move-on button shrink to their icons.
+
+/// The row under the ring, like the Mac's:  [length or Add Time] [Reset]  ·····  [•••]
+/// Idle: the length (with presets and the mode). Running or paused: Add Time and Reset, or Finish in
+/// Flowtime. Finished: the button that moves on fills the row. Finishing early, logging a
+/// distraction and skipping sit in •••. On a narrow screen the labels shrink to their icons.
 struct TouchControlPills: View {
     @Environment(TimerEngine.self) private var engine
     @Environment(Preferences.self) private var prefs
@@ -207,16 +210,27 @@ struct TouchControlPills: View {
                     if engine.isFlowtime { finishPill } else { addTimeMenu(compact: compact) }
                 }
                 .glassEffectID("leading", in: glass)
-                resetPill
+                resetPill(compact: compact)
                     .glassEffectID("reset", in: glass)
             case .finished:
                 nextPill(compact: compact)
                     .glassEffectID("leading", in: glass)
-                resetPill
+                resetPill(compact: true)
                     .glassEffectID("reset", in: glass)
             }
+            if engine.state != .finished {
+                Spacer(minLength: 0)
+            }
+            // During focus there's more than one thing to do; otherwise just Skip, as a button.
+            // Once a session is over, the button that moves on already does that.
+            if hasMore {
+                morePill
+                    .glassEffectID("more", in: glass)
+            } else if engine.state != .finished {
+                skipPill
+                    .glassEffectID("more", in: glass)
+            }
         }
-        .fixedSize()
     }
 
     // MARK: Idle
@@ -225,13 +239,17 @@ struct TouchControlPills: View {
     private var lengthMenu: some View {
         Menu {
             if !engine.isFlowtime {
-                Picker("Length", selection: Binding(
+                // Folded into one item ("Length · 25 minutes") so presets and the mode fit too.
+                Picker(selection: Binding(
                     get: { Int(engine.total / 60) },
-                    set: { engine.setIdleMinutes($0) }
+                    set: { Haptics.play(.select); engine.setIdleMinutes($0) }
                 )) {
                     ForEach(lengths, id: \.self) { Text("\($0) minutes").tag($0) }
+                } label: {
+                    Label("Length", systemImage: "timer")
+                    Text("\(Int(engine.total / 60)) minutes")
                 }
-                .pickerStyle(.inline)
+                .pickerStyle(.menu)
             }
             if !prefs.presets.isEmpty {
                 Menu("Presets", systemImage: "list.bullet") {
@@ -256,6 +274,7 @@ struct TouchControlPills: View {
             Label(engine.isFlowtime ? "Flow" : "\(Int(engine.total / 60)) min",
                   systemImage: engine.isFlowtime ? "infinity" : "timer")
                 .monospacedDigit()
+                .contentTransition(.numericText(value: engine.total))
                 .fixedSize()
                 .pill()
         }
@@ -263,6 +282,7 @@ struct TouchControlPills: View {
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
+        .accessibilityLabel(engine.isFlowtime ? "Flowtime" : "\(Int(engine.total / 60)) minutes")
         .accessibilityHint("Length, presets and mode")
     }
 
@@ -282,7 +302,6 @@ struct TouchControlPills: View {
                 Button("5 Minutes", systemImage: "plus") { engine.extend(by: 300) }
                 Button("10 Minutes", systemImage: "plus") { engine.extend(by: 600) }
             }
-            sessionActions
         } label: {
             if compact {
                 Image(systemName: "plus")
@@ -307,35 +326,23 @@ struct TouchControlPills: View {
             Label("Finish", systemImage: "checkmark").fixedSize().pill()
         }
         .buttonStyle(.plain)
-        .contextMenu { sessionActions }
         .accessibilityHint("Ends this session and starts your break")
     }
 
-    @ViewBuilder
-    private var sessionActions: some View {
-        Section {
-            if engine.phase == .focus {
-                if !engine.isFlowtime {
-                    Button("Finish Early", systemImage: "checkmark.circle") { engine.finishEarly() }
-                }
-                Button("Log a Distraction", systemImage: "exclamationmark.bubble") { engine.logDistraction() }
-            }
-            Button(skipTitle, systemImage: "forward.end") { engine.skip() }
-        }
-    }
-
-    private var skipTitle: String {
-        if engine.phase.isBreak { return "Skip Break" }
-        return engine.nextPhase.isBreak ? "Skip to Break" : "Skip Session"
-    }
-
-    private var resetPill: some View {
+    private func resetPill(compact: Bool) -> some View {
         Button { engine.reset() } label: {
-            Label("Reset", systemImage: "arrow.counterclockwise")
-                .fixedSize()
-                .pill()
+            if compact {
+                Image(systemName: "arrow.counterclockwise")
+                    .frame(width: Pill.height)
+                    .pill(square: true)
+            } else {
+                Label("Reset", systemImage: "arrow.counterclockwise")
+                    .fixedSize()
+                    .pill()
+            }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Reset")
     }
 
     // MARK: Finished
@@ -347,17 +354,107 @@ struct TouchControlPills: View {
         return Button {
             engine.advance(autoStart: true)
         } label: {
-            if compact {
-                Image(systemName: symbol)
-                    .frame(width: Pill.height)
-                    .pill(prominent: true, square: true)
-            } else {
-                Label(title, systemImage: symbol)
-                    .fixedSize()
-                    .pill(prominent: true)
-            }
+            Label(title, systemImage: symbol)
+                .fixedSize()
+                .frame(maxWidth: .infinity)
+                .pill(prominent: true)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+    }
+
+    // MARK: More
+
+    /// What isn't one tap away already: finishing early, a distraction, skipping ahead.
+    private var morePill: some View {
+        Menu {
+            Section {
+                if engine.phase == .focus && engine.isActive {
+                    if !engine.isFlowtime {
+                        Button("Finish Early", systemImage: "checkmark.circle") { engine.finishEarly() }
+                    }
+                    Button(engine.distractions == 0 ? "Log a Distraction" : "Log a Distraction (\(engine.distractions))",
+                           systemImage: "exclamationmark.bubble") {
+                        Haptics.play(.select)
+                        engine.logDistraction()
+                    }
+                }
+                Button(skipTitle, systemImage: "forward.end") { engine.skip() }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .frame(width: Pill.height)
+                .pill(square: true)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .accessibilityLabel("More")
+    }
+
+    /// Focusing right now: finishing early and logging a distraction join Skip in •••.
+    private var hasMore: Bool { engine.phase == .focus && engine.isActive }
+
+    private var skipPill: some View {
+        Button { engine.skip() } label: {
+            Image(systemName: "forward.end")
+                .frame(width: Pill.height)
+                .pill(square: true)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(skipTitle)
+    }
+
+    private var skipTitle: String {
+        if engine.phase.isBreak { return "Skip Break" }
+        return engine.nextPhase.isBreak ? "Skip to Break" : "Skip Session"
+    }
+}
+
+// MARK: - Link
+
+/// Top right of the timer, as on the Mac: "Link" until you're in a group, then the group's faces.
+/// Tap it for the Link sheet.
+struct LinkHeaderButton: View {
+    private var link: LinkSession { LinkSession.shared }
+
+    var body: some View {
+        Button {
+            Haptics.play(.select)
+            AppRouter.shared.linkShown = true
+        } label: {
+            label
+                .fixedSize()
+                .pill()
+        }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .animation(Pill.morph, value: link.isLinked)
+        .animation(Pill.morph, value: link.members)
+        .accessibilityLabel(link.isLinked
+                            ? "Your group, with \(link.others.count) other\(link.others.count == 1 ? "" : "s")"
+                            : "Link")
+        .accessibilityHint(link.isLinked ? "Shows who's here" : "Focus together with friends")
+    }
+
+    @ViewBuilder
+    private var label: some View {
+        if link.isLinked {
+            HStack(spacing: 6) {
+                AvatarStack(members: link.members, myID: link.myID, size: 28)
+                if link.status != .linked {
+                    Image(systemName: "wifi.exclamationmark")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("Reconnecting")
+                }
+            }
+            .padding(.horizontal, -6)
+            .transition(.blurReplace)
+        } else {
+            Label("Link", systemImage: "laptopcomputer.and.iphone")
+                .transition(.blurReplace)
+        }
     }
 }

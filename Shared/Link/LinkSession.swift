@@ -406,6 +406,10 @@ final class LinkSession {
         let style = prefs.linkAlertStyle
         if style.showsPopup { LinkActivity.shared.popup?(line, detail) }
         guard style.showsNotification else { return }
+        #else
+        // With Fifteen open on another tab, a banner drops in at the top of the app instead
+        // (LinkBanner); a system notification only when Fifteen isn't on screen.
+        guard !LinkChrome.shared.appActive else { return }
         #endif
         Notifier.shared.notifyLinkActivity(title: line, body: detail)
     }
