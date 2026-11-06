@@ -33,7 +33,7 @@ struct FifteeniOSApp: App {
 }
 
 enum AppTab: Hashable {
-    case timer, sessions, insights, settings
+    case timer, sessions, settings
 }
 
 /// Which tab is showing, and whether the Link sheet is up, so any view can switch.
@@ -44,6 +44,11 @@ final class AppRouter {
     var tab: AppTab = AppRouter.launchTab
     /// The Link sheet, opened from the top right of the timer.
     var linkShown = CommandLine.arguments.contains("--link")
+    /// Projects, opened from the top left of Sessions (or "Manage Projects…" on the timer).
+    /// `--tab sessions --projects` opens it at launch (for screenshots).
+    var projectsShown = CommandLine.arguments.contains("--projects")
+    /// Sessions should push Insights next time it can (`--tab insights` does this at launch).
+    var insightsRequested = AppRouter.launchArgument == "insights" || AppRouter.launchArgument == "analytics"
 
     func showTimer() {
         tab = .timer
@@ -55,21 +60,40 @@ final class AppRouter {
         linkShown = true
     }
 
-    /// `--tab timer|sessions|insights|settings` picks the first tab (`--link` opens the Link sheet).
-    private static var launchTab: AppTab {
+    func showInsights() {
+        guard Preferences.shared.insightsEnabled else { return }
+        linkShown = false
+        tab = .sessions
+        insightsRequested = true
+    }
+
+    func showProjects() {
+        guard Preferences.shared.projectsActive else { return }
+        linkShown = false
+        tab = .sessions
+        projectsShown = true
+    }
+
+    /// `--tab timer|sessions|insights|settings` picks the first tab; insights opens on top of
+    /// Sessions (`--link` opens the Link sheet).
+    private static var launchArgument: String? {
         let args = CommandLine.arguments
-        guard let i = args.firstIndex(of: "--tab"), args.indices.contains(i + 1) else { return .timer }
-        return switch args[i + 1] {
-        case "sessions", "history": .sessions
-        case "analytics", "insights": .insights
+        guard let i = args.firstIndex(of: "--tab"), args.indices.contains(i + 1) else { return nil }
+        return args[i + 1]
+    }
+
+    private static var launchTab: AppTab {
+        switch launchArgument {
+        case "sessions", "history", "analytics", "insights": .sessions
         case "settings": .settings
         default: .timer
         }
     }
 }
 
-/// Four tabs on a Liquid Glass bar: Timer (where the app opens), Sessions, Insights and Settings.
-/// Link lives on the timer itself, top right, the way the Mac's bubble has it.
+/// Three tabs on a Liquid Glass bar: Timer (where the app opens), Sessions and Settings.
+/// Insights opens from This Week in Sessions; Link lives on the timer itself, top right,
+/// the way the Mac's bubble has it.
 struct RootView: View {
     @Environment(TimerEngine.self) private var engine
     @Environment(Preferences.self) private var prefs
@@ -82,13 +106,8 @@ struct RootView: View {
             Tab("Timer", systemImage: "timer", value: AppTab.timer) {
                 TimerTab()
             }
-            if prefs.insightsEnabled {
-                Tab("Sessions", systemImage: "clock.arrow.circlepath", value: AppTab.sessions) {
-                    SessionsTab()
-                }
-                Tab("Insights", systemImage: "chart.line.uptrend.xyaxis", value: AppTab.insights) {
-                    InsightsView(stacked: true)
-                }
+            Tab("Sessions", systemImage: "clock.arrow.circlepath", value: AppTab.sessions) {
+                SessionsTab()
             }
             Tab("Settings", systemImage: "gearshape", value: AppTab.settings) {
                 IOSSettingsView()
@@ -107,13 +126,12 @@ struct RootView: View {
         .background { BreakCoverHost() }
         .environment(\.appActions, AppActions(
             showInsights: { section in
-                guard prefs.insightsEnabled else { return }
-                router.linkShown = false
-                if section == .sessions {
+                switch section {
+                case .projects: router.showProjects()
+                case .sessions:
+                    router.linkShown = false
                     router.tab = .sessions
-                } else {
-                    InsightsRoute.shared.jump = section
-                    router.tab = .insights
+                default: router.showInsights()
                 }
             },
             showSettings: { router.tab = .settings }
@@ -124,10 +142,7 @@ struct RootView: View {
         .onChange(of: engine.state, initial: true) { updateIdleTimer() }
         .onChange(of: prefs.keepScreenOn) { updateIdleTimer() }
         .onChange(of: router.tab, initial: true) { updateVisibility() }
-        // A tab that's been switched off can't stay selected, nor can Link stay open.
-        .onChange(of: prefs.insightsEnabled, initial: true) {
-            if !prefs.insightsEnabled && (router.tab == .sessions || router.tab == .insights) { router.tab = .timer }
-        }
+        // Link can't stay open once it's switched off.
         .onChange(of: prefs.linkEnabled, initial: true) { if !prefs.linkEnabled { router.linkShown = false } }
         .onChange(of: scenePhase, initial: true) { updateVisibility() }
         .preferredColorScheme(prefs.appearance.colorScheme)

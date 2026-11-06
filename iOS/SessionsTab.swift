@@ -1,10 +1,10 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Sessions: a journal of your focus. This week at a glance on top (tap a day to jump to it), then
+/// Sessions: a journal of your focus. This week at a glance on top (tap it for Insights), then
 /// every session, newest first, under the day it belongs to: when, how long, what it was for, how
-/// it went and what you got done. Tap one to edit it; swipe to delete. Search and filters up top,
-/// export and import in the corner. (Insights keeps the charts; this is the record.)
+/// it went and what you got done. Tap one to edit it; swipe to delete. Projects at the top left,
+/// search, filters, export and import at the top right.
 struct SessionsTab: View {
     @Environment(HistoryStore.self) private var history
     @Environment(Preferences.self) private var prefs
@@ -13,11 +13,17 @@ struct SessionsTab: View {
     @State private var projectFilter = ProjectFilter.all
     @State private var show = Show.all
     @State private var confirmDelete: Set<FocusRecord.ID> = []
-    @State private var path: [FocusRecord.ID] = []
+    @State private var path: [Route] = []
+    @Bindable private var router = AppRouter.shared
     @State private var exportFile: ExportFile?
     @State private var showExporter = false
     @State private var showImporter = false
     @State private var importMessage: String?
+
+    enum Route: Hashable {
+        case session(FocusRecord.ID)
+        case insights
+    }
 
     enum ProjectFilter: Hashable {
         case all, unassigned
@@ -58,9 +64,26 @@ struct SessionsTab: View {
             }
             .navigationTitle("Sessions")
             .toolbar { toolbar(analytics) }
-            .navigationDestination(for: FocusRecord.ID.self) { id in
-                SessionDetail(id: id)
+            .navigationDestination(for: Route.self) { route in
+                switch route {
+                case .session(let id): SessionDetail(id: id)
+                case .insights: MobileInsightsView()
+                }
             }
+        }
+        .sheet(isPresented: $router.projectsShown) { ProjectsSheet() }
+        // "Show Insights" from elsewhere (or `--tab insights` at launch).
+        .onChange(of: router.insightsRequested, initial: true) {
+            guard router.insightsRequested else { return }
+            router.insightsRequested = false
+            if prefs.insightsEnabled && path.last != .insights { path = [.insights] }
+        }
+        .onChange(of: prefs.insightsEnabled) {
+            if !prefs.insightsEnabled { path.removeAll { $0 == .insights } }
+        }
+        // Projects switched off: no project filter left behind.
+        .onChange(of: prefs.projectsActive) {
+            if !prefs.projectsActive { projectFilter = .all; router.projectsShown = false }
         }
         .fileExporter(isPresented: $showExporter, document: exportFile,
                       contentType: exportFile?.contentType ?? .json,
@@ -76,7 +99,7 @@ struct SessionsTab: View {
                             titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 let ids = confirmDelete
-                path.removeAll { ids.contains($0) }
+                path.removeAll { if case .session(let id) = $0 { ids.contains(id) } else { false } }
                 withAnimation { history.delete(ids) }
                 confirmDelete = []
                 Haptics.play(.select)
@@ -93,8 +116,8 @@ struct SessionsTab: View {
             List {
                 if !isFiltering {
                     Section {
-                        WeekStrip(analytics: analytics) { day in
-                            withAnimation(.snappy) { proxy.scrollTo(day, anchor: .top) }
+                        WeekStrip(analytics: analytics, opensInsights: prefs.insightsEnabled) {
+                            path.append(.insights)
                         }
                         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 12, trailing: 16))
                         .listRowSeparator(.hidden)
@@ -123,8 +146,8 @@ struct SessionsTab: View {
                 ForEach(days) { day in
                     Section {
                         ForEach(day.records) { record in
-                            NavigationLink(value: record.id) {
-                                JournalRow(record: record, project: history.project(record.projectID))
+                            NavigationLink(value: Route.session(record.id)) {
+                                JournalRow(record: record, project: prefs.projectsActive ? history.project(record.projectID) : nil)
                             }
                             .swipeActions(edge: .trailing) {
                                 Button("Delete", systemImage: "trash", role: .destructive) { confirmDelete = [record.id] }
@@ -167,7 +190,7 @@ struct SessionsTab: View {
 
     @ViewBuilder
     private func menu(for record: FocusRecord) -> some View {
-        if prefs.projectsActive || !history.activeProjects.isEmpty {
+        if prefs.projectsActive {
             Menu("Project", systemImage: "folder") {
                 Picker("Project", selection: Binding(
                     get: { record.projectID },
@@ -199,13 +222,20 @@ struct SessionsTab: View {
 
     @ToolbarContentBuilder
     private func toolbar(_ analytics: Analytics) -> some ToolbarContent {
+        if prefs.projectsActive {
+            ToolbarItem(placement: .topBarLeading) {
+                Button { router.projectsShown = true } label: {
+                    Label("Projects", systemImage: "folder")
+                }
+            }
+        }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Picker("Show", selection: $show.animation(.snappy)) {
                     ForEach(Show.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
                 }
                 .pickerStyle(.inline)
-                if !history.projects.isEmpty {
+                if prefs.projectsActive && !history.projects.isEmpty {
                     Picker("Project", selection: $projectFilter.animation(.snappy)) {
                         Text("All Projects").tag(ProjectFilter.all)
                         Text("No Project").tag(ProjectFilter.unassigned)
@@ -273,7 +303,7 @@ struct SessionsTab: View {
             guard !query.isEmpty else { return true }
             return record.intention.lowercased().contains(query)
                 || (record.note ?? "").lowercased().contains(query)
-                || (history.project(record.projectID)?.name.lowercased().contains(query) ?? false)
+                || (prefs.projectsActive && (history.project(record.projectID)?.name.lowercased().contains(query) ?? false))
         }
     }
 
@@ -358,11 +388,12 @@ private struct DayHeader: View {
     }
 }
 
-/// This week, one bar a day, against the week's busiest day. Today is solid; tap a day to jump
-/// to its sessions.
+/// This week, one bar a day, against the week's busiest day. Today is solid. With Insights on,
+/// the whole card is the way in.
 private struct WeekStrip: View {
     var analytics: Analytics
-    var jump: (Date) -> Void
+    var opensInsights: Bool
+    var open: () -> Void
     @Environment(\.colorScheme) private var scheme
     @Environment(Preferences.self) private var prefs
 
@@ -375,7 +406,7 @@ private struct WeekStrip: View {
         let sessions = days.reduce(0) { $0 + analytics.sessions(onDayOf: noon($1)) }
         let today = analytics.day(of: .now)
 
-        VStack(alignment: .leading, spacing: 14) {
+        let card = VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("This week")
@@ -402,42 +433,64 @@ private struct WeekStrip: View {
                 ForEach(Array(days.enumerated()), id: \.offset) { index, day in
                     let value = minutes[index]
                     let isToday = day == today
-                    let future = day > today
-                    Button { jump(day) } label: {
-                        VStack(spacing: 6) {
-                            ZStack(alignment: .bottom) {
-                                Capsule().fill(style.empty)
-                                Capsule()
-                                    .fill(isToday ? style.ink : style.bar.opacity(0.75))
-                                    .frame(height: value == 0 ? 0 : max(6, 56 * value / top))
-                            }
-                            .frame(height: 56)
-                            .frame(maxWidth: 22)
-                            Text(day.formatted(.dateTime.weekday(.narrow)))
-                                .font(.caption2.weight(isToday ? .bold : .medium))
-                                .foregroundStyle(isToday ? .primary : .secondary)
+                    VStack(spacing: 6) {
+                        ZStack(alignment: .bottom) {
+                            Capsule().fill(style.empty)
+                            Capsule()
+                                .fill(isToday ? style.ink : style.bar.opacity(0.75))
+                                .frame(height: value == 0 ? 0 : max(6, 56 * value / top))
                         }
-                        .frame(maxWidth: .infinity)
-                        .contentShape(Rectangle())
+                        .frame(height: 56)
+                        .frame(maxWidth: 22)
+                        Text(day.formatted(.dateTime.weekday(.narrow)))
+                            .font(.caption2.weight(isToday ? .bold : .medium))
+                            .foregroundStyle(isToday ? .primary : .secondary)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(value == 0)
-                    .opacity(future ? 0.45 : 1)
-                    .accessibilityLabel("\(day.formatted(.dateTime.weekday(.wide))), \(InsightFormat.minutes(value))")
+                    .frame(maxWidth: .infinity)
+                    .opacity(day > today ? 0.45 : 1)
                 }
             }
-            if prefs.dailyGoalMinutes > 0 {
-                let todayMinutes = analytics.minutes(onDayOf: .now)
-                Text(todayMinutes >= Double(prefs.dailyGoalMinutes)
-                     ? "Today's goal of \(InsightFormat.minutes(Double(prefs.dailyGoalMinutes))) is done."
-                     : "\(InsightFormat.minutes(Double(prefs.dailyGoalMinutes) - todayMinutes)) to go for today's goal.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+            .accessibilityHidden(true)
+            if prefs.dailyGoalMinutes > 0 || opensInsights {
+                HStack(spacing: 6) {
+                    if prefs.dailyGoalMinutes > 0 {
+                        let todayMinutes = analytics.minutes(onDayOf: .now)
+                        Text(todayMinutes >= Double(prefs.dailyGoalMinutes)
+                             ? "Today's goal of \(InsightFormat.minutes(Double(prefs.dailyGoalMinutes))) is done."
+                             : "\(InsightFormat.minutes(Double(prefs.dailyGoalMinutes) - todayMinutes)) to go for today's goal.")
+                    }
+                    Spacer(minLength: 8)
+                    if opensInsights {
+                        Text("Insights")
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.primary)
+                    }
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
         }
         .padding(16)
         .background(style.card())
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .animation(.snappy, value: total)
+
+        if opensInsights {
+            Button {
+                Haptics.play(.select)
+                open()
+            } label: { card }
+            .buttonStyle(PressableCardStyle())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("This week, \(InsightFormat.minutes(total)), \(sessions) sessions")
+            .accessibilityHint("Shows Insights")
+        } else {
+            card
+                .accessibilityElement(children: .combine)
+        }
     }
 
     /// The seven day keys of this week, in the user's order.
@@ -451,6 +504,16 @@ private struct WeekStrip: View {
     /// A moment safely inside the day, whatever hour the day starts at.
     private func noon(_ day: Date) -> Date {
         analytics.calendar.date(byAdding: .hour, value: 12 + analytics.dayStartHour, to: day) ?? day
+    }
+}
+
+/// Shrinks a touch while pressed, so the card feels like the button it is.
+private struct PressableCardStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .animation(.snappy(duration: 0.2), value: configuration.isPressed)
     }
 }
 
@@ -499,12 +562,15 @@ private struct JournalRow: View {
                 Text(record.start, format: .dateTime.hour().minute())
                     .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 Text(InsightFormat.minutes(record.duration / 60))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
             }
-            .frame(width: 52, alignment: .leading)
+            // Room for "12:00 PM" where clocks have AM and PM; one line either way.
+            .frame(width: 68, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -624,7 +690,7 @@ private struct SessionDetail: View {
                     .onChange(of: note) { if loaded { history.update(id, note: note) } }
             }
 
-            if prefs.showProjects || record.projectID != nil {
+            if prefs.projectsActive {
                 Section {
                     Picker("Project", selection: Binding(
                         get: { record.projectID },

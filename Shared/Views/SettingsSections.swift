@@ -534,6 +534,36 @@ struct InsightsSettingsSection: View {
 
     var body: some View {
         @Bindable var prefs = prefs
+        #if os(iOS)
+        // On iPhone and iPad, Insights is only the charts behind "This week" in Sessions;
+        // projects and notes stand on their own.
+        Section {
+            Toggle("Insights", isOn: $prefs.insightsEnabled.animation())
+        } footer: {
+            Text(prefs.insightsEnabled
+                 ? "Tap This Week in Sessions for charts, your focus calendar, goals and streaks."
+                 : "This Week in Sessions no longer opens Insights. Everything else stays as it is.")
+        }
+        Section {
+            Toggle("Projects", isOn: $prefs.showProjects.animation())
+        } header: {
+            Text("While Focusing")
+        } footer: {
+            Text(prefs.showProjects
+                 ? "Pick a project on the timer. Manage them with the folder at the top left of Sessions."
+                 : "Projects are hidden on the timer, in Sessions and in Insights. Sessions keep the project they had.")
+        }
+        Section {
+            Toggle("Notes and focus rating", isOn: $prefs.askForReflection)
+        } header: {
+            Text("After a Session")
+        } footer: {
+            Text("Write what you got done and rate how it went, right on the timer. Both show up in Sessions.")
+        }
+        if prefs.insightsEnabled {
+            goalsAndStreaks
+        }
+        #else
         Section {
             Toggle("Insights", isOn: $prefs.insightsEnabled.animation())
         } footer: {
@@ -561,6 +591,7 @@ struct InsightsSettingsSection: View {
 
             goalsAndStreaks
         }
+        #endif
     }
 
     @ViewBuilder

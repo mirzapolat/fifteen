@@ -32,6 +32,17 @@ struct IOSSettingsView: View {
                 }
                 Section {
                     NavigationLink {
+                        YourDataView()
+                    } label: {
+                        LabeledContent {
+                            Text("Export & import")
+                        } label: {
+                            Label("Your Data", systemImage: "archivebox")
+                        }
+                    }
+                }
+                Section {
+                    NavigationLink {
                         AboutView()
                             .navigationTitle("About")
                             .navigationBarTitleDisplayMode(.inline)

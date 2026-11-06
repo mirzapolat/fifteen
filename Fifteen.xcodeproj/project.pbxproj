@@ -38,6 +38,7 @@
 		4A6312024A4862D3C4059849 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 81C2A7A14CF89E41C9767368 /* Sparkle */; };
 		4F4A8CE00C25D658D7500DE2 /* LinkParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73CD1DA3FE83DAB54B70795 /* LinkParts.swift */; };
 		5350FB7614929450F5CB70C6 /* Favicons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C92942C249E6E6889DF19A2 /* Favicons.swift */; };
+		536433D848408E7AB9415BA5 /* InsightsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE690A5E81705C6DF7E80399 /* InsightsPage.swift */; };
 		5FE4E79D462A860B78C11FE5 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F8BCF59A86DD81EBA267C1 /* AboutView.swift */; };
 		62ECFBD40F73C04FA534D827 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDAF313DFAEBD65ACFD0038D /* InsightsView.swift */; };
 		648BE8FF46F363842D697DE9 /* OverviewSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACB50BD2418B94EB1FAF8CC6 /* OverviewSection.swift */; };
@@ -187,6 +188,7 @@
 		B6952402BEBA2C2D2889121F /* AnalyticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsTests.swift; sourceTree = "<group>"; };
 		BB2D339DDCC9D04FAE96E5E9 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
 		BC9B2C406E0C36105AB2A064 /* Fifteen-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "Fifteen-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BE690A5E81705C6DF7E80399 /* InsightsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsPage.swift; sourceTree = "<group>"; };
 		BF167591E15C7CC3FAD779B9 /* IOSSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSSettingsView.swift; sourceTree = "<group>"; };
 		C1B5FCF3FE0103D67F1E0861 /* HistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStore.swift; sourceTree = "<group>"; };
 		C4F3224F88CDAD82D19D9214 /* LinkToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkToast.swift; sourceTree = "<group>"; };
@@ -391,6 +393,7 @@
 				3447265C2104B027B0D84C6F /* Fifteen.entitlements */,
 				8720E439D528AD2F2E953EA2 /* FifteeniOSApp.swift */,
 				2B3AF5958955A4D94978635D /* Info.plist */,
+				BE690A5E81705C6DF7E80399 /* InsightsPage.swift */,
 				BF167591E15C7CC3FAD779B9 /* IOSSettingsView.swift */,
 				7BC540DA20E1D355E67EA38A /* LinkBanner.swift */,
 				46AF2FB8DE248930CE9C8F6A /* LinkSheet.swift */,
@@ -576,6 +579,7 @@
 				ACE903BA57330D08B4AF3FD7 /* Haptics.swift in Sources */,
 				2FCFCA4981F7A737AC971254 /* HistoryStore.swift in Sources */,
 				8037C04850B9522BCBE62EB7 /* IOSSettingsView.swift in Sources */,
+				536433D848408E7AB9415BA5 /* InsightsPage.swift in Sources */,
 				62ECFBD40F73C04FA534D827 /* InsightsView.swift in Sources */,
 				FE7D543802867C9778A2D0E6 /* LinkBanner.swift in Sources */,
 				E86737B761CA1A857EB53BF2 /* LinkParts.swift in Sources */,
@@ -834,7 +838,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -920,7 +924,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_NS_ASSERTIONS = NO;

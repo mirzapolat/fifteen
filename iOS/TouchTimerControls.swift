@@ -143,10 +143,8 @@ private struct ProjectPill: View {
                 }
             }
             .pickerStyle(.inline)
-            if Preferences.shared.insightsEnabled {
-                Divider()
-                Button("Manage Projects…", systemImage: "folder.badge.gearshape") { actions.showInsights(.projects) }
-            }
+            Divider()
+            Button("Manage Projects…", systemImage: "folder.badge.gearshape") { actions.showInsights(.projects) }
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: current?.symbol ?? "folder")
@@ -227,7 +225,7 @@ struct TouchControlPills: View {
                 morePill
                     .glassEffectID("more", in: glass)
             } else if engine.state != .finished {
-                skipPill
+                skipPill(compact: compact)
                     .glassEffectID("more", in: glass)
             }
         }
@@ -396,11 +394,12 @@ struct TouchControlPills: View {
     /// Focusing right now: finishing early and logging a distraction join Skip in •••.
     private var hasMore: Bool { engine.phase == .focus && engine.isActive }
 
-    private var skipPill: some View {
+    /// Labelled, so it's clear what it does: "Skip Break", or just "Skip" when the row is tight.
+    private func skipPill(compact: Bool) -> some View {
         Button { engine.skip() } label: {
-            Image(systemName: "forward.end")
-                .frame(width: Pill.height)
-                .pill(square: true)
+            Label(compact ? "Skip" : skipTitle, systemImage: "forward.end")
+                .fixedSize()
+                .pill()
         }
         .buttonStyle(.plain)
         .accessibilityLabel(skipTitle)

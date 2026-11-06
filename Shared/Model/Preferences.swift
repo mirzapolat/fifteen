@@ -218,9 +218,16 @@ final class Preferences {
     var showWeekChart: Bool { didSet { store.set(showWeekChart, forKey: Key.showWeekChart) } }
     /// After focus: "What did you get done?" and a 1–5 focus rating.
     var askForReflection: Bool { didSet { store.set(askForReflection, forKey: Key.askForReflection) } }
+    #if os(iOS)
+    /// On iPhone and iPad, Sessions shows projects, notes and ratings on its own, so they don't
+    /// depend on Insights (which only adds the charts behind "This week").
+    var projectsActive: Bool { showProjects }
+    var reflectionActive: Bool { askForReflection }
+    #else
     /// Projects and the after-session note and rating only show up in Insights, so they're off with it.
     var projectsActive: Bool { insightsEnabled && showProjects }
     var reflectionActive: Bool { insightsEnabled && askForReflection }
+    #endif
     /// A comet swirls around the ring as a session starts (Pomodoro and Flowtime).
     var startSwirl: Bool { didSet { store.set(startSwirl, forKey: Key.startSwirl) } }
 

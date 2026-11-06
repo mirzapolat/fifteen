@@ -22,30 +22,29 @@ struct FocusLiveActivity: Widget {
         } dynamicIsland: { context in
             let state = context.state
             let done = isDone(context)
+            // The expanded island has little height: one line of detail, the bar, and the
+            // buttons a little shorter than on the Lock Screen, so nothing gets clipped.
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Heading(state: state, done: done)
+                    Heading(state: state, done: done, compact: true)
                         .padding(.leading, 6)
-                        .padding(.top, 2)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     TimeLeft(state: state, done: done)
-                        .font(.system(size: 36, weight: .light))
-                        .frame(maxWidth: 140, alignment: .trailing)
+                        .font(.system(size: 30, weight: .light))
+                        .frame(maxWidth: 130, alignment: .trailing)
                         .padding(.trailing, 6)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 8) {
                         if done {
-                            DoneMessage(state: state)
+                            DoneMessage(state: state, lines: 1)
                         } else {
-                            Caption(state: state)
                             Bar(state: state)
                         }
-                        Controls(state: state, done: done)
+                        Controls(state: state, done: done, height: 34)
                     }
                     .padding(.horizontal, 6)
-                    .padding(.top, 2)
                 }
             } compactLeading: {
                 // The phase at a glance (or paused, or done).
@@ -113,6 +112,8 @@ private struct LockScreenView: View {
 private struct Heading: View {
     var state: FocusActivityAttributes.ContentState
     var done: Bool
+    /// In the Dynamic Island: one line under the title (the intention, else the project).
+    var compact = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -127,11 +128,11 @@ private struct Heading: View {
                     .contentTransition(.symbolEffect(.replace))
                 if let intention = state.intention {
                     Text(intention)
-                        .font(.subheadline)
+                        .font(compact ? .caption : .subheadline)
                         .foregroundStyle(.white.opacity(0.85))
                         .lineLimit(1)
                 }
-                if let project = state.project {
+                if let project = state.project, !(compact && state.intention != nil) {
                     Label(project, systemImage: state.projectSymbol ?? "folder")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.6))
@@ -172,12 +173,13 @@ private struct Caption: View {
 /// "Nice work. Time for a short break."
 private struct DoneMessage: View {
     var state: FocusActivityAttributes.ContentState
+    var lines = 2
 
     var body: some View {
         Text(state.doneMessage ?? "Open Fifteen to start the next session.")
-            .font(.subheadline)
+            .font(lines == 1 ? .caption : .subheadline)
             .foregroundStyle(.white.opacity(0.75))
-            .lineLimit(2)
+            .lineLimit(lines)
             .fixedSize(horizontal: false, vertical: true)
     }
 }
@@ -187,24 +189,25 @@ private struct DoneMessage: View {
 private struct Controls: View {
     var state: FocusActivityAttributes.ContentState
     var done: Bool
+    var height: CGFloat = 40
 
     var body: some View {
         HStack(spacing: 8) {
             if done {
                 Button(intent: AdvanceTimerActivityIntent()) {
                     Label(state.nextTitle ?? "Start Next", systemImage: state.nextSymbol ?? "play.fill")
-                        .primaryCapsule()
+                        .primaryCapsule(height)
                 }
                 .buttonStyle(.plain)
                 Button(intent: AddTimeActivityIntent()) {
                     Label("5 More Minutes", systemImage: "plus")
-                        .secondaryCapsule()
+                        .secondaryCapsule(height)
                 }
                 .buttonStyle(.plain)
             } else {
                 Button(intent: ToggleTimerActivityIntent()) {
                     Label(state.isPaused ? "Resume" : "Pause", systemImage: state.isPaused ? "play.fill" : "pause.fill")
-                        .primaryCapsule()
+                        .primaryCapsule(height)
                 }
                 .buttonStyle(.plain)
                 // Flowtime has no end to push back.
@@ -213,7 +216,7 @@ private struct Controls: View {
                         Text("+5")
                             .font(.subheadline.weight(.semibold))
                             .monospacedDigit()
-                            .roundButton()
+                            .roundButton(height)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Add 5 minutes")
@@ -221,7 +224,7 @@ private struct Controls: View {
                 Button(intent: ResetTimerActivityIntent()) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.subheadline.weight(.semibold))
-                        .roundButton()
+                        .roundButton(height)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Reset")
@@ -231,24 +234,24 @@ private struct Controls: View {
 }
 
 private extension View {
-    func primaryCapsule() -> some View {
+    func primaryCapsule(_ height: CGFloat) -> some View {
         font(.subheadline.weight(.semibold))
             .lineLimit(1)
-            .frame(maxWidth: .infinity, minHeight: 40)
+            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
             .foregroundStyle(.black)
             .background(Capsule().fill(.white))
     }
 
-    func secondaryCapsule() -> some View {
+    func secondaryCapsule(_ height: CGFloat) -> some View {
         font(.subheadline.weight(.semibold))
             .lineLimit(1)
-            .frame(maxWidth: .infinity, minHeight: 40)
+            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
             .foregroundStyle(.white)
             .background(Capsule().fill(.white.opacity(0.18)))
     }
 
-    func roundButton() -> some View {
-        frame(width: 52, height: 40)
+    func roundButton(_ height: CGFloat) -> some View {
+        frame(width: 52, height: height)
             .foregroundStyle(.white)
             .background(Capsule().fill(.white.opacity(0.18)))
     }
