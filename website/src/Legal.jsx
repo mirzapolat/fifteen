@@ -94,6 +94,14 @@ export function Privacy(props) {
         </a>
         . Nothing is sent to GitHub unless you click download.
       </p>
+      <p>
+        The iPhone and iPad app is distributed through Apple’s App Store. “Download for iOS” opens the App Store
+        page, operated by Apple, which processes your data under{' '}
+        <a href="https://www.apple.com/legal/privacy/" rel="noopener">
+          Apple’s privacy policy
+        </a>
+        .
+      </p>
 
       <h2>The app</h2>
       <p>

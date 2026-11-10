@@ -14,6 +14,7 @@ import {
 import * as I from './Icons.jsx';
 
 const DOWNLOAD = '/download/mac';
+const APP_STORE = 'https://apps.apple.com/de/app/fifteen-focus-timer/id6831239072';
 const GITHUB = 'https://github.com/mirzapolat/fifteen';
 const SUPPORT = 'https://donate.stripe.com/aFa8wO78f6zndFp2xF0kE03';
 
@@ -82,20 +83,28 @@ function DownloadButton({ onDownload, from, large }) {
   );
 }
 
-function IOSButton() {
+function IOSButton({ from, large, onClick }) {
   return (
-    <span className="btn btn--glass is-disabled" aria-disabled="true">
+    <a
+      className={`btn btn--glass ${large ? 'btn--lg' : ''}`}
+      href={APP_STORE}
+      target="_blank"
+      rel="noopener"
+      onClick={() => {
+        window.umami?.track('download-ios', { from });
+        onClick?.();
+      }}
+    >
       <I.Phone size={18} />
       <span>Download for iOS</span>
-      <span className="soon">Soon</span>
-    </span>
+    </a>
   );
 }
 
 function Meta({ latest }) {
   return (
     <p className="meta">
-      Available for macOS 14 or later{latest?.version && <> · <span className="nowrap">Version {latest.version}</span></>}
+      Available for macOS 14 and iOS 26 or later{latest?.version && <> · <span className="nowrap">Version {latest.version}</span></>}
     </p>
   );
 }
@@ -215,6 +224,7 @@ function Nav({ go, onDownload }) {
             <I.Download size={18} />
             <span>Download for Mac</span>
           </a>
+          <IOSButton from="menu" large onClick={() => setOpen(false)} />
           <div className="menu-legal">
             <Link to="/imprint" go={goTo}>Imprint</Link>
             <Link to="/privacy" go={goTo}>Privacy</Link>
@@ -271,7 +281,7 @@ function Hero({ timer, spectrum, setSpectrum, latest, onDownload, next = 'mac' }
         </p>
         <div className="cta-row">
           <DownloadButton onDownload={onDownload} from="hero" />
-          <IOSButton />
+          <IOSButton from="hero" />
         </div>
         <Meta latest={latest} />
       </div>
@@ -476,12 +486,15 @@ function PhoneSection({ timer, spectrum }) {
   return (
     <section className="section" id="iphone">
       <Reveal className="section-head">
-        <span className="badge">Coming soon</span>
+        <span className="badge">Now on the App Store</span>
         <h2>iPhone &amp; iPad</h2>
         <p className="lede">
-          Soon you’ll be able to use the companion app on iPhone and iPad to track your time, even
-          when you’re away from your Mac.
+          Use the companion app on iPhone and iPad to track your time, even when you’re away from
+          your Mac.
         </p>
+        <div className="cta-row cta-row--center">
+          <IOSButton from="iphone" />
+        </div>
       </Reveal>
       <Reveal className="phones">
         <ScaledPhone>
@@ -548,9 +561,9 @@ function DownloadSection({ latest, onDownload, spectrum }) {
           <p>What are you waiting for? Give it a try!</p>
           <div className="cta-row cta-row--center">
             <DownloadButton onDownload={onDownload} from="section" large />
+            <IOSButton from="section" large />
           </div>
           <Meta latest={latest} />
-          <p className="final-note">iPhone &amp; iPad are coming soon.</p>
         </Glass>
       </Reveal>
     </section>
