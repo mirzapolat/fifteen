@@ -165,38 +165,85 @@ struct RootView: View {
 /// controls underneath, as glass pills. The same order as the Mac's bubble.
 struct TimerTab: View {
     @Environment(TimerEngine.self) private var engine
+    @Environment(Preferences.self) private var prefs
+
+    /// On iPad the phase and Link go in the navigation bar, level with the tab bar at the top,
+    /// the way Sessions has its buttons.
+    private let headerInToolbar = UIDevice.current.userInterfaceIdiom == .pad
 
     var body: some View {
+        Group {
+            if headerInToolbar {
+                NavigationStack {
+                    layout(showsHeader: false)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                // Toolbars show labels as icons only; keep the words, as on iPhone.
+                                PhaseSwitcher()
+                                    .labelStyle(.titleAndIcon)
+                            }
+                            .sharedBackgroundVisibility(.hidden)
+                            if prefs.linkEnabled {
+                                ToolbarItem(placement: .topBarTrailing) {
+                                    LinkHeaderButton()
+                                        .labelStyle(.titleAndIcon)
+                                }
+                                .sharedBackgroundVisibility(.hidden)
+                            }
+                        }
+                }
+            } else {
+                layout(showsHeader: true)
+            }
+        }
+        .persistentSystemOverlays(engine.state == .running ? .hidden : .automatic)
+    }
+
+    private func layout(showsHeader: Bool) -> some View {
         GeometryReader { geo in
-            let landscape = geo.size.width > geo.size.height * 1.15
-            if landscape {
-                // Ring on the left; header, caption and controls in a column on the right.
-                let dial = min(geo.size.height * 0.82, geo.size.width * 0.5, 600)
-                HStack(spacing: 48) {
-                    DialView(lineWidth: dial > 380 ? 9 : 7)
-                        .frame(width: dial, height: dial)
+            let size = geo.size
+            let landscape = size.width > size.height * 1.15
+            // In the column, the ring gets what's left once the header and controls are in.
+            let columnDial = landscape
+                ? min(size.width - 56, size.height - (showsHeader ? 220 : 160), 600)
+                : min(size.width - 56, size.height * 0.52, 560)
+            // Too short for a column (an iPhone on its side): the ring takes the full height in the
+            // middle, with the header in the top corners and the caption and controls in the bottom ones.
+            let cornerDial = min(size.height - 16, size.width * 0.44, 560)
+            let side = min((size.width - cornerDial) / 2 - 28, 340)
+            if showsHeader && landscape && columnDial < 300 && side >= 150 {
+                ZStack {
+                    DialView(lineWidth: cornerDial > 380 ? 9 : 7)
+                        .frame(width: cornerDial, height: cornerDial)
                     VStack(spacing: 0) {
                         PhaseHeader()
-                        Spacer(minLength: 16)
-                        TouchIntentionField()
-                        TouchControlPills()
+                        Spacer(minLength: 0)
+                        HStack(alignment: .bottom, spacing: 0) {
+                            TouchIntentionField(gap: 0)
+                                .frame(width: side)
+                            Spacer(minLength: 0)
+                            TouchControlPills()
+                                .frame(width: side)
+                        }
                     }
-                    .frame(maxWidth: 400)
-                    .padding(.vertical, 16)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                 }
-                .padding(.horizontal, 32)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                // One column; header, caption and controls share its width so their edges line up.
-                let column = min(geo.size.width - 32, 520)
-                let dial = min(geo.size.width - 56, geo.size.height * 0.52, 560)
+                // One column, the same in both orientations; header, caption and controls share its
+                // width so their edges line up.
+                let column = min(size.width - 32, 520)
                 VStack(spacing: 0) {
-                    PhaseHeader()
-                        .frame(width: column)
-                        .padding(.top, 8)
+                    if showsHeader {
+                        PhaseHeader()
+                            .frame(width: column)
+                            .padding(.top, 8)
+                    }
                     Spacer(minLength: 16)
-                    DialView(lineWidth: dial > 380 ? 9 : 7)
-                        .frame(width: dial, height: dial)
+                    DialView(lineWidth: columnDial > 380 ? 9 : 7)
+                        .frame(width: columnDial, height: columnDial)
                     Spacer(minLength: 16)
                     VStack(spacing: 0) {
                         TouchIntentionField()
@@ -209,7 +256,6 @@ struct TimerTab: View {
             }
         }
         .background(Color(uiColor: .systemBackground).ignoresSafeArea())
-        .persistentSystemOverlays(engine.state == .running ? .hidden : .automatic)
     }
 }
 

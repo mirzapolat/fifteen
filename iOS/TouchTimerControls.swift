@@ -9,6 +9,8 @@ struct TouchIntentionField: View {
     @Environment(HistoryStore.self) private var history
     @Environment(Preferences.self) private var prefs
     @FocusState private var focused: Bool
+    /// The space to the controls below it; none when they sit beside it instead.
+    var gap: CGFloat = 12
 
     private enum Content: Equatable { case reflection(FocusRecord.ID), tip, intention }
 
@@ -35,7 +37,7 @@ struct TouchIntentionField: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: Pill.height, maxHeight: Pill.height)
                 // The gap to the controls below; none when there's nothing to show.
-                .padding(.bottom, 12)
+                .padding(.bottom, gap)
                 .transition(.blurReplace.combined(with: .scale(0.96, anchor: .bottom)))
             }
         }

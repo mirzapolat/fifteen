@@ -14,6 +14,9 @@ env:
 
 jobs:
   deploy:
+    # Opt-in on push: only when the pushed commit's message contains [deploy]. Otherwise run it
+    # from the Actions tab (Run workflow).
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[deploy]')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
