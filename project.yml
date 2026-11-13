@@ -49,6 +49,14 @@ targets:
         NSHumanReadableCopyright: Free, no account, no ads.
         # Website blocking reads and redirects tabs in Safari and Chromium browsers.
         NSAppleEventsUsageDescription: Fifteen checks which website is open so it can keep the ones you blocked closed while you focus.
+        # Calendar (optional, off until switched on in Settings): today's events next to the timer,
+        # and finished focus sessions written back as events.
+        NSCalendarsFullAccessUsageDescription: Fifteen shows today's events next to the timer and adds your finished focus sessions to the calendar you pick.
+        NSCalendarsUsageDescription: Fifteen shows today's events next to the timer and adds your finished focus sessions to the calendar you pick.
+        # Google Calendar sign-in: an OAuth client of type "Desktop app" (see DEVELOPMENT.md).
+        # Empty means the Google option says it isn't set up in this build.
+        GoogleClientID: $(GOOGLE_CLIENT_ID)
+        GoogleClientSecret: $(GOOGLE_CLIENT_SECRET)
         # Lets Link talk to a relay on this Mac or the local network while developing.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
@@ -62,6 +70,8 @@ targets:
       properties:
         # Hardened runtime: needed to send Apple Events to browsers (website blocking).
         com.apple.security.automation.apple-events: true
+        # Hardened runtime: needed to read and write calendars (Settings → Calendar).
+        com.apple.security.personal-information.calendars: true
     settings:
       base:
         PRODUCT_NAME: Fifteen
@@ -69,6 +79,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
         APP_DISPLAY_NAME: Fifteen
+        # Google Calendar OAuth client (Desktop app). Set these, or leave empty to offer Apple Calendar only.
+        GOOGLE_CLIENT_ID: ""
+        GOOGLE_CLIENT_SECRET: ""
       configs:
         # Day to day: ad-hoc signed, runs on this Mac without any account.
         # Its own bundle ID, so it keeps its own settings and sessions, can run next to the

@@ -20,6 +20,10 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>GoogleClientID</key>
+	<string>$(GOOGLE_CLIENT_ID)</string>
+	<key>GoogleClientSecret</key>
+	<string>$(GOOGLE_CLIENT_SECRET)</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 	<key>LSUIElement</key>
@@ -31,6 +35,10 @@
 	</dict>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Fifteen checks which website is open so it can keep the ones you blocked closed while you focus.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Fifteen shows today's events next to the timer and adds your finished focus sessions to the calendar you pick.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Fifteen shows today's events next to the timer and adds your finished focus sessions to the calendar you pick.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Free, no account, no ads.</string>
 	<key>SUEnableAutomaticChecks</key>

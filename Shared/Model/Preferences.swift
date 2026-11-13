@@ -412,8 +412,12 @@ final class Preferences {
         liveActivityShowsDetails = store.bool(forKey: Key.liveActivityShowsDetails)
     }
 
+    /// Settings kept outside this class (the Mac's calendar settings) reset themselves here.
+    @ObservationIgnored var onFactoryReset: (() -> Void)?
+
     /// Every setting back to how Fifteen ships. History, projects and Link membership are untouched.
     func resetToFactoryDefaults() {
+        defer { onFactoryReset?() }
         for key in Self.allKeys { store.removeObject(forKey: key) }
         // Read everything back; with the stored values gone, these are the registered defaults.
         focusMinutes = store.integer(forKey: Key.focusMinutes)

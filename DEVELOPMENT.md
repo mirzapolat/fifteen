@@ -39,6 +39,19 @@ With `--publish` it creates the GitHub release `v<version>`; installed copies of
 a day. Without `--publish` it prints the command instead, and `--skip-notarize` stops after the signed DMG.
 Updates use Sparkle. Back up the Sparkle update key: without it, installed copies can't verify new releases.
 
+## Calendar
+
+Settings → Calendar (off by default) shows today's events next to the timer and can write finished
+focus sessions back as events. Apple Calendar goes through EventKit and needs nothing extra.
+
+Google Calendar signs in directly (OAuth for desktop apps: PKCE, loopback redirect to 127.0.0.1).
+It needs an OAuth client of type **Desktop app** from Google Cloud Console with the Google Calendar
+API enabled. Put its ID and secret in `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `project.yml`
+and run `xcodegen generate`. Left empty, the Google option says it isn't set up in this build.
+The scopes are `calendar.calendarlist.readonly` and `calendar.events`, which are sensitive scopes:
+until Google verifies the app, only test users listed on the OAuth consent screen can sign in.
+Google accounts added to the Calendar app (Internet Accounts) work through Apple Calendar either way.
+
 ## Link relay
 
 The relay in `server/link` runs at `wss://fifteen.mirzapolat.com` and deploys on every push to main
@@ -56,6 +69,7 @@ Shared/Views         Dial, header, controls, Insights, Settings sections
 Shared/Intents       App Intents + App Shortcuts
 Shared/LiveActivity  Live Activity attributes and its Pause/Reset buttons
 macOS/               Menu bar item, glass bubble, Link card, hot keys, app blocker, break curtain, Settings
+macOS/Calendar       Calendar box beside the bubble, Apple (EventKit) and Google providers, session logging
 iOS/                 Tabs, timer controls, Link, Settings, onboarding, Live Activity controller
 Widgets/             Lock Screen and Dynamic Island (WidgetKit extension)
 Resources/           AppIcon.icon (Icon Composer, Liquid Glass), AccentColor

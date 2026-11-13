@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusController = status
         Notifier.shared.openTimer = { status.showPanel() }
         MacIntegrations.shared.start(togglePanel: { status.togglePanel() }, showPanel: { status.showPanel() })
+        CalendarSync.shared.start()
         FifteenShortcuts.updateAppShortcutParameters()
         LinkSession.shared.start()
         // Before Sparkle starts: it marks the app as launched before, which tells an update from a new install.

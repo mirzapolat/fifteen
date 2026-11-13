@@ -26,14 +26,15 @@ final class SettingsTabController: NSTabViewController {
                 }
         }
         add("Link", symbol: "person.2", height: Self.paneHeight) { LinkPane() }
+        add("Calendar", symbol: "calendar", height: Self.paneHeight) { CalendarSettingsPane() }
         add("Focus", symbol: "eye.slash", height: Self.paneHeight) { FocusPane() }
         add("About", symbol: "info.circle", height: Self.paneHeight) { AboutView() }
     }
 
     /// Every tab is the same size, so switching tabs never resizes the window; longer panes scroll.
     private static let paneHeight: CGFloat = 620
-    /// Wide enough for all nine toolbar tabs.
-    private static let paneWidth: CGFloat = 620
+    /// Wide enough for all ten toolbar tabs.
+    private static let paneWidth: CGFloat = 680
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
 

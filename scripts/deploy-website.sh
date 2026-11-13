@@ -62,8 +62,10 @@ if [[ -n "$DEPLOY_KEY" ]]; then
 fi
 remote="$DEPLOY_USER@$DEPLOY_HOST"
 cleanup() {
+  local status=$?
   ssh -o "ControlPath=$control" -O exit "$remote" 2>/dev/null || true
   rm -rf "$control_dir"
+  exit "$status"
 }
 trap cleanup EXIT
 remote_dir="~/docker/apps/$APP_NAME"
@@ -80,7 +82,7 @@ fi
 rsync_flags=(-az --delete-after)
 if [[ $DRY_RUN == 1 ]]; then rsync_flags+=(--dry-run --itemize-changes); else rsync_flags+=(--stats); fi
 
-echo "▸ Syncing website/ to $DEPLOY_HOST…"
+echo "▸ Syncing website/ to ${DEPLOY_HOST}…"
 ssh "${ssh_opts[@]}" "$remote" "mkdir -p $remote_dir"
 rsync "${rsync_flags[@]}" \
   --filter="- node_modules/" \
