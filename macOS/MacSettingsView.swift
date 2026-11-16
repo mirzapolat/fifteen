@@ -350,13 +350,13 @@ private struct LaunchAtLoginToggle: View {
     }
 }
 
-private struct BlockedAppsList: View {
+struct BlockedAppsList: View {
     /// During a session apps can be added but not removed.
     var locked = false
     @Environment(Preferences.self) private var prefs
 
     /// Common time sinks, offered one click away if they're installed.
-    private static let suggestedIDs = [
+    static let suggestedIDs = [
         "com.apple.MobileSMS", "com.apple.mail", "com.tinyspeck.slackmacgap", "com.hnc.Discord",
         "net.whatsapp.WhatsApp", "ru.keepcoder.Telegram", "org.telegram.desktop", "com.facebook.archon",
         "com.microsoft.teams2", "com.apple.news", "com.apple.TV", "com.apple.Music", "com.spotify.client",

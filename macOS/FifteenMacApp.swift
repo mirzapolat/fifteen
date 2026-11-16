@@ -159,10 +159,10 @@ final class WindowRouter {
         DispatchQueue.main.async { window.makeFirstResponder(nil) }
     }
 
-    /// The first-launch welcome. Begin closes it and runs `begin` (which opens the timer).
+    /// The first-launch onboarding. Finishing it closes it and runs `begin` (which opens the timer).
     func showWelcome(begin: @escaping () -> Void) {
         showCard(id: "welcome", title: "Welcome to Fifteen") { [weak self] in
-            WelcomeView {
+            OnboardingView {
                 self?.close("welcome")
                 begin()
             }
@@ -175,6 +175,8 @@ final class WindowRouter {
         showCard(id: "whatsNew", title: "What's New in Fifteen") { [weak self] in
             WhatsNewView(notes: notes) { self?.close("whatsNew") }
         }
+        // Float above other apps' windows so it isn't lost behind whatever was in front.
+        windows["whatsNew"]?.level = .floating
     }
 
     /// Insights was switched off in Settings.

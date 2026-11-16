@@ -316,7 +316,7 @@ final class Preferences {
             Key.ambientDuringBreaks: false,
             Key.notifications: true,
             Key.haptics: true,
-            Key.menuBarDisplay: MenuBarDisplay.time.rawValue,
+            Key.menuBarDisplay: MenuBarDisplay.iconOrTime.rawValue,
             Key.menuBarSeconds: true,
             Key.menuBarIcon: MenuBarIconStyle.ring.rawValue,
             Key.appIcon: AppIconStyle.fifteenDark.rawValue,
@@ -387,7 +387,7 @@ final class Preferences {
         ambientDuringBreaks = store.bool(forKey: Key.ambientDuringBreaks)
         notifications = store.bool(forKey: Key.notifications)
         haptics = store.bool(forKey: Key.haptics)
-        menuBarDisplay = MenuBarDisplay(rawValue: store.string(forKey: Key.menuBarDisplay) ?? "") ?? .time
+        menuBarDisplay = MenuBarDisplay(rawValue: store.string(forKey: Key.menuBarDisplay) ?? "") ?? .iconOrTime
         menuBarSeconds = store.bool(forKey: Key.menuBarSeconds)
         menuBarIcon = MenuBarIconStyle(rawValue: store.string(forKey: Key.menuBarIcon) ?? "") ?? .ring
         appIcon = AppIconStyle(rawValue: store.string(forKey: Key.appIcon) ?? "") ?? .fifteenDark
@@ -463,7 +463,7 @@ final class Preferences {
         ambientDuringBreaks = store.bool(forKey: Key.ambientDuringBreaks)
         notifications = store.bool(forKey: Key.notifications)
         haptics = store.bool(forKey: Key.haptics)
-        menuBarDisplay = MenuBarDisplay(rawValue: store.string(forKey: Key.menuBarDisplay) ?? "") ?? .time
+        menuBarDisplay = MenuBarDisplay(rawValue: store.string(forKey: Key.menuBarDisplay) ?? "") ?? .iconOrTime
         menuBarSeconds = store.bool(forKey: Key.menuBarSeconds)
         menuBarIcon = MenuBarIconStyle(rawValue: store.string(forKey: Key.menuBarIcon) ?? "") ?? .ring
         appIcon = AppIconStyle(rawValue: store.string(forKey: Key.appIcon) ?? "") ?? .fifteenDark

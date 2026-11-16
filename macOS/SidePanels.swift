@@ -417,3 +417,51 @@ func openApp(_ bundleID: String) {
     guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
     NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
 }
+
+/// A vertical scroll view whose content fades into the box at an edge with more to scroll to,
+/// instead of being cut off on a hard line. The fade is a mask, so nothing moves and every row
+/// stays clickable; it grows with the distance left to scroll, so it eases in rather than popping.
+struct FadingScrollView<Content: View>: View {
+    @ViewBuilder var content: Content
+    @State private var contentFrame: CGRect = .zero
+    @State private var viewport: CGFloat = 0
+    private let fade: CGFloat = 22
+    private static var space: String { "FadingScrollView" }
+
+    var body: some View {
+        ScrollView(.vertical) {
+            content
+                .background {
+                    GeometryReader { geo in
+                        Color.clear.onChange(of: geo.frame(in: .named(Self.space)), initial: true) { _, frame in
+                            contentFrame = frame
+                        }
+                    }
+                }
+        }
+        .coordinateSpace(.named(Self.space))
+        .scrollIndicators(.never)
+        .background {
+            GeometryReader { geo in
+                Color.clear.onChange(of: geo.size.height, initial: true) { _, height in viewport = height }
+            }
+        }
+        .mask {
+            VStack(spacing: 0) {
+                LinearGradient(colors: [.black.opacity(0), .black], startPoint: .top, endPoint: .bottom)
+                    .frame(height: topFade)
+                Rectangle()
+                LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: bottomFade)
+            }
+        }
+    }
+
+    /// How far the content has scrolled up past the top, up to the full fade.
+    private var topFade: CGFloat { min(fade, max(0, -contentFrame.minY)) }
+    /// How much is still hidden below, up to the full fade.
+    private var bottomFade: CGFloat {
+        guard viewport > 0 else { return 0 }
+        return min(fade, max(0, contentFrame.maxY - viewport))
+    }
+}

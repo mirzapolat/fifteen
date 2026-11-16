@@ -7,6 +7,7 @@ enum AppInfo {
     static let developer = "Mirza Polat"
     static let releaseDate = DateComponents(calendar: .current, year: 2026, month: 11, day: 3).date ?? .now
     static let platforms = "Mac, iPhone and iPad"
+    static let website = URL(string: "https://getfifteen.de")!
 
     static var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -61,6 +62,9 @@ struct AboutView: View {
                     Text(AppInfo.releaseDate, format: .dateTime.day().month(.wide).year())
                 }
                 LabeledContent("Available on", value: AppInfo.platforms)
+                LabeledContent("Website") {
+                    Link("getfifteen.de", destination: AppInfo.website)
+                }
             }
 
             Section {

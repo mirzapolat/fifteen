@@ -100,62 +100,6 @@ struct ReleaseNotes: Identifiable {
 
 // MARK: - Views
 
-/// First launch: what Fifteen is and where to find it, since a menu bar app has no window of its own.
-struct WelcomeView: View {
-    var begin: () -> Void
-    @State private var appeared = false
-
-    var body: some View {
-        VStack(spacing: 24) {
-            ZStack {
-                Circle().stroke(Color.primary.opacity(0.12), lineWidth: 7)
-                Circle()
-                    .trim(from: 0, to: appeared ? 0.78 : 0)
-                    .stroke(Color.primary, style: StrokeStyle(lineWidth: 7, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-            }
-            .frame(width: 96, height: 96)
-            .animation(.spring(duration: 1.4, bounce: 0.2).delay(0.2), value: appeared)
-
-            VStack(spacing: 8) {
-                Text("One timer. One thing.")
-                    .font(.largeTitle.weight(.semibold))
-                Text("Focus for 25 minutes, then rest for 5. After four rounds, take a longer break.")
-                    .foregroundStyle(.secondary)
-            }
-            .multilineTextAlignment(.center)
-
-            VStack(alignment: .leading, spacing: 12) {
-                row("menubar.rectangle", "Fifteen lives in the menu bar. Click its ring to open the timer.")
-                row("cursorarrow.click", "Right-click it for more, or ⌥-click to start and pause.")
-                row("keyboard", "From anywhere: ⌃⌥P starts and pauses, ⌃⌥O opens the timer.")
-                row("person.2", "Focus together with friends in Link.")
-                row("power", "Opens at login, so it's always there. Change it in Settings.")
-            }
-            .font(.callout)
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Button(action: begin) {
-                Text("Begin").frame(maxWidth: .infinity).pill(prominent: true)
-            }
-            .buttonStyle(.plain)
-            .keyboardShortcut(.defaultAction)
-        }
-        .padding(.horizontal, 36)
-        .padding(.top, 8)
-        .padding(.bottom, 28)
-        .frame(width: 440)
-        .onAppear { appeared = true }
-    }
-
-    private func row(_ symbol: String, _ text: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Image(systemName: symbol).frame(width: 22)
-            Text(text).fixedSize(horizontal: false, vertical: true)
-        }
-    }
-}
-
 /// After an update: the notes of each version since the last one opened, newest first.
 struct WhatsNewView: View {
     var notes: [ReleaseNotes]

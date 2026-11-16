@@ -421,6 +421,28 @@ struct Browser {
 
 // MARK: - Firefox
 
+/// Whether Fifteen may look into a browser: Apple Events for Safari and the Chromium browsers,
+/// Accessibility for Firefox. Lets onboarding ask up front instead of at the first blocked site.
+enum BrowserAccess: Equatable {
+    case granted, denied, notAsked, notRunning
+
+    /// Asking can show the system prompt and wait for an answer, so call it off the main thread.
+    nonisolated static func status(_ id: String, kind: Browser.Kind, ask: Bool) -> BrowserAccess {
+        if kind == .firefox {
+            if ask { FirefoxAddressBar.requestAccess() }
+            return FirefoxAddressBar.isTrusted ? .granted : .notAsked
+        }
+        let target = NSAppleEventDescriptor(bundleIdentifier: id)
+        guard let desc = target.aeDesc else { return .notAsked }
+        switch AEDeterminePermissionToAutomateTarget(desc, typeWildCard, typeWildCard, ask) {
+        case noErr: return .granted
+        case OSStatus(errAEEventNotPermitted): return .denied
+        case OSStatus(procNotFound): return .notRunning
+        default: return .notAsked
+        }
+    }
+}
+
 /// Firefox through Accessibility: reads its address bar, and types a new address into it.
 enum FirefoxAddressBar {
     static var isTrusted: Bool { AXIsProcessTrusted() }

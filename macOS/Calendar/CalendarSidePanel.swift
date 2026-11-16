@@ -128,7 +128,7 @@ private struct EventList: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView(.vertical) {
+                FadingScrollView {
                     VStack(alignment: .leading, spacing: 3) {
                         if today.isEmpty {
                             Text("Nothing else today")
@@ -153,7 +153,6 @@ private struct EventList: View {
                         }
                     }
                 }
-                .scrollIndicators(.never)
             }
             nudge
         }
@@ -246,22 +245,6 @@ private struct EventRow: View {
                 }
                 .transition(.opacity.combined(with: .scale(0.8)))
             }
-            if canStart && (hovering || isCurrent) {
-                Button {
-                    Haptics.play(.start)
-                    sync.focus(on: item)
-                } label: {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(isCurrent ? Color(nsColor: .windowBackgroundColor) : Color.primary)
-                        .frame(width: 22, height: 22)
-                        .background(Circle().fill(Color.primary.opacity(isCurrent ? 0.9 : 0.12)))
-                        .contentShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .help(startHelp)
-                .transition(.opacity.combined(with: .scale(0.8)))
-            }
         }
         .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, 8)
@@ -308,11 +291,6 @@ private struct EventRow: View {
     }
 
     private var minutesLeft: Int { Int(item.end.timeIntervalSince(now) / 60) }
-
-    private var startHelp: String {
-        guard isCurrent, !prefs.isFlowtime else { return "Focus on this now" }
-        return "Focus on this for \(min(prefs.focusMinutes, max(1, minutesLeft))) min"
-    }
 
     private var timeLabel: String {
         if item.isAllDay { return "All day" }

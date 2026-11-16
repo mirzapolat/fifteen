@@ -43,6 +43,7 @@
 		45CBC4F54559CA819C470F3C /* TimerParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D292AEBDA8FA9EC8D597A936 /* TimerParts.swift */; };
 		489BB3A25166BD67F5CAE5D9 /* SharedTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B02B704E4E4445F4B7565E34 /* SharedTimer.swift */; };
 		4A6312024A4862D3C4059849 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 81C2A7A14CF89E41C9767368 /* Sparkle */; };
+		4B325B1B477D3B8C57DB1A80 /* Onboarding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E0FA28EBE80513BC51C689 /* Onboarding.swift */; };
 		4F4A8CE00C25D658D7500DE2 /* LinkParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73CD1DA3FE83DAB54B70795 /* LinkParts.swift */; };
 		5350FB7614929450F5CB70C6 /* Favicons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C92942C249E6E6889DF19A2 /* Favicons.swift */; };
 		536433D848408E7AB9415BA5 /* InsightsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE690A5E81705C6DF7E80399 /* InsightsPage.swift */; };
@@ -190,6 +191,7 @@
 		98C805D80E47B6A1588E22E4 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
 		9A63E61454FB956361E36B29 /* FifteenMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FifteenMacApp.swift; sourceTree = "<group>"; };
 		9BBB701AA7991DB26BB1AA93 /* RemindersSidePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersSidePanel.swift; sourceTree = "<group>"; };
+		A0E0FA28EBE80513BC51C689 /* Onboarding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Onboarding.swift; sourceTree = "<group>"; };
 		A26C703BC3375DB1C566DC3C /* SettingsSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSections.swift; sourceTree = "<group>"; };
 		A4097E183BC2D381C7277C83 /* SidePanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidePanels.swift; sourceTree = "<group>"; };
 		A73CD1DA3FE83DAB54B70795 /* LinkParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkParts.swift; sourceTree = "<group>"; };
@@ -379,6 +381,7 @@
 				101B4780DEA218187E9B6B60 /* MacIntegrations.swift */,
 				39CEBB2735502C8A2F7F37EF /* MacSettingsView.swift */,
 				F3B38E1DA18F48D8F22B67F6 /* MenuBarIcon.swift */,
+				A0E0FA28EBE80513BC51C689 /* Onboarding.swift */,
 				A4097E183BC2D381C7277C83 /* SidePanels.swift */,
 				E92C8CF80F9E95632578E23A /* StatusItemController.swift */,
 				AA71A6154DDF0A086B74FD2B /* Updater.swift */,
@@ -694,6 +697,7 @@
 				C588F0792F51FC8B9AFBF9C7 /* MacSettingsView.swift in Sources */,
 				A8A41EB0DB395DD9FDB9739F /* MenuBarIcon.swift in Sources */,
 				69201BD758EC2A64C0317AAA /* Notifier.swift in Sources */,
+				4B325B1B477D3B8C57DB1A80 /* Onboarding.swift in Sources */,
 				648BE8FF46F363842D697DE9 /* OverviewSection.swift in Sources */,
 				CD5F348BE24CC2ED6E4B2D7B /* Phase.swift in Sources */,
 				C0C0506611A685851C3CE1A8 /* Preferences.swift in Sources */,
@@ -900,7 +904,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -922,7 +926,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.3.4;
+				MARKETING_VERSION = 1.3.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -986,7 +990,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1002,7 +1006,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.3.4;
+				MARKETING_VERSION = 1.3.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

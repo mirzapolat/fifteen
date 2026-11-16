@@ -96,7 +96,7 @@ struct RemindersSettingsPane: View {
 }
 
 /// The list the box shows, grouped by account, with each list's colour.
-private struct ReminderListPicker: View {
+struct ReminderListPicker: View {
     @Bindable private var settings = RemindersSettings.shared
     private var sync: RemindersSync { RemindersSync.shared }
 
@@ -128,7 +128,7 @@ private struct ReminderListPicker: View {
 }
 
 /// A small round swatch for menus, which can't draw SwiftUI shapes.
-private enum ListDot {
+enum ListDot {
     static func image(_ color: NSColor) -> NSImage {
         let image = NSImage(size: NSSize(width: 10, height: 10), flipped: false) { rect in
             color.setFill()

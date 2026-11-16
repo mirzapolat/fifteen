@@ -26,9 +26,7 @@ struct RemindersSidePanel: View {
     private var header: some View {
         HStack(alignment: .center, spacing: 6) {
             if let list = sync.list, sync.status == .ready {
-                Text(list.title)
-                    .font(.headline)
-                    .lineLimit(1)
+                listMenu(list)
                 let open = sync.items.count - sync.completing.count
                 if open > 0 {
                     Text("\(open)")
@@ -60,6 +58,47 @@ struct RemindersSidePanel: View {
         // In line with the reminders below, so the title keeps the same distance from the timer.
         .padding(.horizontal, 8)
         .accessibilityAddTraits(.isHeader)
+    }
+
+    /// The list's name; click it to show another list.
+    private func listMenu(_ list: ReminderList) -> some View {
+        let groups = Dictionary(grouping: sync.lists, by: \.group)
+        let names = groups.keys.sorted()
+        return Menu {
+            ForEach(names, id: \.self) { group in
+                Section(names.count > 1 ? group : "") {
+                    ForEach(groups[group] ?? []) { option in
+                        Button {
+                            Haptics.play(.select)
+                            RemindersSettings.shared.listID = option.id
+                        } label: {
+                            Label {
+                                Text(option.title)
+                            } icon: {
+                                Image(nsImage: option.id == list.id
+                                      ? NSImage(systemSymbolName: "checkmark", accessibilityDescription: "Shown") ?? ListDot.image(option.color)
+                                      : ListDot.image(option.color))
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(list.title)
+                    .font(.headline)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("Show another list")
     }
 
     @ViewBuilder
@@ -119,7 +158,7 @@ private struct ReminderListView: View {
                 .transition(.opacity.combined(with: .scale(0.96)))
             } else {
                 ScrollViewReader { proxy in
-                    ScrollView(.vertical) {
+                    FadingScrollView {
                         VStack(alignment: .leading, spacing: 1) {
                             // One list for both groups, so a starred row glides up instead of jumping.
                             ForEach(rows) { row in
@@ -131,7 +170,7 @@ private struct ReminderListView: View {
                                     ReminderRow(item: item, color: color, isPriority: priority)
                                         .transition(.asymmetric(
                                             insertion: .move(edge: .bottom).combined(with: .opacity),
-                                            removal: .opacity.combined(with: .scale(scale: 0.9, anchor: .leading))
+                                            removal: .opacity.combined(with: .offset(x: -40)).combined(with: .scale(scale: 0.96, anchor: .leading))
                                         ))
                                 }
                             }
@@ -142,7 +181,6 @@ private struct ReminderListView: View {
                             }
                         }
                     }
-                    .scrollIndicators(.never)
                     .onChange(of: adding) {
                         if adding { withAnimation(.snappy) { proxy.scrollTo("new", anchor: .bottom) } }
                     }
@@ -208,11 +246,14 @@ private struct SectionHeading: View {
     }
 }
 
-/// The round tick, filling with the list's colour when ticked.
+/// The round tick. Ticking fills it with the list's colour, draws a checkmark and lets off a
+/// small burst; un-ticking just empties it again.
 private struct ReminderCheck: View {
     var ticked: Bool
     var color: Color
     var dashed = false
+    /// Bumped on each tick so the pop and the burst replay, but not on un-tick.
+    @State private var bursts = 0
 
     var body: some View {
         ZStack {
@@ -221,13 +262,77 @@ private struct ReminderCheck: View {
                               style: StrokeStyle(lineWidth: 1.3, dash: dashed ? [2.2, 2.2] : []))
             Circle()
                 .fill(color)
-                .padding(3)
                 .scaleEffect(ticked ? 1 : 0.01)
                 .opacity(ticked ? 1 : 0)
+            CheckmarkShape()
+                .trim(from: 0, to: ticked ? 1 : 0)
+                .stroke(.white, style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+                .padding(4)
+                .animation(ticked ? .easeOut(duration: 0.22).delay(0.08) : .easeIn(duration: 0.1), value: ticked)
         }
         .frame(width: 15, height: 15)
+        .keyframeAnimator(initialValue: 1.0, trigger: bursts) { view, scale in
+            view.scaleEffect(scale)
+        } keyframes: { _ in
+            SpringKeyframe(1.3, duration: 0.12, spring: .snappy)
+            SpringKeyframe(1.0, duration: 0.35, spring: .bouncy)
+        }
+        .background { if !dashed { TickBurst(color: color, trigger: bursts) } }
         .animation(.spring(duration: 0.3, bounce: 0.5), value: ticked)
+        .onChange(of: ticked) { _, isTicked in
+            if isTicked { bursts += 1 }
+        }
     }
+}
+
+private struct CheckmarkShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.midY + rect.height * 0.05))
+        path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.38, y: rect.maxY - rect.height * 0.1))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.12))
+        return path
+    }
+}
+
+/// A ring and a handful of sparks that fly out from the tick and fade.
+private struct TickBurst: View {
+    var color: Color
+    var trigger: Int
+    private let sparks = 8
+
+    var body: some View {
+        if trigger > 0 {
+            ZStack {
+                Circle().stroke(color, lineWidth: 1.5)
+                ForEach(0..<sparks, id: \.self) { i in
+                    Capsule()
+                        .fill(color)
+                        .frame(width: 1.8, height: 4)
+                        .offset(y: -13)
+                        .rotationEffect(.degrees(Double(i) / Double(sparks) * 360))
+                }
+            }
+            .frame(width: 15, height: 15)
+            .keyframeAnimator(initialValue: BurstState(), trigger: trigger) { view, state in
+                view.scaleEffect(state.scale).opacity(state.opacity)
+            } keyframes: { _ in
+                KeyframeTrack(\.scale) {
+                    LinearKeyframe(0.6, duration: 0.001)
+                    CubicKeyframe(1.6, duration: 0.45)
+                }
+                KeyframeTrack(\.opacity) {
+                    LinearKeyframe(0.9, duration: 0.001)
+                    LinearKeyframe(0.9, duration: 0.12)
+                    CubicKeyframe(0, duration: 0.33)
+                }
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+    }
+
+    struct BurstState { var scale = 1.0; var opacity = 0.0 }
 }
 
 private struct ReminderRow: View {
@@ -286,22 +391,9 @@ private struct ReminderRow: View {
                         }
                         .transition(.opacity.combined(with: .scale(0.8)))
                     }
-                    if hovering && !engine.isActive {
-                        Button {
-                            Haptics.play(.start)
-                            sync.focus(on: item)
-                        } label: {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 8, weight: .bold))
-                                .frame(width: 20, height: 20)
-                                .background(Circle().fill(Color.primary.opacity(0.12)))
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .help("Focus on this now")
-                        .transition(.opacity.combined(with: .scale(0.8)))
-                    }
                 }
+                // As tall as a line of text, so the buttons showing on hover don't make the row grow.
+                .frame(height: 15)
                 .transition(.opacity.combined(with: .scale(0.8)))
             }
         }
@@ -314,20 +406,24 @@ private struct ReminderRow: View {
                 // Priorities glow faintly in the list's colour.
                 shape.fill(color.opacity(hovering ? 0.2 : 0.13))
                     .overlay(shape.strokeBorder(color.opacity(0.28), lineWidth: 0.75))
+            } else if ticked {
+                // A faint wash of the list's colour while it waits to go.
+                shape.fill(color.opacity(0.1))
             } else {
                 shape.fill(Color.primary.opacity(hovering ? 0.05 : 0))
             }
         }
+        .animation(.easeOut(duration: 0.25), value: ticked)
         .animation(.spring(duration: 0.35, bounce: 0.2), value: highlighted)
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { hovering = $0 }
         .animation(.snappy(duration: 0.18), value: hovering)
-        // The whole row ticks it off (or takes the tick back), like a checklist.
+        // The row opens the reminder; only the circle ticks it off.
         .onTapGesture {
             Haptics.play(.select)
-            sync.toggle(item)
+            sync.open(item)
         }
-        .help(ticked ? "Click to take it back" : "Click to mark as done")
+        .help("Click to open in Reminders")
         .contextMenu {
             if !engine.isActive { Button("Focus on This") { sync.focus(on: item) } }
             if sync.remindersBecomeIntention { Button("Use as Intention") { sync.use(item) } }

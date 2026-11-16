@@ -100,10 +100,23 @@ final class RemindersSync {
                 // A store made before access was granted doesn't see any lists; start fresh.
                 store = EKEventStore()
                 observe()
-                refresh()
+                await loadAfterConnecting()
             } catch {
                 status = .failed(error.localizedDescription)
             }
+        }
+    }
+
+    /// A brand-new store fills in its accounts in the background, so right after access is
+    /// granted it can report no lists at all. Keep asking for a few seconds until they show up,
+    /// instead of leaving an empty box until the next launch.
+    private func loadAfterConnecting() async {
+        refreshTask?.cancel()
+        for attempt in 0..<6 {
+            store.refreshSourcesIfNecessary()
+            await load()
+            if !lists.isEmpty || !settings.enabled { return }
+            try? await Task.sleep(for: .milliseconds(250 << attempt))
         }
     }
 
