@@ -9,6 +9,7 @@ import {
   IOSTimer,
   LockScreen,
   MacDesktop,
+  MacPlanner,
   ScaledPhone,
 } from './Mockups.jsx';
 import * as I from './Icons.jsx';
@@ -113,6 +114,7 @@ function Meta({ latest }) {
 // [desktop label, phone menu label, target, phone menu icon]
 const MENU = [
   ['Mac', 'For Mac', '/#mac', I.Laptop],
+  ['Calendar', 'Calendar & Reminders', '/#calendar', I.Calendar],
   ['iPhone', 'For iPhone & iPad', '/#iphone', I.Phone],
   ['Link', 'Link Devices', '/#link', I.People],
   ['Features', 'Explore Features', '/#features', I.Sparkles],
@@ -384,6 +386,10 @@ const FEATURES = [
     'Sounds & haptics',
     'A classic bell, a singing bowl, a wood block, a ticking clock, white noise and rain, plus haptic feedback on iPhone.',
   ],
+  [
+    'Calendar & Reminders',
+    'Today’s events and a Reminders list right beside the timer on Mac. Join calls, tick things off, and focus on what’s next.',
+  ],
   ['Notifications', 'Fifteen lets you know when it’s time for a break, so you never miss one.'],
   [
     'Siri & Shortcuts',
@@ -472,10 +478,41 @@ function MacSection({ timer, spectrum }) {
         </li>
         <li>Hides distracting apps while you focus</li>
         <li>Optional full-screen break with a slow breathing circle</li>
+        <li>Shows today’s events and a Reminders list beside the timer</li>
         <li>Turns on Do Not Disturb during focus</li>
         <li>Runs your Shortcuts when focus starts or ends</li>
         <li>Pauses when your Mac locks or sleeps</li>
         <li>Opens at login and keeps itself up to date</li>
+      </Reveal>
+    </section>
+  );
+}
+
+// ---- Calendar & Reminders ----------------------------------------------------------------------
+function CalendarSection({ timer, spectrum }) {
+  return (
+    <section className="section" id="calendar">
+      <Reveal className="section-head">
+        <span className="badge">New on Mac</span>
+        <h2>Calendar &amp; Reminders</h2>
+        <p className="lede">
+          Your day, right beside the timer. See what’s next, hop into the call, tick off what’s
+          done, and turn any of it into your next focus session.
+        </p>
+      </Reveal>
+      <Reveal className="mock-wide">
+        <MacPlanner timer={timer} spectrum={spectrum} />
+      </Reveal>
+      <p className="mock-hint">Go ahead: tick off a reminder, star one, or add one with +.</p>
+      <Reveal as="ul" className="bullets">
+        <li>Today’s events from Apple Calendar or Google Calendar</li>
+        <li>A Join button for Zoom, Meet, Teams and other calls</li>
+        <li>A heads-up a few minutes before each event, even mid-session</li>
+        <li>A Reminders list to tick off and add to, with your priorities on top</li>
+        <li>▶ starts focusing on an event or reminder, 💬 makes it your intention</li>
+        <li>Finished sessions land back in your calendar, named the way you like</li>
+        <li>Swap the boxes’ sides, drag them wider, or tuck them away</li>
+        <li>Off until you switch it on in Settings</li>
       </Reveal>
     </section>
   );
@@ -668,6 +705,7 @@ export default function App() {
               onDownload={onDownload}
             />
             <MacSection timer={timer} spectrum={spectrum} />
+            <CalendarSection timer={timer} spectrum={spectrum} />
             <PhoneSection timer={timer} spectrum={spectrum} />
             <LinkSection timer={timer} spectrum={spectrum} />
             <Features />

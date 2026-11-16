@@ -566,3 +566,245 @@ export function CalendarCard() {
     </div>
   );
 }
+
+// ---- macOS: the bubble with today's events and a Reminders list beside it -------------------
+const SIDE_W = 214;
+const SIDE_TUCK = 14;
+const SIDE_ROOM = SIDE_W - SIDE_TUCK;
+const SIDE_H = 292;
+// Centred on the bubble's body, under the nub.
+const SIDE_TOP = 11 + Math.round((BUBBLE_H - 11 - SIDE_H) / 2);
+
+const EVENTS_TODAY = [
+  { title: 'Design review', time: 'Now · 18 min left', color: '#ff9f0a', now: true, join: 'Meet' },
+  { title: '1:1 with Lena', time: '11:30–12:00', color: '#30d158', join: 'Zoom' },
+];
+const EVENTS_TOMORROW = [{ title: 'Sprint planning', time: '09:30–10:30', color: '#0a84ff' }];
+
+function SideBox({ side, children }) {
+  return (
+    <div className={`side-box side-box--${side}`} style={{ width: SIDE_W, height: SIDE_H, top: SIDE_TOP }}>
+      {children}
+    </div>
+  );
+}
+
+function CalendarBox() {
+  const now = useClock();
+  const day = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
+  const event = (e) => (
+    <div key={e.title} className={`side-row ${e.now ? 'is-now' : ''}`}>
+      <span className="event-bar" style={{ background: e.color }} />
+      <span className="side-row-text">
+        <b>{e.title}</b>
+        <span className="side-row-sub">{e.time}</span>
+        {e.join && (
+          <span className={`join-pill ${e.now ? 'is-soon' : ''}`}>
+            <I.Video size={10} /> Join {e.join}
+          </span>
+        )}
+      </span>
+      {e.now && (
+        <span className="side-play">
+          <I.Play size={9} />
+        </span>
+      )}
+    </div>
+  );
+  return (
+    <>
+      <div className="side-head">
+        <b>Today</b>
+        <span className="side-head-dim">{day}</span>
+        <span className="spacer" />
+        <I.Refresh size={11} className="side-head-icon" />
+        <I.OpenApp size={11} className="side-head-icon" />
+      </div>
+      {EVENTS_TODAY.map(event)}
+      <span className="side-heading">Tomorrow</span>
+      {EVENTS_TOMORROW.map(event)}
+    </>
+  );
+}
+
+const LIST_COLOR = '#ff9f0a';
+const START_REMINDERS = [
+  { id: 1, title: 'Finish the slides', due: 'Today · 17:00', star: true },
+  { id: 2, title: 'Call the dentist', star: true },
+  { id: 3, title: 'Reply to Jonas' },
+  { id: 4, title: 'Buy oat milk' },
+  { id: 5, title: 'Book train tickets', due: 'Friday' },
+];
+const MORE_REMINDERS = ['Water the plants', 'Send the invoice', 'Plan the weekend', 'Back up photos'];
+
+// Click a reminder to tick it off, ☆ to make it a priority, + to add one. Like the app.
+function RemindersBox() {
+  const [items, setItems] = useState(START_REMINDERS);
+  const [ticked, setTicked] = useState(new Set());
+  const [leaving, setLeaving] = useState(new Set());
+  const next = useRef(0);
+  const timers = useRef({});
+
+  useEffect(() => () => Object.values(timers.current).forEach(clearTimeout), []);
+
+  // All done: after a moment the list fills up again, so there's always something to tick.
+  useEffect(() => {
+    if (items.length) return;
+    const id = setTimeout(() => setItems(START_REMINDERS), 1600);
+    return () => clearTimeout(id);
+  }, [items.length]);
+
+  const tick = (id) => {
+    if (ticked.has(id)) {
+      clearTimeout(timers.current[id]);
+      setTicked((s) => new Set([...s].filter((x) => x !== id)));
+      return;
+    }
+    setTicked((s) => new Set(s).add(id));
+    timers.current[id] = setTimeout(() => {
+      setLeaving((s) => new Set(s).add(id));
+      timers.current[id] = setTimeout(() => {
+        setItems((list) => list.filter((r) => r.id !== id));
+        setTicked((s) => new Set([...s].filter((x) => x !== id)));
+        setLeaving((s) => new Set([...s].filter((x) => x !== id)));
+      }, 320);
+    }, 1100);
+  };
+
+  const star = (id) => setItems((list) => list.map((r) => (r.id === id ? { ...r, star: !r.star } : r)));
+
+  const add = () => {
+    const title = MORE_REMINDERS[next.current++ % MORE_REMINDERS.length];
+    setItems((list) => [...list, { id: Date.now(), title, fresh: true }]);
+  };
+
+  const priorities = items.filter((r) => r.star);
+  const rest = items.filter((r) => !r.star);
+  const open = items.length - ticked.size;
+
+  const row = (r) => {
+    const done = ticked.has(r.id);
+    return (
+      <div
+        key={r.id}
+        role="button"
+        tabIndex={0}
+        aria-pressed={done}
+        className={`side-row reminder ${r.star && !done ? 'is-priority' : ''} ${done ? 'is-done' : ''} ${leaving.has(r.id) ? 'is-leaving' : ''} ${r.fresh ? 'is-fresh' : ''}`}
+        style={{ '--list': LIST_COLOR }}
+        onClick={() => tick(r.id)}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), tick(r.id))}
+      >
+        <span className="check" />
+        <span className="side-row-text">
+          <b>{r.title}</b>
+          {r.due && <span className="side-row-sub">{r.due}</span>}
+        </span>
+        <button
+          className={`star ${r.star ? 'is-on' : ''}`}
+          aria-label={r.star ? 'Remove from priorities' : 'Make a priority'}
+          onClick={(e) => {
+            e.stopPropagation();
+            star(r.id);
+          }}
+        >
+          {r.star ? <I.StarFill size={11} /> : <I.Star size={11} />}
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <div className="side-head">
+        <b>Personal</b>
+        {open > 0 && <span className="side-head-dim tabular">{open}</span>}
+        <span className="spacer" />
+        <button className="side-add" aria-label="New reminder" onClick={add}>
+          <I.Plus size={11} />
+        </button>
+        <I.OpenApp size={11} className="side-head-icon" />
+      </div>
+      <div className="side-list">
+        {items.length === 0 && <span className="side-empty">All done.</span>}
+        {priorities.length > 0 && (
+          <span className="side-heading side-heading--star" style={{ color: LIST_COLOR }}>
+            <I.StarFill size={9} />
+            <span>Priorities</span>
+          </span>
+        )}
+        {priorities.map(row)}
+        {priorities.length > 0 && rest.length > 0 && <span className="side-heading">Later</span>}
+        {rest.map(row)}
+      </div>
+    </>
+  );
+}
+
+export function MacPlanner({ timer, spectrum }) {
+  const now = useClock();
+  const narrow = useNarrow();
+  const width = narrow ? 760 : 980;
+  const height = 470;
+  const desk = useRef(null);
+  const item = useRef(null);
+  const group = BUBBLE_W + 2 * SIDE_ROOM;
+  const [pos, setPos] = useState({ left: (width - group) / 2, arrowX: BUBBLE_W / 2 });
+
+  useLayoutEffect(() => {
+    if (!desk.current || !item.current) return;
+    const d = desk.current.getBoundingClientRect();
+    const r = item.current.getBoundingClientRect();
+    const scale = d.width / width || 1;
+    const center = (r.left - d.left + r.width / 2) / scale;
+    const left = Math.min(Math.max(center - SIDE_ROOM - BUBBLE_W / 2, 12), width - group - 12);
+    setPos({ left, arrowX: center - left - SIDE_ROOM });
+  }, [width, group, timer.status]);
+
+  const live = timer.status !== 'idle';
+  const time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const date = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  return (
+    <Scaled width={width} height={height} className="mac-scaled">
+      <div className="desktop" ref={desk} style={{ width, height }}>
+        <div className="menubar">
+          <div className="menubar-left">
+            <b>Finder</b>
+            <span>File</span>
+            <span>Edit</span>
+            <span>View</span>
+            <span>Go</span>
+          </div>
+          <div className="menubar-right">
+            <span className="menubar-item is-open" ref={item}>
+              <Ring
+                fraction={live ? timer.remaining / timer.total : 1}
+                spectrum={spectrum}
+                animate={timer.status === 'running'}
+                width={16}
+                className="ring--menubar"
+              />
+              <span className="tabular">{formatTime(timer.remaining)}</span>
+            </span>
+            <I.Battery size={19} />
+            <I.Wifi size={15} />
+            <I.Toggles size={15} />
+            <span className="tabular">{`${date} ${time}`}</span>
+          </div>
+        </div>
+        <div className="desktop-bubble planner" style={{ left: pos.left, width: group }}>
+          <SideBox side="left">
+            <CalendarBox />
+          </SideBox>
+          <div className="planner-bubble" style={{ left: SIDE_ROOM }}>
+            <MacBubble timer={timer} spectrum={spectrum} arrowX={pos.arrowX} />
+          </div>
+          <SideBox side="right">
+            <RemindersBox />
+          </SideBox>
+        </div>
+      </div>
+    </Scaled>
+  );
+}

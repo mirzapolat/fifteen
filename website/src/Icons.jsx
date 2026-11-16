@@ -141,3 +141,26 @@ export const Laptop = make(
 export const Heart = make(
   <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z" />,
 );
+
+// Calendar & Reminders
+export const Calendar = make(
+  <>
+    <rect x="3.5" y="5" width="17" height="15.5" rx="3" />
+    <path d="M3.5 10h17M8 3v4M16 3v4" />
+  </>
+);
+export const Checklist = make(
+  <>
+    <path d="M3.8 6.6l1.6 1.6 2.9-3M3.8 15.6l1.6 1.6 2.9-3" />
+    <path d="M11.5 7h9M11.5 16h9" />
+  </>
+);
+export const Star = make(<path d="M12 3.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4.1-3.9 5.6-.7z" />);
+export const StarFill = make(
+  <path d="M12 3.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4.1-3.9 5.6-.7z" fill="currentColor" />
+);
+export const Video = make(
+  <path d="M3.5 7.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2zM15.5 10.5l5-3v9l-5-3z" fill="currentColor" stroke="none" />
+);
+export const OpenApp = make(<path d="M13 4.5h6.5V11M19.5 4.5 11 13M10 5.5H6.5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V14" />);
+export const Refresh = make(<path d="M19 12a7 7 0 1 1-2.05-4.95L19 9M19 4.5V9h-4.5" />);
