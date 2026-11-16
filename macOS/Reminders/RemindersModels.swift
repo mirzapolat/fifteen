@@ -43,7 +43,7 @@ final class RemindersSettings {
     var listID: String = "" { didSet { store.set(listID, forKey: Key.listID) } }
     var side: PanelSide = .right { didSet { store.set(side.rawValue, forKey: Key.side) } }
     /// Hovering the box's outer edge offers to tuck it away behind the bubble.
-    var collapsible: Bool = true { didSet { store.set(collapsible, forKey: Key.collapsible) } }
+    var collapsible: Bool = false { didSet { store.set(collapsible, forKey: Key.collapsible) } }
     var collapsed: Bool = false { didSet { store.set(collapsed, forKey: Key.collapsed) } }
     /// The box's width, as you last dragged it.
     var panelWidth: CGFloat = SidePanels.defaultWidth { didSet { store.set(Double(panelWidth), forKey: Key.panelWidth) } }
@@ -62,8 +62,7 @@ final class RemindersSettings {
             Key.onlyDue: false,
             Key.useAsIntention: true,
             Key.panelWidth: Double(SidePanels.defaultWidth),
-            // Tucking away is offered from the box's edge unless switched off.
-            Key.collapsible: true,
+            Key.collapsible: false,
         ])
         load()
     }
