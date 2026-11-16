@@ -13,7 +13,7 @@ struct CalendarSettingsPane: View {
             Section {
                 Toggle("Connect a calendar", isOn: $settings.enabled.animation())
             } footer: {
-                Text("See today's events next to the timer, turn one into your intention with a click, and keep a record of every focus session in your calendar.")
+                Text("See today's events next to the timer, turn one into your intention, and keep a record of every focus session in your calendar.")
             }
 
             if settings.enabled {
@@ -124,9 +124,10 @@ struct CalendarSettingsPane: View {
                     ForEach(PanelSide.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
+                Toggle("Tuck away from the box's edge", isOn: $settings.collapsible)
                 Toggle("Include all-day events", isOn: $settings.showAllDay)
                 if prefs.showIntention {
-                    Toggle("Clicking an event makes it your intention", isOn: $settings.useEventAsIntention)
+                    Toggle("Offer to make an event your intention", isOn: $settings.useEventAsIntention)
                 }
             }
         } header: {
@@ -139,7 +140,10 @@ struct CalendarSettingsPane: View {
     }
 
     private var panelFooter: String {
-        var text = "▶ next to an event starts focusing on it, shortened if the event ends sooner. If an event mentions one of your projects, that project is picked too. When a session would run into your next event, the box says so and offers to make it fit."
+        var text = "Click an event to open it in your calendar; hover it for 💬 to make it your intention. Drag the box's outer edge to make it wider or narrower. ▶ next to an event starts focusing on it, shortened if the event ends sooner. If an event mentions one of your projects, that project is picked too. When a session would run into your next event, the box says so and offers to make it fit."
+        if settings.collapsible {
+            text += " Hover the outer edge and click the tab to tuck the box away behind the timer; click it again to bring it back."
+        }
         if RemindersSettings.shared.enabled {
             text += " Your reminders sit on the other side; moving one box moves the other."
         }
@@ -227,46 +231,69 @@ private struct CalendarChecklist: View {
 
     var body: some View {
         let calendars = sync.calendars
-        let kinds = CalendarKind.allCases.filter { kind in calendars.contains { $0.kind == kind } }
-        if calendars.isEmpty {
-            Section("Show Events From") {
+        Section {
+            if calendars.isEmpty {
                 Text("No calendars found.")
                     .foregroundStyle(.secondary)
             }
-        }
-        ForEach(kinds, id: \.self) { kind in
-            let inKind = calendars.filter { $0.kind == kind }
-            // The account only when this section mixes several.
-            let showAccount = Set(inKind.map(\.group)).count > 1
-            Section {
-                ForEach(inKind) { calendar in
+            ForEach(groups(calendars), id: \.title) { group in
+                // A small heading per account inside the one section, like a list in Calendar's sidebar.
+                Text(group.title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .padding(.top, group.title == groups(calendars).first?.title ? 0 : 6)
+                    .accessibilityAddTraits(.isHeader)
+                ForEach(group.calendars) { calendar in
                     Toggle(isOn: binding(for: calendar.id, all: calendars)) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 10) {
                             Circle()
                                 .fill(Color(nsColor: calendar.color))
                                 .frame(width: 10, height: 10)
                             Text(calendar.title)
-                            if showAccount {
+                            if group.showsAccount {
                                 Text(calendar.group)
                                     .foregroundStyle(.secondary)
                             }
                         }
                     }
                 }
-            } header: {
-                if kind == kinds.first {
-                    HStack {
-                        Text("Show Events From · \(kind.title)")
-                        Spacer()
-                        Text(summary(calendars))
-                            .foregroundStyle(.secondary)
-                            .fontWeight(.regular)
-                    }
-                } else {
-                    Text(kind.title)
+            }
+        } header: {
+            HStack {
+                Text("Show Events From")
+                Spacer()
+                if !calendars.isEmpty {
+                    Text(summary(calendars))
+                        .foregroundStyle(.secondary)
+                        .fontWeight(.regular)
                 }
             }
         }
+    }
+
+    private struct AccountGroup {
+        var title: String
+        var calendars: [CalendarInfo]
+        /// Subscribed and other calendars from several accounts say which one they're from.
+        var showsAccount: Bool
+    }
+
+    /// Your own calendars by account (iCloud, Exchange, Google…), then subscribed ones, then the rest.
+    private func groups(_ calendars: [CalendarInfo]) -> [AccountGroup] {
+        var groups: [AccountGroup] = []
+        let mine = calendars.filter { $0.kind == .mine }
+        var accounts: [String] = []
+        for calendar in mine where !accounts.contains(calendar.group) { accounts.append(calendar.group) }
+        for account in accounts {
+            groups.append(AccountGroup(title: account, calendars: mine.filter { $0.group == account }, showsAccount: false))
+        }
+        for kind in [CalendarKind.subscribed, .other] {
+            let inKind = calendars.filter { $0.kind == kind }
+            guard !inKind.isEmpty else { continue }
+            groups.append(AccountGroup(title: kind.title, calendars: inKind, showsAccount: Set(inKind.map(\.group)).count > 1))
+        }
+        return groups
     }
 
     private func summary(_ calendars: [CalendarInfo]) -> String {

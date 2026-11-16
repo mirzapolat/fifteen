@@ -157,7 +157,8 @@ final class GoogleCalendarProvider: CalendarProvider {
                                           start: range.start, end: range.end,
                                           calendarID: calendar.id, color: color,
                                           isAllDay: range.allDay,
-                                          link: event.htmlLink.flatMap(URL.init(string:))))
+                                          link: event.htmlLink.flatMap(URL.init(string:)),
+                                          meeting: event.meeting))
             }
         }
         return items
@@ -319,6 +320,32 @@ private struct GoogleEvent: Decodable {
     var end: When?
     var attendees: [Attendee]?
     var extendedProperties: Extended?
+    var hangoutLink: String?
+    var location: String?
+    var description: String?
+    var conferenceData: Conference?
+
+    struct Conference: Decodable {
+        struct EntryPoint: Decodable { var entryPointType: String?; var uri: String? }
+        struct Solution: Decodable { struct Key: Decodable { var type: String? }; var name: String?; var key: Key? }
+        var entryPoints: [EntryPoint]?
+        var conferenceSolution: Solution?
+    }
+
+    /// Google's own conference (Meet, or Zoom/Teams added through an add-on), else a call link
+    /// pasted into the location or description.
+    var meeting: MeetingLink? {
+        // Google's conference data: web links only. A service we don't know (a conferencing
+        // add-on) is just called "Call", never named by the invite's own text.
+        if let uri = conferenceData?.entryPoints?.first(where: { $0.entryPointType == "video" })?.uri,
+           let url = URL(string: uri), MeetingLink.isWebLink(url) {
+            return MeetingLink(url: url, service: MeetingLink.service(for: url) ?? "Call")
+        }
+        if let link = hangoutLink, let url = URL(string: link), MeetingLink.service(for: url) == "Meet" {
+            return MeetingLink(url: url, service: "Meet")
+        }
+        return MeetingLink.find(in: [location, description])
+    }
 
     var range: (start: Date, end: Date, allDay: Bool)? {
         if let s = start?.dateTime.flatMap(Self.parse), let e = end?.dateTime.flatMap(Self.parse) {

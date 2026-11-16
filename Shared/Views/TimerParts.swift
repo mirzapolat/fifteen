@@ -154,42 +154,46 @@ struct IntentionField: View {
                             .foregroundStyle(.secondary)
                     case .intention:
                         if prefs.showIntention {
-                            HStack(spacing: 4) {
-                                // A slot on each side, so the text stays centred with or without the chip and ✕.
-                                Group {
-                                    if prefs.projectsActive { ProjectChip() } else { Color.clear }
+                            // The field spans the whole box with the same room on both sides, so its
+                            // text stays centred; the chip and ✕ sit on top in that room.
+                            TextField("What's the one thing?", text: $engine.intention)
+                                .textFieldStyle(.plain)
+                                .focused($focused)
+                                .onSubmit {
+                                    focused = false
+                                    if engine.state == .idle { engine.start() }
                                 }
-                                .frame(width: 22, height: 22)
-                                TextField("What's the one thing?", text: $engine.intention)
-                                    .textFieldStyle(.plain)
-                                    .focused($focused)
-                                    .onSubmit {
-                                        focused = false
-                                        if engine.state == .idle { engine.start() }
+                                .padding(.horizontal, 16)
+                                .frame(maxWidth: .infinity)
+                                .overlay(alignment: .leading) {
+                                    if prefs.projectsActive {
+                                        ProjectChip()
+                                            .padding(.leading, -6)
                                     }
-                                ZStack {
-                                    if !engine.intention.isEmpty {
-                                        Button {
-                                            withAnimation(.snappy(duration: 0.2)) { engine.intention = "" }
-                                            focused = true
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .font(.system(size: 13))
-                                                .symbolRenderingMode(.hierarchical)
-                                                .foregroundStyle(.secondary)
-                                                .frame(width: 22, height: 22)
-                                                .contentShape(Circle())
+                                }
+                                .overlay(alignment: .trailing) {
+                                    ZStack {
+                                        if !engine.intention.isEmpty {
+                                            Button {
+                                                withAnimation(.snappy(duration: 0.2)) { engine.intention = "" }
+                                                focused = true
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .font(.system(size: 13))
+                                                    .symbolRenderingMode(.hierarchical)
+                                                    .foregroundStyle(.secondary)
+                                                    .frame(width: 22, height: 22)
+                                                    .contentShape(Circle())
+                                            }
+                                            .buttonStyle(.plain)
+                                            .help("Clear")
+                                            .accessibilityLabel("Clear intention")
+                                            .transition(.opacity.combined(with: .scale(0.6)))
                                         }
-                                        .buttonStyle(.plain)
-                                        .help("Clear")
-                                        .accessibilityLabel("Clear intention")
-                                        .transition(.opacity.combined(with: .scale(0.6)))
                                     }
+                                    .padding(.trailing, -6)
+                                    .animation(.snappy(duration: 0.2), value: engine.intention.isEmpty)
                                 }
-                                .frame(width: 22, height: 22)
-                                .animation(.snappy(duration: 0.2), value: engine.intention.isEmpty)
-                            }
-                            .padding(.horizontal, -6)
                             .fieldBox(focused: focused)
                             // Revealed on purpose, so it's ready to type into.
                             .onAppear { if engine.intention.isEmpty { focused = true } }

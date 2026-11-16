@@ -42,6 +42,11 @@ final class RemindersSettings {
     /// The list shown. Empty = the list new reminders go to.
     var listID: String = "" { didSet { store.set(listID, forKey: Key.listID) } }
     var side: PanelSide = .right { didSet { store.set(side.rawValue, forKey: Key.side) } }
+    /// Hovering the box's outer edge offers to tuck it away behind the bubble.
+    var collapsible: Bool = false { didSet { store.set(collapsible, forKey: Key.collapsible) } }
+    var collapsed: Bool = false { didSet { store.set(collapsed, forKey: Key.collapsed) } }
+    /// The box's width, as you last dragged it.
+    var panelWidth: CGFloat = SidePanels.defaultWidth { didSet { store.set(Double(panelWidth), forKey: Key.panelWidth) } }
     /// Only what's due today or overdue, not everything on the list.
     var onlyDue: Bool = false { didSet { store.set(onlyDue, forKey: Key.onlyDue) } }
     /// Clicking a reminder fills in the intention.
@@ -56,6 +61,7 @@ final class RemindersSettings {
             Key.side: PanelSide.right.rawValue,
             Key.onlyDue: false,
             Key.useAsIntention: true,
+            Key.panelWidth: Double(SidePanels.defaultWidth),
         ])
         load()
     }
@@ -71,6 +77,9 @@ final class RemindersSettings {
         side = PanelSide(rawValue: store.string(forKey: Key.side) ?? "") ?? .right
         onlyDue = store.bool(forKey: Key.onlyDue)
         useAsIntention = store.bool(forKey: Key.useAsIntention)
+        panelWidth = CalendarSettings.width(store.double(forKey: Key.panelWidth))
+        collapsible = store.bool(forKey: Key.collapsible)
+        collapsed = store.bool(forKey: Key.collapsed)
     }
 
     private enum Key {
@@ -79,6 +88,9 @@ final class RemindersSettings {
         static let side = "remindersSide"
         static let onlyDue = "remindersOnlyDue"
         static let useAsIntention = "remindersUseAsIntention"
-        static let all = [enabled, listID, side, onlyDue, useAsIntention]
+        static let panelWidth = "remindersPanelWidth"
+        static let collapsible = "remindersCollapsible"
+        static let collapsed = "remindersCollapsed"
+        static let all = [enabled, listID, side, onlyDue, useAsIntention, panelWidth, collapsible, collapsed]
     }
 }

@@ -7,15 +7,22 @@ import AppKit
 struct CalendarSidePanel: View {
     var side: PanelSide
     var isOpen: Bool
+    var top: CGFloat
 
     private var sync: CalendarSync { CalendarSync.shared }
 
     var body: some View {
-        SideBox(side: side, isOpen: isOpen) {
-            TimelineView(.everyMinute) { context in
+        TimelineView(.everyMinute) { context in
+            SideBox(kind: .calendar, side: side, isOpen: isOpen, top: top, symbol: "calendar",
+                    count: sync.status == .ready ? eventsLeftToday(now: context.date) : nil) {
                 content(now: context.date)
             }
         }
+    }
+
+    /// For the collapsed strip: today's timed events still to come or under way.
+    private func eventsLeftToday(now: Date) -> Int {
+        sync.upcoming(at: now).filter { !$0.isAllDay && Calendar.current.isDate($0.start, inSameDayAs: now) || $0.isHappening(at: now) }.count
     }
 
     @ViewBuilder
@@ -224,11 +231,16 @@ private struct EventRow: View {
                     .foregroundStyle(isCurrent ? .primary : .secondary)
                     .monospacedDigit()
                     .lineLimit(1)
+                if let meeting = item.meeting, item.end > now {
+                    JoinButton(meeting: meeting, isSoon: isCurrent || item.start.timeIntervalSince(now) <= 10 * 60)
+                        .padding(.top, 4)
+                }
             }
             Spacer(minLength: 0)
-            if hovering {
-                SideBoxIconButton(symbol: "arrow.up.forward.app", help: openHelp, size: 9.5) {
-                    CalendarSync.open(item)
+            if hovering && sync.eventsBecomeIntention {
+                SideBoxIconButton(symbol: "text.bubble", help: "Make This Your Intention", size: 10) {
+                    Haptics.play(.select)
+                    sync.use(item)
                 }
                 .transition(.opacity.combined(with: .scale(0.8)))
             }
@@ -261,9 +273,9 @@ private struct EventRow: View {
         .animation(.snappy(duration: 0.18), value: hovering)
         .onTapGesture {
             Haptics.play(.select)
-            sync.use(item)
+            CalendarSync.open(item)
         }
-        .help(sync.eventsBecomeIntention ? "Click to make this your intention" : item.title)
+        .help(CalendarSettings.shared.source == .apple ? "Click to open in Calendar" : "Click to open in Google Calendar")
         .contextMenu {
             if canStart {
                 Button("Focus on This") { sync.focus(on: item) }
@@ -273,6 +285,9 @@ private struct EventRow: View {
             }
             if sync.eventsBecomeIntention {
                 Button("Use as Intention") { sync.use(item) }
+            }
+            if let meeting = item.meeting {
+                Button("Join \(meeting.service)") { NSWorkspace.shared.open(meeting.url) }
             }
             Divider()
             Button(openHelp) { CalendarSync.open(item) }
@@ -308,5 +323,40 @@ private struct EventRow: View {
         let until = Int(item.start.timeIntervalSince(now) / 60)
         if until >= 0 && until < 60 { return "\(item.start.formatted(time)) · in \(max(1, until)) min" }
         return "\(item.start.formatted(time))–\(item.end.formatted(time))"
+    }
+}
+
+/// "Join Zoom" under an event with a call link: filled in when it's on now or about to start.
+private struct JoinButton: View {
+    var meeting: MeetingLink
+    var isSoon: Bool
+    @State private var hovering = false
+
+    var body: some View {
+        Button {
+            Haptics.play(.select)
+            NSWorkspace.shared.open(meeting.url)
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "video.fill")
+                    .font(.system(size: 8.5, weight: .semibold))
+                Text("Join \(meeting.service)")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(isSoon ? Color.white : Color.accentColor)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3.5)
+            .background(
+                Capsule().fill(isSoon ? Color.accentColor.opacity(hovering ? 1 : 0.88)
+                                      : Color.accentColor.opacity(hovering ? 0.22 : 0.13))
+            )
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(.snappy(duration: 0.15), value: hovering)
+        .animation(.snappy, value: isSoon)
+        .help(meeting.url.absoluteString)
     }
 }

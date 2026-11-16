@@ -68,7 +68,8 @@ final class AppleCalendarProvider: CalendarProvider {
                              calendarID: event.calendar.calendarIdentifier,
                              color: event.calendar.color ?? .controlAccentColor,
                              isAllDay: event.isAllDay,
-                             link: Self.calendarLink(for: event))
+                             link: Self.calendarLink(for: event),
+                             meeting: MeetingLink.find(in: [event.url?.absoluteString, event.location, event.notes]))
             }
     }
 

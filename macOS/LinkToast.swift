@@ -27,6 +27,8 @@ final class LinkToastController {
     private var hideTask: Task<Void, Never>?
     private var hovering = false
     var onClick: (() -> Void)?
+    /// What clicking the popup showing now does instead of opening the timer (joining a call).
+    private var action: (() -> Void)?
 
     nonisolated static let visibleFor: Duration = .seconds(5)
 
@@ -36,7 +38,8 @@ final class LinkToastController {
 
     /// An event heads-up stays longer than a Link change.
     func show(title: String, detail: String, symbol: String = "person.2.fill", tint: Color? = nil,
-              duration: Duration = LinkToastController.visibleFor) {
+              duration: Duration = LinkToastController.visibleFor, action: (() -> Void)? = nil) {
+        self.action = action
         let panel = panel ?? makePanel()
         let wasShown = model.shown
         model.title = title
@@ -80,7 +83,7 @@ final class LinkToastController {
     private func makePanel() -> NSPanel {
         let root = LinkToastRoot(model: model, onTap: { [weak self] in
             self?.dismiss()
-            self?.onClick?()
+            if let action = self?.action { action() } else { self?.onClick?() }
         }, onHover: { [weak self] inside in
             guard let self else { return }
             hovering = inside

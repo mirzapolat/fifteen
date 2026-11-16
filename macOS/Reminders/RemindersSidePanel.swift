@@ -6,12 +6,14 @@ import AppKit
 struct RemindersSidePanel: View {
     var side: PanelSide
     var isOpen: Bool
+    var top: CGFloat
 
     @State private var adding = false
     private var sync: RemindersSync { RemindersSync.shared }
 
     var body: some View {
-        SideBox(side: side, isOpen: isOpen) {
+        SideBox(kind: .reminders, side: side, isOpen: isOpen, top: top, symbol: "checklist",
+                count: sync.status == .ready ? sync.items.count - sync.completing.count : nil) {
             VStack(alignment: .leading, spacing: 8) {
                 header
                 content
@@ -26,7 +28,6 @@ struct RemindersSidePanel: View {
             if let list = sync.list, sync.status == .ready {
                 Text(list.title)
                     .font(.headline)
-                    .foregroundStyle(Color(nsColor: list.color))
                     .lineLimit(1)
                 let open = sync.items.count - sync.completing.count
                 if open > 0 {
@@ -168,11 +169,11 @@ private enum Row: Identifiable {
 }
 
 extension ReminderListView {
-    /// "Today" and its priorities on top, then everything else (headed only when both are there).
+    /// "Priorities" on top, then everything else (headed only when both are there).
     fileprivate var rows: [Row] {
         let ordered = sync.ordered
         guard !ordered.today.isEmpty else { return ordered.rest.map { .reminder($0, priority: false) } }
-        var rows: [Row] = [.heading("Today", star: true)]
+        var rows: [Row] = [.heading("Priorities", star: true)]
         rows += ordered.today.map { .reminder($0, priority: true) }
         if !ordered.rest.isEmpty {
             rows.append(.heading("Later", star: false))
@@ -232,11 +233,14 @@ private struct ReminderRow: View {
     var color: Color
     var isPriority = false
     @Environment(TimerEngine.self) private var engine
+    @Environment(\.colorScheme) private var scheme
     @State private var hovering = false
     private var sync: RemindersSync { RemindersSync.shared }
 
     var body: some View {
         let ticked = sync.completing.contains(item.id)
+        // Priorities stand out inverted: a light row with dark text in dark mode, and the other way round.
+        let inverted = isPriority && !ticked
         HStack(alignment: .top, spacing: 8) {
             Button {
                 Haptics.play(.select)
@@ -275,9 +279,10 @@ private struct ReminderRow: View {
                         Haptics.play(.select)
                         sync.togglePriority(item)
                     }
-                    if hovering {
-                        SideBoxIconButton(symbol: "arrow.up.forward.app", help: "Open in Reminders", size: 9.5) {
-                            sync.open(item)
+                    if hovering && sync.remindersBecomeIntention {
+                        SideBoxIconButton(symbol: "text.bubble", help: "Make This Your Intention", size: 10) {
+                            Haptics.play(.select)
+                            sync.use(item)
                         }
                         .transition(.opacity.combined(with: .scale(0.8)))
                     }
@@ -303,31 +308,31 @@ private struct ReminderRow: View {
         .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
+        .environment(\.colorScheme, inverted ? (scheme == .dark ? .light : .dark) : scheme)
         .background {
             let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-            if isPriority && !ticked {
-                // Today's priorities glow faintly in the list's colour.
-                shape.fill(color.opacity(hovering ? 0.2 : 0.13))
-                    .overlay(shape.strokeBorder(color.opacity(0.28), lineWidth: 0.75))
+            if inverted {
+                shape.fill(Color.primary.opacity(hovering ? 1 : 0.9))
+                    .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
             } else {
                 shape.fill(Color.primary.opacity(hovering ? 0.05 : 0))
             }
         }
-        .animation(.spring(duration: 0.35, bounce: 0.2), value: isPriority)
+        .animation(.spring(duration: 0.35, bounce: 0.2), value: inverted)
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { hovering = $0 }
         .animation(.snappy(duration: 0.18), value: hovering)
+        // The whole row ticks it off (or takes the tick back), like a checklist.
         .onTapGesture {
-            guard sync.remindersBecomeIntention, !ticked else { return }
             Haptics.play(.select)
-            sync.use(item)
+            sync.toggle(item)
         }
-        .help(sync.remindersBecomeIntention ? "Click to make this your intention" : item.title)
+        .help(ticked ? "Click to take it back" : "Click to mark as done")
         .contextMenu {
             if !engine.isActive { Button("Focus on This") { sync.focus(on: item) } }
             if sync.remindersBecomeIntention { Button("Use as Intention") { sync.use(item) } }
             Button(ticked ? "Not Done" : "Mark as Done") { sync.toggle(item) }
-            Button(isPriority ? "Remove from Today" : "Make a Priority for Today") { sync.togglePriority(item) }
+            Button(isPriority ? "Remove from Priorities" : "Make a Priority") { sync.togglePriority(item) }
             Divider()
             Button("Open in Reminders") { sync.open(item) }
         }
@@ -376,7 +381,7 @@ private struct PriorityStar: View {
         Button(action: action) {
             Image(systemName: isOn ? "star.fill" : "star")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(isOn ? color : (hovering ? Color.primary : Color.secondary))
+                .foregroundStyle(isOn ? Color.primary : (hovering ? Color.primary : Color.secondary))
                 .contentTransition(.symbolEffect(.replace))
                 .symbolEffect(.bounce, value: isOn)
                 .frame(width: 20, height: 20)
@@ -385,8 +390,8 @@ private struct PriorityStar: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .help(isOn ? "Remove from Today" : "Make a Priority for Today")
-        .accessibilityLabel(isOn ? "Remove from today's priorities" : "Make a priority for today")
+        .help(isOn ? "Remove from Priorities" : "Make a Priority")
+        .accessibilityLabel(isOn ? "Remove from priorities" : "Make a priority")
     }
 }
 

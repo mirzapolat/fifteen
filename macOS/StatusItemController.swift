@@ -29,9 +29,12 @@ final class StatusItemController: NSObject {
         // A heads-up before events, shown even mid-session; it stays a while so it isn't missed.
         CalendarSync.shared.onAlert = { [weak self] item, minutes in
             let time = item.start.formatted(.dateTime.hour().minute())
-            let when = minutes == 0 ? "Starting now · \(time)" : "In \(minutes) min · \(time)"
-            self?.toast.show(title: item.title, detail: when, symbol: "calendar",
-                             tint: Color(nsColor: item.color), duration: .seconds(20))
+            var when = minutes == 0 ? "Starting now · \(time)" : "In \(minutes) min · \(time)"
+            // With a call attached, clicking the note joins it.
+            if let meeting = item.meeting { when += " · Click to join \(meeting.service)" }
+            self?.toast.show(title: item.title, detail: when, symbol: item.meeting == nil ? "calendar" : "video.fill",
+                             tint: Color(nsColor: item.color), duration: .seconds(20),
+                             action: item.meeting.map { meeting in { NSWorkspace.shared.open(meeting.url) } })
         }
     }
 

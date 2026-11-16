@@ -56,8 +56,61 @@ struct CalendarItem: Identifiable, Hashable {
     var isAllDay: Bool
     /// Where "Open in Calendar" goes.
     var link: URL?
+    /// A video call to join (Zoom, Meet, Teams…), found in the event.
+    var meeting: MeetingLink?
 
     func isHappening(at date: Date) -> Bool { start <= date && date < end }
+}
+
+/// A video call attached to an event, and which service it's on.
+struct MeetingLink: Hashable {
+    var url: URL
+    var service: String
+
+    /// Hosts of the common video-call services, and what to call them.
+    private static let services: [(host: String, name: String)] = [
+        ("zoom.us", "Zoom"), ("zoomgov.com", "Zoom"),
+        ("meet.google.com", "Meet"),
+        ("teams.microsoft.com", "Teams"), ("teams.live.com", "Teams"),
+        ("webex.com", "Webex"),
+        ("facetime.apple.com", "FaceTime"),
+        ("whereby.com", "Whereby"),
+        ("meet.jit.si", "Jitsi"),
+        ("gotomeeting.com", "GoTo"), ("goto.com", "GoTo"),
+        ("chime.aws", "Chime"),
+        ("bluejeans.com", "BlueJeans"),
+        ("around.co", "Around"),
+        ("discord.gg", "Discord"),
+        ("slack.com", "Slack"),
+    ]
+
+    /// Only web links are ever opened: invites come from other people, and a file or app link
+    /// in one shouldn't become a button.
+    static func isWebLink(_ url: URL) -> Bool {
+        ["http", "https"].contains(url.scheme?.lowercased() ?? "") && url.host?.isEmpty == false
+    }
+
+    /// The service if this is a call link, or nil for any other link.
+    static func service(for url: URL) -> String? {
+        guard isWebLink(url), let host = url.host?.lowercased() else { return nil }
+        // Slack and Discord links are only calls when they say so.
+        if host.hasSuffix("slack.com") && !url.path.contains("huddle") { return nil }
+        return services.first { host == $0.host || host.hasSuffix("." + $0.host) }?.name
+    }
+
+    /// The first call link in any of these: an event's URL, then its location, then its notes.
+    static func find(in texts: [String?]) -> MeetingLink? {
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else { return nil }
+        for text in texts.compactMap({ $0 }) where !text.isEmpty {
+            let matches = detector.matches(in: text, range: NSRange(text.startIndex..., in: text))
+            for match in matches {
+                if let url = match.url, let service = service(for: url) {
+                    return MeetingLink(url: url, service: service)
+                }
+            }
+        }
+        return nil
+    }
 }
 
 /// A finished focus session, ready to be written to a calendar.
@@ -125,6 +178,11 @@ final class CalendarSettings {
     /// The events box next to the timer.
     var showPanel: Bool = true { didSet { store.set(showPanel, forKey: Key.showPanel) } }
     var side: PanelSide = .left { didSet { store.set(side.rawValue, forKey: Key.side) } }
+    /// Hovering the box's outer edge offers to tuck it away behind the bubble.
+    var collapsible: Bool = false { didSet { store.set(collapsible, forKey: Key.collapsible) } }
+    var collapsed: Bool = false { didSet { store.set(collapsed, forKey: Key.collapsed) } }
+    /// The box's width, as you last dragged it.
+    var panelWidth: CGFloat = SidePanels.defaultWidth { didSet { store.set(Double(panelWidth), forKey: Key.panelWidth) } }
     /// Calendars shown in the box, per source. Empty = all of them.
     var shownAppleCalendars: Set<String> = [] { didSet { store.set(Array(shownAppleCalendars), forKey: Key.shownApple) } }
     var shownGoogleCalendars: Set<String> = [] { didSet { store.set(Array(shownGoogleCalendars), forKey: Key.shownGoogle) } }
@@ -177,6 +235,7 @@ final class CalendarSettings {
             Key.logSessions: false,
             Key.useEventAsIntention: true,
             Key.eventTitle: EventTitleTemplate.standard,
+            Key.panelWidth: Double(SidePanels.defaultWidth),
             Key.alertsEnabled: false,
             Key.alertMinutes: 5,
         ])
@@ -195,8 +254,16 @@ final class CalendarSettings {
         googleLogCalendar = store.string(forKey: Key.googleLog) ?? ""
         useEventAsIntention = store.bool(forKey: Key.useEventAsIntention)
         eventTitle = store.string(forKey: Key.eventTitle) ?? EventTitleTemplate.standard
+        panelWidth = Self.width(store.double(forKey: Key.panelWidth))
+        collapsible = store.bool(forKey: Key.collapsible)
+        collapsed = store.bool(forKey: Key.collapsed)
         alertsEnabled = store.bool(forKey: Key.alertsEnabled)
         alertMinutes = min(max(store.integer(forKey: Key.alertMinutes), 1), 120)
+    }
+
+    static func width(_ stored: Double) -> CGFloat {
+        let width = CGFloat(stored)
+        return SidePanels.widthRange.contains(width) ? width : SidePanels.defaultWidth
     }
 
     private enum Key {
@@ -212,11 +279,14 @@ final class CalendarSettings {
         static let googleLog = "calendarGoogleLogCalendar"
         static let useEventAsIntention = "calendarUseEventAsIntention"
         static let eventTitle = "calendarEventTitle"
+        static let panelWidth = "calendarPanelWidth"
+        static let collapsible = "calendarCollapsible"
+        static let collapsed = "calendarCollapsed"
         static let alertsEnabled = "calendarAlertsEnabled"
         static let alertMinutes = "calendarAlertMinutes"
 
         static let all = [enabled, source, showPanel, side, shownApple, shownGoogle, showAllDay,
-                          logSessions, appleLog, googleLog, useEventAsIntention, eventTitle,
+                          logSessions, appleLog, googleLog, useEventAsIntention, eventTitle, panelWidth, collapsible, collapsed,
                           alertsEnabled, alertMinutes]
     }
 }

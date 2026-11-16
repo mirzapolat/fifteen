@@ -12,7 +12,7 @@ struct RemindersSettingsPane: View {
             Section {
                 Toggle("Show reminders next to the timer", isOn: $settings.enabled.animation())
             } footer: {
-                Text("Keep a Reminders list beside the timer: tick things off as you go, add new ones with +, star today's priorities, and turn one into your intention with a click.")
+                Text("Keep a Reminders list beside the timer: tick things off as you go, add new ones with +, star your priorities, and turn one into your intention.")
             }
 
             if settings.enabled {
@@ -70,9 +70,10 @@ struct RemindersSettingsPane: View {
                 ForEach(PanelSide.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
+            Toggle("Tuck away from the box's edge", isOn: $settings.collapsible)
             Toggle("Only show what's due today or overdue", isOn: $settings.onlyDue)
             if prefs.showIntention {
-                Toggle("Clicking a reminder makes it your intention", isOn: $settings.useAsIntention)
+                Toggle("Offer to make a reminder your intention", isOn: $settings.useAsIntention)
             }
         } header: {
             Text("Next to the Timer")
@@ -82,7 +83,11 @@ struct RemindersSettingsPane: View {
     }
 
     private var footer: String {
-        var text = "Tick the circle to mark a reminder done; tick it again right away to take it back. ☆ makes it one of today's priorities: those sit highlighted at the top until the day ends. ▶ starts focusing on it."
+        var text = "Click a reminder to mark it done; click again right away to take it back. 💬 on hover makes it your intention. ☆ makes it a priority: priorities stand out at the top of the box until the day ends. ▶ starts focusing on it."
+        text += " Drag the box's outer edge to make it wider or narrower."
+        if settings.collapsible {
+            text += " Hover the outer edge and click the tab to tuck the box away behind the timer; click it again to bring it back."
+        }
         if CalendarSettings.shared.panelVisible {
             text += " Your calendar sits on the other side; moving one box moves the other."
         }

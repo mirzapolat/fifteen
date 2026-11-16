@@ -231,7 +231,18 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
         panel.delegate = self
         self.panel = panel
         panel.bubbleHeight = { [weak self] in self?.presentation.bubbleHeight ?? .greatestFiniteMagnitude }
+        // Dragging a side box's edge: the window follows right away, keeping the bubble under its item.
+        SidePanels.onResize = { [weak self] in self?.fitWidth() }
         return panel
+    }
+
+    /// The window's width for the bubble and its side boxes, worked out directly (the SwiftUI
+    /// layout catches up a frame later, and measuring it mid-drag made the window lag behind).
+    private func fitWidth() {
+        guard let panel, presentation.isOpen else { return }
+        let width = PopoverView.width + SidePanels.extraWidth + 2 * GlassPanel.margin
+        panel.setContentSize(NSSize(width: width, height: panel.frame.height))
+        position(panel)
     }
 
     private func position(_ panel: NSPanel) {
@@ -255,6 +266,8 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
 /// With the calendar or reminders on, their boxes hang off the left and right sides, tucked behind the bubble.
 struct PopoverRoot: View {
     var presentation: PanelPresentation
+    /// The bubble's own height (without the Link strip), so the side boxes can centre on it.
+    @State private var bubbleHeight: CGFloat = 0
 
     var body: some View {
         let layout = SidePanels.layout
@@ -267,6 +280,7 @@ struct PopoverRoot: View {
             }
             VStack(spacing: 0) {
                 PopoverView(arrowX: presentation.arrowX)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { bubbleHeight = $0 }
                     .zIndex(1)
                 LinkActivityStrip()
             }
@@ -287,9 +301,10 @@ struct PopoverRoot: View {
 
     @ViewBuilder
     private func sideBox(_ kind: SidePanels.Kind, on side: PanelSide) -> some View {
+        let top = SidePanels.top(forBubble: bubbleHeight)
         switch kind {
-        case .calendar: CalendarSidePanel(side: side, isOpen: presentation.isOpen)
-        case .reminders: RemindersSidePanel(side: side, isOpen: presentation.isOpen)
+        case .calendar: CalendarSidePanel(side: side, isOpen: presentation.isOpen, top: top)
+        case .reminders: RemindersSidePanel(side: side, isOpen: presentation.isOpen, top: top)
         }
     }
 }
