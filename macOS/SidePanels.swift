@@ -222,7 +222,8 @@ struct SideBox<Content: View>: View {
             content
                 .padding(.top, 12)
                 .padding(.bottom, 10)
-                .padding(side == .left ? .leading : .trailing, 12)
+                // With tucking on, the outer edge keeps room for the tab so it never covers a row.
+                .padding(side == .left ? .leading : .trailing, SidePanels.isCollapsible(kind) ? 20 : 12)
                 .padding(side == .left ? .trailing : .leading, SidePanels.tuck + 8)
                 .frame(width: width, height: SidePanels.height, alignment: .top)
                 .opacity(looksCollapsed ? 0 : 1)
@@ -304,12 +305,12 @@ struct SideBox<Content: View>: View {
             Image(systemName: collapsed ? outward : inward)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(tabHover ? .primary : .secondary)
-                .frame(width: 16, height: 40)
+                .frame(width: 12, height: 40)
                 .background(Capsule().fill(Color.primary.opacity(tabHover ? 0.16 : 0.09)))
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .padding(side == .left ? .leading : .trailing, 5)
+        .padding(side == .left ? .leading : .trailing, 4)
         .onHover { tabHover = $0 }
         .help(collapsed ? "Show" : "Tuck Away")
         .accessibilityLabel(collapsed ? "Show box" : "Collapse box")

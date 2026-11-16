@@ -179,7 +179,7 @@ final class CalendarSettings {
     var showPanel: Bool = true { didSet { store.set(showPanel, forKey: Key.showPanel) } }
     var side: PanelSide = .left { didSet { store.set(side.rawValue, forKey: Key.side) } }
     /// Hovering the box's outer edge offers to tuck it away behind the bubble.
-    var collapsible: Bool = false { didSet { store.set(collapsible, forKey: Key.collapsible) } }
+    var collapsible: Bool = true { didSet { store.set(collapsible, forKey: Key.collapsible) } }
     var collapsed: Bool = false { didSet { store.set(collapsed, forKey: Key.collapsed) } }
     /// The box's width, as you last dragged it.
     var panelWidth: CGFloat = SidePanels.defaultWidth { didSet { store.set(Double(panelWidth), forKey: Key.panelWidth) } }
@@ -236,6 +236,8 @@ final class CalendarSettings {
             Key.useEventAsIntention: true,
             Key.eventTitle: EventTitleTemplate.standard,
             Key.panelWidth: Double(SidePanels.defaultWidth),
+            // Tucking away is offered from the box's edge unless switched off.
+            Key.collapsible: true,
             Key.alertsEnabled: false,
             Key.alertMinutes: 5,
         ])

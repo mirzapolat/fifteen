@@ -73,6 +73,8 @@ struct CalendarSidePanel: View {
                 .padding(.trailing, -4)
             }
         }
+        // In line with the events below, so the title keeps the same distance from the timer.
+        .padding(.horizontal, 8)
         .accessibilityAddTraits(.isHeader)
     }
 

@@ -57,6 +57,8 @@ struct RemindersSidePanel: View {
             }
         }
         .frame(height: 20)
+        // In line with the reminders below, so the title keeps the same distance from the timer.
+        .padding(.horizontal, 8)
         .accessibilityAddTraits(.isHeader)
     }
 
@@ -233,14 +235,12 @@ private struct ReminderRow: View {
     var color: Color
     var isPriority = false
     @Environment(TimerEngine.self) private var engine
-    @Environment(\.colorScheme) private var scheme
     @State private var hovering = false
     private var sync: RemindersSync { RemindersSync.shared }
 
     var body: some View {
         let ticked = sync.completing.contains(item.id)
-        // Priorities stand out inverted: a light row with dark text in dark mode, and the other way round.
-        let inverted = isPriority && !ticked
+        let highlighted = isPriority && !ticked
         HStack(alignment: .top, spacing: 8) {
             Button {
                 Haptics.play(.select)
@@ -308,17 +308,17 @@ private struct ReminderRow: View {
         .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .environment(\.colorScheme, inverted ? (scheme == .dark ? .light : .dark) : scheme)
         .background {
             let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-            if inverted {
-                shape.fill(Color.primary.opacity(hovering ? 1 : 0.9))
-                    .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
+            if highlighted {
+                // Priorities glow faintly in the list's colour.
+                shape.fill(color.opacity(hovering ? 0.2 : 0.13))
+                    .overlay(shape.strokeBorder(color.opacity(0.28), lineWidth: 0.75))
             } else {
                 shape.fill(Color.primary.opacity(hovering ? 0.05 : 0))
             }
         }
-        .animation(.spring(duration: 0.35, bounce: 0.2), value: inverted)
+        .animation(.spring(duration: 0.35, bounce: 0.2), value: highlighted)
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { hovering = $0 }
         .animation(.snappy(duration: 0.18), value: hovering)
@@ -381,7 +381,7 @@ private struct PriorityStar: View {
         Button(action: action) {
             Image(systemName: isOn ? "star.fill" : "star")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(isOn ? Color.primary : (hovering ? Color.primary : Color.secondary))
+                .foregroundStyle(isOn ? color : (hovering ? Color.primary : Color.secondary))
                 .contentTransition(.symbolEffect(.replace))
                 .symbolEffect(.bounce, value: isOn)
                 .frame(width: 20, height: 20)
