@@ -360,8 +360,9 @@ private struct ReminderRow: View {
     private var sync: RemindersSync { RemindersSync.shared }
     private var canEdit: Bool { sync.list?.isWritable == true }
 
-    private static let revealWidth: CGFloat = 64
-    private static let deleteDistance: CGFloat = 150
+    /// Room for both actions, Priority and Delete.
+    private static let revealWidth: CGFloat = 116
+    private static let deleteDistance: CGFloat = 190
 
     var body: some View {
         let ticked = sync.completing.contains(item.id)
@@ -452,7 +453,7 @@ private struct ReminderRow: View {
         .contentShape(RoundedRectangle(cornerRadius: 10))
         // Swiped left, the row slides over a Delete button that stays where the row was.
         .offset(x: swipe)
-        .background(alignment: .trailing) { deleteButton }
+        .background(alignment: .trailing) { swipeActions }
         .onHover { inside in
             hovering = inside
             if inside { watchSwipes() } else { stopWatchingSwipes() }
@@ -482,23 +483,45 @@ private struct ReminderRow: View {
 
     // MARK: Swipe to delete
 
-    private var deleteButton: some View {
-        Button(action: delete) {
+    /// What a swipe uncovers: Priority, then Delete, sharing the room the row has moved away from.
+    /// Pulled past the full reveal, Delete takes it all, as a long swipe deletes.
+    private var swipeActions: some View {
+        let room = max(0, -swipe - 4)
+        let pastReveal = -swipe > Self.revealWidth + 20
+        let starWidth = pastReveal ? 0 : max(0, room / 2 - 2)
+        return HStack(spacing: 4) {
+            if starWidth > 0 {
+                swipeButton(symbol: isPriority ? "star.slash.fill" : "star.fill", fill: color,
+                            width: starWidth, help: isPriority ? "Remove from Priorities" : "Make a Priority") {
+                    Haptics.play(.select)
+                    sync.togglePriority(item)
+                    closeSwipe()
+                }
+            }
+            swipeButton(symbol: "trash.fill", fill: .red, width: room - (starWidth > 0 ? starWidth + 4 : 0),
+                        help: "Delete", action: delete)
+        }
+        .opacity(swipe < 0 ? 1 : 0)
+        .animation(.snappy(duration: 0.2), value: pastReveal)
+    }
+
+    private func swipeButton(symbol: String, fill: Color, width: CGFloat, help: String,
+                             action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.red)
+                .fill(fill)
                 .overlay {
-                    Image(systemName: "trash.fill")
+                    Image(systemName: symbol)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.white)
-                        .scaleEffect(min(1, -swipe / Self.revealWidth))
+                        .scaleEffect(min(1, width / 40))
                 }
-                .frame(width: max(0, -swipe - 4))
+                .frame(width: max(0, width))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .opacity(swipe < 0 ? 1 : 0)
-        .help("Delete")
-        .accessibilityLabel("Delete reminder")
+        .help(help)
+        .accessibilityLabel(help)
     }
 
     /// Two-finger swipes on the trackpad while the pointer is over this row. Sideways ones move the
