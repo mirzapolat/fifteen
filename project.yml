@@ -11,8 +11,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.3"
-    CURRENT_PROJECT_VERSION: "9"
+    MARKETING_VERSION: "1.3.1"
+    CURRENT_PROJECT_VERSION: "10"
     DEVELOPMENT_TEAM: "56746T8S3D"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_EMIT_LOC_STRINGS: YES
@@ -53,6 +53,9 @@ targets:
         # and finished focus sessions written back as events.
         NSCalendarsFullAccessUsageDescription: Fifteen shows today's events next to the timer and adds your finished focus sessions to the calendar you pick.
         NSCalendarsUsageDescription: Fifteen shows today's events next to the timer and adds your finished focus sessions to the calendar you pick.
+        # Reminders (optional, off until switched on in Settings): a list next to the timer.
+        NSRemindersFullAccessUsageDescription: Fifteen shows a Reminders list next to the timer so you can tick things off and add new ones while you focus.
+        NSRemindersUsageDescription: Fifteen shows a Reminders list next to the timer so you can tick things off and add new ones while you focus.
         # Google Calendar sign-in: an OAuth client of type "Desktop app" (see DEVELOPMENT.md).
         # Empty means the Google option says it isn't set up in this build.
         GoogleClientID: $(GOOGLE_CLIENT_ID)
@@ -70,7 +73,7 @@ targets:
       properties:
         # Hardened runtime: needed to send Apple Events to browsers (website blocking).
         com.apple.security.automation.apple-events: true
-        # Hardened runtime: needed to read and write calendars (Settings → Calendar).
+        # Hardened runtime: needed to read and write calendars and reminders through EventKit.
         com.apple.security.personal-information.calendars: true
     settings:
       base:

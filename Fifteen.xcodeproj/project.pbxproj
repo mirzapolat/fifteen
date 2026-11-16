@@ -12,6 +12,8 @@
 		06AA5E345ADF530B39919F30 /* DialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD1DB7939A72D0FF14018 /* DialView.swift */; };
 		07500C8E0CB1EC9611548BD1 /* WebBlocker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98797600442117A24F86AC3B /* WebBlocker.swift */; };
 		08ECD384978830D44CBD380B /* ControlPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACA98CA6DB9DAED7C826BFD4 /* ControlPills.swift */; };
+		0CA8A2688B635E7EDF25C4C9 /* RemindersSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9A2D8FE17D541D7D39D26C /* RemindersSettingsPane.swift */; };
+		0CD7979467D2B847998F3E8D /* SidePanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4097E183BC2D381C7277C83 /* SidePanels.swift */; };
 		12088508F0DCB7CAD26E22AB /* HotKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9482EEEDBC0094EAE9F42E5 /* HotKeys.swift */; };
 		1433E19709857A3BCD80740B /* CalendarSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E3704D41D29287B6DD536A1 /* CalendarSettingsPane.swift */; };
 		19C62E21B4196D04F14A888E /* CalendarSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B76848DC7EFAED6F52DC188 /* CalendarSection.swift */; };
@@ -30,6 +32,7 @@
 		3488E7A7A54515CB4CFBF9AF /* FocusActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB8D333B48C27E6A8DA8460 /* FocusActivityAttributes.swift */; };
 		35409E6F46E6A085F18FEF0B /* AppIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 151B586092ED0BF3CC3A22E0 /* AppIcon.swift */; };
 		38187972E418496953CE4C5B /* AnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6952402BEBA2C2D2889121F /* AnalyticsTests.swift */; };
+		39C3778CCD02F8BC65D01716 /* RemindersModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903CB290A372D80B6061FBF2 /* RemindersModels.swift */; };
 		3B29F64280234569DEE83D5D /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F8BCF59A86DD81EBA267C1 /* AboutView.swift */; };
 		3DD74308B405D64056CDAAE9 /* FifteenMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A63E61454FB956361E36B29 /* FifteenMacApp.swift */; };
 		3EE9B76927333898EE9B21BA /* Phase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B466AB6CA2153E40B275F0 /* Phase.swift */; };
@@ -55,6 +58,7 @@
 		6A2BC281A03BC282B53415C1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 933C49CAEA95F38928B2CD6A /* Assets.xcassets */; };
 		6B2153BECADA331700D23871 /* MacIntegrations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101B4780DEA218187E9B6B60 /* MacIntegrations.swift */; };
 		6B35F90A1DC7DEF3B97E8C8F /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA71A6154DDF0A086B74FD2B /* Updater.swift */; };
+		6FA3F9E18688BB9368F39C67 /* RemindersSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF34CF9D08D400569862F3DC /* RemindersSync.swift */; };
 		71CFFE9BB1FE1D211F8FB683 /* LinkToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F3224F88CDAD82D19D9214 /* LinkToast.swift */; };
 		74C84E12B8F74F470784A410 /* LiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98C805D80E47B6A1588E22E4 /* LiveActivityController.swift */; };
 		74F1812783DE313140E37A01 /* SharedTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B02B704E4E4445F4B7565E34 /* SharedTimer.swift */; };
@@ -106,6 +110,7 @@
 		DA72B23A36E42EBBB9824B94 /* Phase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B466AB6CA2153E40B275F0 /* Phase.swift */; };
 		DB3A8408131AFEAB8C9A8342 /* ProjectsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EEED4E291115CE03CD754A9 /* ProjectsSection.swift */; };
 		DC32FB41C074E0E6E5F34ACB /* SessionsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D054F016B7B0A35FFAFF714 /* SessionsSection.swift */; };
+		DC4EDBE2C30D4B9CE3C786EA /* RemindersSidePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BBB701AA7991DB26BB1AA93 /* RemindersSidePanel.swift */; };
 		DE71EF0F82F07F7E0FE98B43 /* Records.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23E31540E674DD908BB1486A /* Records.swift */; };
 		E86737B761CA1A857EB53BF2 /* LinkParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73CD1DA3FE83DAB54B70795 /* LinkParts.swift */; };
 		EDD77DE6689604F4B012F6B3 /* FifteenIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A98FEE823CD3A659B62DC77 /* FifteenIntents.swift */; };
@@ -178,12 +183,15 @@
 		87F8BCF59A86DD81EBA267C1 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		8A98FEE823CD3A659B62DC77 /* FifteenIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FifteenIntents.swift; sourceTree = "<group>"; };
 		8D054F016B7B0A35FFAFF714 /* SessionsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsSection.swift; sourceTree = "<group>"; };
+		903CB290A372D80B6061FBF2 /* RemindersModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersModels.swift; sourceTree = "<group>"; };
 		90B466AB6CA2153E40B275F0 /* Phase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase.swift; sourceTree = "<group>"; };
 		933C49CAEA95F38928B2CD6A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		98797600442117A24F86AC3B /* WebBlocker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebBlocker.swift; sourceTree = "<group>"; };
 		98C805D80E47B6A1588E22E4 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
 		9A63E61454FB956361E36B29 /* FifteenMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FifteenMacApp.swift; sourceTree = "<group>"; };
+		9BBB701AA7991DB26BB1AA93 /* RemindersSidePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersSidePanel.swift; sourceTree = "<group>"; };
 		A26C703BC3375DB1C566DC3C /* SettingsSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSections.swift; sourceTree = "<group>"; };
+		A4097E183BC2D381C7277C83 /* SidePanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidePanels.swift; sourceTree = "<group>"; };
 		A73CD1DA3FE83DAB54B70795 /* LinkParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkParts.swift; sourceTree = "<group>"; };
 		AA71A6154DDF0A086B74FD2B /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
 		ABEA5F4D138A0C749F72AC93 /* LinkSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkSession.swift; sourceTree = "<group>"; };
@@ -203,8 +211,10 @@
 		C1B5FCF3FE0103D67F1E0861 /* HistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStore.swift; sourceTree = "<group>"; };
 		C4F3224F88CDAD82D19D9214 /* LinkToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkToast.swift; sourceTree = "<group>"; };
 		C5EA11C8926BDB4F5277AAB2 /* Fifteen.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Fifteen.entitlements; sourceTree = "<group>"; };
+		CF34CF9D08D400569862F3DC /* RemindersSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersSync.swift; sourceTree = "<group>"; };
 		D292AEBDA8FA9EC8D597A936 /* TimerParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerParts.swift; sourceTree = "<group>"; };
 		DE450C97467FBC7353CAFA02 /* BreakCover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreakCover.swift; sourceTree = "<group>"; };
+		DE9A2D8FE17D541D7D39D26C /* RemindersSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersSettingsPane.swift; sourceTree = "<group>"; };
 		E0BC1EC934772DA8650DFD0F /* GoogleCalendarProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleCalendarProvider.swift; sourceTree = "<group>"; };
 		E50BAF72348FC9FD1A77A598 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		E5FFDC49996343D1FAC09927 /* FifteenWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = FifteenWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -351,6 +361,7 @@
 			isa = PBXGroup;
 			children = (
 				3B9A38B69D6C1F3367BEC5B6 /* Calendar */,
+				D7B46128CE9ABADC896F6648 /* Reminders */,
 				5AE322C93077A612A9357549 /* AppBlocker.swift */,
 				151B586092ED0BF3CC3A22E0 /* AppIcon.swift */,
 				B44838093FAB0200E91B6501 /* BreakCurtain.swift */,
@@ -368,6 +379,7 @@
 				101B4780DEA218187E9B6B60 /* MacIntegrations.swift */,
 				39CEBB2735502C8A2F7F37EF /* MacSettingsView.swift */,
 				F3B38E1DA18F48D8F22B67F6 /* MenuBarIcon.swift */,
+				A4097E183BC2D381C7277C83 /* SidePanels.swift */,
 				E92C8CF80F9E95632578E23A /* StatusItemController.swift */,
 				AA71A6154DDF0A086B74FD2B /* Updater.swift */,
 				98797600442117A24F86AC3B /* WebBlocker.swift */,
@@ -410,6 +422,17 @@
 				B555BDCC391F2ADC8BC2CC7B /* release-notes */,
 				3891F1C473A7A3C33A11C438 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		D7B46128CE9ABADC896F6648 /* Reminders */ = {
+			isa = PBXGroup;
+			children = (
+				903CB290A372D80B6061FBF2 /* RemindersModels.swift */,
+				DE9A2D8FE17D541D7D39D26C /* RemindersSettingsPane.swift */,
+				9BBB701AA7991DB26BB1AA93 /* RemindersSidePanel.swift */,
+				CF34CF9D08D400569862F3DC /* RemindersSync.swift */,
+			);
+			path = Reminders;
 			sourceTree = "<group>";
 		};
 		D9F3E4243D26D8E61F80BC4F /* iOS */ = {
@@ -677,9 +700,14 @@
 				C75919EDD46D46493508F601 /* ProjectChip.swift in Sources */,
 				DB3A8408131AFEAB8C9A8342 /* ProjectsSection.swift in Sources */,
 				B779C85251D692F0E013A00F /* Records.swift in Sources */,
+				39C3778CCD02F8BC65D01716 /* RemindersModels.swift in Sources */,
+				0CA8A2688B635E7EDF25C4C9 /* RemindersSettingsPane.swift in Sources */,
+				DC4EDBE2C30D4B9CE3C786EA /* RemindersSidePanel.swift in Sources */,
+				6FA3F9E18688BB9368F39C67 /* RemindersSync.swift in Sources */,
 				DC32FB41C074E0E6E5F34ACB /* SessionsSection.swift in Sources */,
 				BE5D4EF6B06C2E7811C21706 /* SettingsSections.swift in Sources */,
 				489BB3A25166BD67F5CAE5D9 /* SharedTimer.swift in Sources */,
+				0CD7979467D2B847998F3E8D /* SidePanels.swift in Sources */,
 				A99CAE5F895D7D1D05B019BF /* SoundEngine.swift in Sources */,
 				A239B52E44B4086F26CF8EB8 /* StatusItemController.swift in Sources */,
 				2D7D16CC070E11BA80076E13 /* Theme.swift in Sources */,
@@ -872,7 +900,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -894,7 +922,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.3.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -958,7 +986,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 56746T8S3D;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -974,7 +1002,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.3.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

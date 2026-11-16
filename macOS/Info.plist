@@ -41,6 +41,10 @@
 	<string>Fifteen shows today's events next to the timer and adds your finished focus sessions to the calendar you pick.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Free, no account, no ads.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Fifteen shows a Reminders list next to the timer so you can tick things off and add new ones while you focus.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Fifteen shows a Reminders list next to the timer so you can tick things off and add new ones while you focus.</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUEnableSystemProfiling</key>

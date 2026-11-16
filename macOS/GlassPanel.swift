@@ -156,6 +156,7 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
         anchor()?.highlight(true)
         LinkChrome.shared.timerVisible = true
         CalendarSync.shared.bubbleOpened()
+        RemindersSync.shared.bubbleOpened()
         presentation.openCount += 1
         // Ready to type an intention when there's none yet; otherwise don't select the existing text.
         if !(engine.state == .idle && engine.intention.isEmpty) { panel.makeFirstResponder(nil) }
@@ -237,8 +238,8 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
         guard let button = anchor(), let buttonWindow = button.window else { return }
         let buttonFrame = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
         let size = panel.frame.size
-        // The bubble (not the whole window, which may include the calendar box) centers under the item.
-        let leading = CalendarSidePanel.leadingRoom
+        // The bubble (not the whole window, which may include the side boxes) centers under the item.
+        let leading = SidePanels.leadingRoom
         var x = buttonFrame.midX - PopoverView.width / 2 - leading - GlassPanel.margin
         if let visible = (buttonWindow.screen ?? NSScreen.main)?.visibleFrame {
             x = min(max(x, visible.minX - GlassPanel.margin + 8), visible.maxX - size.width + GlassPanel.margin - 8)
@@ -251,20 +252,18 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
 }
 
 /// The bubble grows out of the nub's tip: scale from there, un-blur, fade in.
-/// With the calendar on, its events box hangs off the left or right side, tucked behind the bubble.
+/// With the calendar or reminders on, their boxes hang off the left and right sides, tucked behind the bubble.
 struct PopoverRoot: View {
     var presentation: PanelPresentation
-    private var calendar: CalendarSettings { CalendarSettings.shared }
 
     var body: some View {
-        let side: CalendarSide? = calendar.panelVisible ? calendar.side : nil
-        let sideRoom = CalendarSidePanel.width - CalendarSidePanel.tuck
-        let leading: CGFloat = side == .left ? sideRoom : 0
-        let totalWidth = PopoverView.width + (side == nil ? 0 : sideRoom)
+        let layout = SidePanels.layout
+        let leading = SidePanels.leadingRoom
+        let totalWidth = PopoverView.width + SidePanels.extraWidth
         let tip = UnitPoint(x: (leading + presentation.arrowX) / totalWidth, y: 0)
-        HStack(alignment: .top, spacing: -CalendarSidePanel.tuck) {
-            if side == .left {
-                CalendarSidePanel(side: .left, isOpen: presentation.isOpen)
+        HStack(alignment: .top, spacing: -SidePanels.tuck) {
+            if let kind = layout.left {
+                sideBox(kind, on: .left)
             }
             VStack(spacing: 0) {
                 PopoverView(arrowX: presentation.arrowX)
@@ -272,8 +271,8 @@ struct PopoverRoot: View {
                 LinkActivityStrip()
             }
             .zIndex(1)
-            if side == .right {
-                CalendarSidePanel(side: .right, isOpen: presentation.isOpen)
+            if let kind = layout.right {
+                sideBox(kind, on: .right)
             }
         }
             .scaleEffect(presentation.isOpen ? 1 : 0.4, anchor: tip)
@@ -284,6 +283,14 @@ struct PopoverRoot: View {
             // Pinned to the top: the bubble hangs from the menu bar and grows downward.
             .frame(maxHeight: .infinity, alignment: .top)
             .environment(\.presentationCount, presentation.openCount)
+    }
+
+    @ViewBuilder
+    private func sideBox(_ kind: SidePanels.Kind, on side: PanelSide) -> some View {
+        switch kind {
+        case .calendar: CalendarSidePanel(side: side, isOpen: presentation.isOpen)
+        case .reminders: RemindersSidePanel(side: side, isOpen: presentation.isOpen)
+        }
     }
 }
 

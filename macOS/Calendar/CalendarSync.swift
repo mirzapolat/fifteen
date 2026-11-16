@@ -56,6 +56,7 @@ final class CalendarSync {
         }
         watchSettings()
         watchHistory()
+        watchAlerts()
     }
 
     /// Re-reads everything when the switch, the source or the chosen calendars change.
@@ -90,6 +91,48 @@ final class CalendarSync {
         guard settings.panelVisible else { return }
         if let lastRefresh, Date().timeIntervalSince(lastRefresh) < 60 { return }
         refresh()
+    }
+
+    // MARK: Heads-up before events
+
+    /// Shows a heads-up: the event, and the minutes until it starts. Set by the menu bar item.
+    @ObservationIgnored var onAlert: ((CalendarItem, Int) -> Void)?
+    @ObservationIgnored private var alertTask: Task<Void, Never>?
+    /// Events already announced, by ID and start, so a moved event is announced again.
+    @ObservationIgnored private var alerted: Set<String> = []
+
+    private func watchAlerts() {
+        withObservationTracking {
+            _ = settings.enabled
+            _ = settings.alertsEnabled
+            _ = settings.alertMinutes
+        } onChange: {
+            Task { @MainActor in CalendarSync.shared.watchAlerts() }
+        }
+        alertTask?.cancel()
+        guard settings.enabled, settings.alertsEnabled else { return }
+        alertTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                self?.checkAlerts()
+                try? await Task.sleep(for: .seconds(15))
+            }
+        }
+    }
+
+    /// Announces each timed event once, when it's within the chosen minutes (or just started).
+    private func checkAlerts() {
+        guard settings.enabled, settings.alertsEnabled, provider.isConnected else { return }
+        let now = Date()
+        let lead = TimeInterval(settings.alertMinutes * 60)
+        for item in events where !item.isAllDay {
+            let until = item.start.timeIntervalSince(now)
+            guard until <= lead, until > -60 else { continue }
+            let key = "\(item.id)|\(Int(item.start.timeIntervalSince1970))"
+            guard alerted.insert(key).inserted else { continue }
+            onAlert?(item, max(0, Int((until / 60).rounded(.up))))
+        }
+        // Forget events long past, so the set doesn't grow forever.
+        if alerted.count > 200 { alerted.removeAll() }
     }
 
     // MARK: Connecting
@@ -191,14 +234,22 @@ final class CalendarSync {
 
     // MARK: Starting from an event
 
+    /// Clicking an event fills in the intention: only when that's switched on and intentions are.
+    var eventsBecomeIntention: Bool { settings.useEventAsIntention && prefs.showIntention }
+
     /// Fills in the intention (and a project whose name the event mentions) from an event.
     func use(_ item: CalendarItem) {
         guard settings.useEventAsIntention else { return }
-        var intention = item.title
-        if prefs.projectsActive, let project = matchingProject(for: item.title) {
+        useTitle(item.title)
+    }
+
+    /// Fills in the intention from an event or reminder title, and picks a project it mentions.
+    func useTitle(_ title: String) {
+        var intention = title
+        if prefs.projectsActive, let project = matchingProject(for: title) {
             engine.projectID = project.id
             // "Thesis" as an event title is the project itself, not an intention.
-            if project.name.compare(item.title, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame {
+            if project.name.compare(title, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame {
                 intention = ""
             }
         }
@@ -314,7 +365,11 @@ final class CalendarSync {
     /// What a session looks like as an event: its intention (or project) as the title, the rest in the notes.
     private func entry(for record: FocusRecord) -> LoggedEntry {
         let project = history.project(record.projectID)
-        let title = !record.intention.isEmpty ? record.intention : (project?.name ?? "Focus")
+        let felt = record.rating.flatMap { FocusRecord.ratingWords.indices.contains($0) ? FocusRecord.ratingWords[$0] : nil }
+        let title = EventTitleTemplate.render(settings.eventTitle, .init(
+            intention: record.intention, project: project?.name ?? "",
+            minutes: max(1, Int((record.duration / 60).rounded())),
+            felt: felt ?? "", distractions: record.distractions))
         var lines: [String] = []
         var summary = "\(max(1, Int((record.duration / 60).rounded()))) min focused"
         if record.distractions > 0 {

@@ -40,9 +40,17 @@ final class AppleCalendarProvider: CalendarProvider {
                 CalendarInfo(id: calendar.calendarIdentifier, title: calendar.title,
                              group: calendar.source?.title ?? "Other",
                              color: calendar.color ?? .controlAccentColor,
-                             isWritable: calendar.allowsContentModifications)
+                             isWritable: calendar.allowsContentModifications,
+                             kind: Self.kind(of: calendar))
             }
-            .sorted { ($0.group, $0.title) < ($1.group, $1.title) }
+            .sorted { ($0.kind.rawValue, $0.group, $0.title) < ($1.kind.rawValue, $1.group, $1.title) }
+    }
+
+    /// Yours, subscribed, or generated (birthdays, read-only ones like holidays and Siri suggestions).
+    private static func kind(of calendar: EKCalendar) -> CalendarKind {
+        if calendar.type == .birthday { return .other }
+        if calendar.type == .subscription || calendar.source?.sourceType == .subscribed { return .subscribed }
+        return calendar.allowsContentModifications ? .mine : .other
     }
 
     func events(from start: Date, to end: Date, in calendarIDs: Set<String>) async throws -> [CalendarItem] {

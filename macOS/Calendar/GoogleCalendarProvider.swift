@@ -114,8 +114,19 @@ final class GoogleCalendarProvider: CalendarProvider {
             CalendarInfo(id: entry.id, title: entry.summaryOverride ?? entry.summary ?? entry.id,
                          group: accountName ?? "Google",
                          color: NSColor(hex: entry.backgroundColor) ?? .controlAccentColor,
-                         isWritable: entry.accessRole == "owner" || entry.accessRole == "writer")
+                         isWritable: entry.accessRole == "owner" || entry.accessRole == "writer",
+                         kind: Self.kind(of: entry))
         }
+        .sorted { a, b in
+            // The main calendar first among yours.
+            (a.kind.rawValue, a.id == accountName ? 0 : 1, a.title) < (b.kind.rawValue, b.id == accountName ? 0 : 1, b.title)
+        }
+    }
+
+    /// Yours (you own it), generated (holidays, birthdays), or subscribed / shared with you.
+    private static func kind(of entry: CalendarListEntry) -> CalendarKind {
+        if entry.id.hasSuffix("group.v.calendar.google.com") || entry.id.contains("#contacts@") { return .other }
+        return entry.accessRole == "owner" ? .mine : .subscribed
     }
 
     func events(from start: Date, to end: Date, in calendarIDs: Set<String>) async throws -> [CalendarItem] {

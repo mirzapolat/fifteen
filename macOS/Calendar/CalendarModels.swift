@@ -14,16 +14,24 @@ enum CalendarSource: String, CaseIterable, Identifiable {
     }
 }
 
-/// Which side of the timer the events box sits on.
-enum CalendarSide: String, CaseIterable, Identifiable {
-    case left, right
-    var id: Self { self }
+/// Whose calendar it is, which decides where it's listed: yours first, then subscribed ones, then the rest.
+enum CalendarKind: Int, Comparable, CaseIterable {
+    /// Your own calendars, which you can add events to.
+    case mine
+    /// Subscriptions and calendars others share with you.
+    case subscribed
+    /// Birthdays, holidays, Siri suggestions and other generated calendars.
+    case other
+
     var title: String {
         switch self {
-        case .left: "Left"
-        case .right: "Right"
+        case .mine: "My Calendars"
+        case .subscribed: "Subscribed"
+        case .other: "Other"
         }
     }
+
+    static func < (a: Self, b: Self) -> Bool { a.rawValue < b.rawValue }
 }
 
 /// One calendar the user can show events from or log sessions to.
@@ -34,6 +42,7 @@ struct CalendarInfo: Identifiable, Hashable {
     var group: String
     var color: NSColor
     var isWritable: Bool
+    var kind: CalendarKind = .mine
 }
 
 /// One event, as the side box shows it.
@@ -115,7 +124,7 @@ final class CalendarSettings {
     var source: CalendarSource = .apple { didSet { store.set(source.rawValue, forKey: Key.source) } }
     /// The events box next to the timer.
     var showPanel: Bool = true { didSet { store.set(showPanel, forKey: Key.showPanel) } }
-    var side: CalendarSide = .left { didSet { store.set(side.rawValue, forKey: Key.side) } }
+    var side: PanelSide = .left { didSet { store.set(side.rawValue, forKey: Key.side) } }
     /// Calendars shown in the box, per source. Empty = all of them.
     var shownAppleCalendars: Set<String> = [] { didSet { store.set(Array(shownAppleCalendars), forKey: Key.shownApple) } }
     var shownGoogleCalendars: Set<String> = [] { didSet { store.set(Array(shownGoogleCalendars), forKey: Key.shownGoogle) } }
@@ -126,6 +135,11 @@ final class CalendarSettings {
     var googleLogCalendar: String = "" { didSet { store.set(googleLogCalendar, forKey: Key.googleLog) } }
     /// Starting from an event fills in the intention and picks a project with a matching name.
     var useEventAsIntention: Bool = true { didSet { store.set(useEventAsIntention, forKey: Key.useEventAsIntention) } }
+    /// What logged sessions are called, with {placeholders} (see `EventTitleTemplate`).
+    var eventTitle: String = EventTitleTemplate.standard { didSet { store.set(eventTitle, forKey: Key.eventTitle) } }
+    /// A heads-up from the menu bar a few minutes before each timed event, even mid-session.
+    var alertsEnabled: Bool = false { didSet { store.set(alertsEnabled, forKey: Key.alertsEnabled) } }
+    var alertMinutes: Int = 5 { didSet { store.set(alertMinutes, forKey: Key.alertMinutes) } }
 
     var shownCalendars: Set<String> {
         get { source == .apple ? shownAppleCalendars : shownGoogleCalendars }
@@ -158,10 +172,13 @@ final class CalendarSettings {
             Key.source: CalendarSource.apple.rawValue,
             Key.showPanel: true,
             // Menu bar items mostly sit on the right, so the box has more room on the left.
-            Key.side: CalendarSide.left.rawValue,
+            Key.side: PanelSide.left.rawValue,
             Key.showAllDay: false,
             Key.logSessions: false,
             Key.useEventAsIntention: true,
+            Key.eventTitle: EventTitleTemplate.standard,
+            Key.alertsEnabled: false,
+            Key.alertMinutes: 5,
         ])
     }
 
@@ -169,7 +186,7 @@ final class CalendarSettings {
         enabled = store.bool(forKey: Key.enabled)
         source = CalendarSource(rawValue: store.string(forKey: Key.source) ?? "") ?? .apple
         showPanel = store.bool(forKey: Key.showPanel)
-        side = CalendarSide(rawValue: store.string(forKey: Key.side) ?? "") ?? .left
+        side = PanelSide(rawValue: store.string(forKey: Key.side) ?? "") ?? .left
         shownAppleCalendars = Set(store.stringArray(forKey: Key.shownApple) ?? [])
         shownGoogleCalendars = Set(store.stringArray(forKey: Key.shownGoogle) ?? [])
         showAllDay = store.bool(forKey: Key.showAllDay)
@@ -177,6 +194,9 @@ final class CalendarSettings {
         appleLogCalendar = store.string(forKey: Key.appleLog) ?? ""
         googleLogCalendar = store.string(forKey: Key.googleLog) ?? ""
         useEventAsIntention = store.bool(forKey: Key.useEventAsIntention)
+        eventTitle = store.string(forKey: Key.eventTitle) ?? EventTitleTemplate.standard
+        alertsEnabled = store.bool(forKey: Key.alertsEnabled)
+        alertMinutes = min(max(store.integer(forKey: Key.alertMinutes), 1), 120)
     }
 
     private enum Key {
@@ -191,8 +211,66 @@ final class CalendarSettings {
         static let appleLog = "calendarAppleLogCalendar"
         static let googleLog = "calendarGoogleLogCalendar"
         static let useEventAsIntention = "calendarUseEventAsIntention"
+        static let eventTitle = "calendarEventTitle"
+        static let alertsEnabled = "calendarAlertsEnabled"
+        static let alertMinutes = "calendarAlertMinutes"
 
         static let all = [enabled, source, showPanel, side, shownApple, shownGoogle, showAllDay,
-                          logSessions, appleLog, googleLog, useEventAsIntention]
+                          logSessions, appleLog, googleLog, useEventAsIntention, eventTitle,
+                          alertsEnabled, alertMinutes]
+    }
+}
+
+/// Turns a title like "{project}: {intention} ({minutes} min)" into an event title. Placeholders
+/// with nothing to fill in vanish along with the separators and brackets around them.
+enum EventTitleTemplate {
+    static let standard = "{title}"
+
+    struct Token: Identifiable {
+        var key: String
+        var label: String
+        var id: String { key }
+        var placeholder: String { "{\(key)}" }
+    }
+
+    static let tokens: [Token] = [
+        Token(key: "title", label: "Intention or project"),
+        Token(key: "intention", label: "Intention"),
+        Token(key: "project", label: "Project"),
+        Token(key: "minutes", label: "Minutes"),
+        Token(key: "felt", label: "How it felt"),
+        Token(key: "distractions", label: "Distractions"),
+    ]
+
+    struct Values {
+        var intention: String
+        var project: String
+        var minutes: Int
+        var felt: String
+        var distractions: Int
+    }
+
+    static func render(_ template: String, _ values: Values) -> String {
+        let title = !values.intention.isEmpty ? values.intention : (!values.project.isEmpty ? values.project : "Focus")
+        let filled: [String: String] = [
+            "title": title,
+            "intention": values.intention,
+            "project": values.project,
+            "minutes": "\(values.minutes)",
+            "felt": values.felt,
+            "distractions": values.distractions > 0 ? "\(values.distractions)" : "",
+        ]
+        var text = template
+        for (key, value) in filled {
+            text = text.replacingOccurrences(of: "{\(key)}", with: value, options: .caseInsensitive)
+        }
+        // Brackets left empty, runs of separators, and separators at either end go.
+        text = text.replacingOccurrences(of: #"\(\s*\)|\[\s*\]"#, with: "", options: .regularExpression)
+        text = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+        text = text.replacingOccurrences(of: #"\s*([·•|–—/-])(?:\s*[·•|–—/-])+\s*"#, with: " $1 ", options: .regularExpression)
+        text = text.replacingOccurrences(of: #"\s*([:,])(?:\s*[:,·•|–—/-])+"#, with: "$1", options: .regularExpression)
+        let edges = CharacterSet.whitespaces.union(CharacterSet(charactersIn: "·•|–—/-:,"))
+        text = text.trimmingCharacters(in: edges)
+        return text.isEmpty ? title : text
     }
 }

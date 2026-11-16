@@ -5,48 +5,17 @@ import AppKit
 /// tucks under its bottom. What's on now, what's next, and a nudge when a session would run into
 /// the next event. Click an event to make it your intention; ▶ starts focusing on it.
 struct CalendarSidePanel: View {
-    /// The whole box, including the part tucked behind the bubble.
-    static let width: CGFloat = 214
-    static let tuck: CGFloat = 14
-    /// Where it starts below the bubble's top edge (under the nub and the header), and how tall it is.
-    static let topInset: CGFloat = 46
-    static let height: CGFloat = 292
-
-    /// How far the bubble sits from the window's leading edge because of the box.
-    @MainActor static var leadingRoom: CGFloat {
-        let settings = CalendarSettings.shared
-        return settings.panelVisible && settings.side == .left ? width - tuck : 0
-    }
-
-    var side: CalendarSide
+    var side: PanelSide
     var isOpen: Bool
 
     private var sync: CalendarSync { CalendarSync.shared }
 
     var body: some View {
-        TimelineView(.everyMinute) { context in
-            content(now: context.date)
+        SideBox(side: side, isOpen: isOpen) {
+            TimelineView(.everyMinute) { context in
+                content(now: context.date)
+            }
         }
-        .padding(.top, 12)
-        .padding(.bottom, 10)
-        .padding(side == .left ? .leading : .trailing, 12)
-        .padding(side == .left ? .trailing : .leading, Self.tuck + 8)
-        .frame(width: Self.width, height: Self.height, alignment: .top)
-        .glassPanel(in: shape)
-        .contentShape(shape)
-        // Slides out from behind the bubble once it has opened.
-        .offset(x: isOpen ? 0 : (side == .left ? Self.width : -Self.width))
-        .opacity(isOpen ? 1 : 0)
-        .animation(.spring(duration: 0.5, bounce: 0.2).delay(isOpen ? 0.12 : 0), value: isOpen)
-        .frame(width: Self.width, height: Self.height)
-        .clipped()
-        .padding(.top, Self.topInset)
-    }
-
-    private var shape: UnevenRoundedRectangle {
-        side == .left
-            ? UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 20)
-            : UnevenRoundedRectangle(bottomTrailingRadius: 20, topTrailingRadius: 20)
     }
 
     @ViewBuilder
@@ -55,17 +24,17 @@ struct CalendarSidePanel: View {
             header(now: now)
             switch sync.status {
             case .off, .notConnected:
-                message(symbol: "calendar.badge.plus", text: connectText) {
+                SideBoxMessage(symbol: "calendar.badge.plus", text: connectText) {
                     Button("Connect") { sync.connect() }
                         .controlSize(.small)
                 }
             case .connecting where sync.events.isEmpty:
-                message(symbol: "hourglass", text: "Waiting for \(CalendarSettings.shared.source.title)…") {
+                SideBoxMessage(symbol: "hourglass", text: "Waiting for \(CalendarSettings.shared.source.title)…") {
                     Button("Cancel") { sync.cancelConnecting() }
                         .controlSize(.small)
                 }
             case .failed(let reason) where sync.events.isEmpty:
-                message(symbol: "exclamationmark.triangle", text: reason) {
+                SideBoxMessage(symbol: "exclamationmark.triangle", text: reason) {
                     Button("Try Again") { sync.refresh() }
                         .controlSize(.small)
                 }
@@ -90,37 +59,34 @@ struct CalendarSidePanel: View {
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
             if sync.status == .ready {
-                Button {
-                    sync.refresh()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 18, height: 18)
-                        .contentShape(Rectangle())
+                HStack(spacing: 0) {
+                    SideBoxIconButton(symbol: "arrow.clockwise", help: "Refresh") { sync.refresh() }
+                    SideBoxIconButton(symbol: "arrow.up.forward.app", help: openAppHelp) { CalendarSync.openCalendarApp() }
                 }
-                .buttonStyle(.plain)
-                .help("Refresh")
+                .padding(.trailing, -4)
             }
         }
         .accessibilityAddTraits(.isHeader)
     }
 
-    private func message<Action: View>(symbol: String, text: String, @ViewBuilder action: () -> Action) -> some View {
-        VStack(spacing: 10) {
-            Spacer(minLength: 0)
-            Image(systemName: symbol)
-                .font(.system(size: 22, weight: .light))
-                .foregroundStyle(.secondary)
-            Text(text)
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-            action()
-            Spacer(minLength: 0)
+    private var openAppHelp: String {
+        CalendarSettings.shared.source == .apple ? "Open Calendar" : "Open Google Calendar"
+    }
+}
+
+extension CalendarSync {
+    /// The Calendar app, or Google Calendar in the browser.
+    static func openCalendarApp() {
+        if CalendarSettings.shared.source == .google {
+            NSWorkspace.shared.open(URL(string: "https://calendar.google.com")!)
+        } else {
+            openApp("com.apple.iCal")
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// An event in the Calendar app (at its day) or on Google Calendar.
+    static func open(_ item: CalendarItem) {
+        if let link = item.link { NSWorkspace.shared.open(link) } else { openCalendarApp() }
     }
 }
 
@@ -260,6 +226,12 @@ private struct EventRow: View {
                     .lineLimit(1)
             }
             Spacer(minLength: 0)
+            if hovering {
+                SideBoxIconButton(symbol: "arrow.up.forward.app", help: openHelp, size: 9.5) {
+                    CalendarSync.open(item)
+                }
+                .transition(.opacity.combined(with: .scale(0.8)))
+            }
             if canStart && (hovering || isCurrent) {
                 Button {
                     Haptics.play(.start)
@@ -291,7 +263,7 @@ private struct EventRow: View {
             Haptics.play(.select)
             sync.use(item)
         }
-        .help(CalendarSettings.shared.useEventAsIntention ? "Click to make this your intention" : item.title)
+        .help(sync.eventsBecomeIntention ? "Click to make this your intention" : item.title)
         .contextMenu {
             if canStart {
                 Button("Focus on This") { sync.focus(on: item) }
@@ -299,13 +271,11 @@ private struct EventRow: View {
                     Button("Focus Until It Ends (\(minutesLeft) min)") { sync.focus(on: item, untilItEnds: true) }
                 }
             }
-            if CalendarSettings.shared.useEventAsIntention {
+            if sync.eventsBecomeIntention {
                 Button("Use as Intention") { sync.use(item) }
             }
-            if let link = item.link {
-                Divider()
-                Button("Open in Calendar") { NSWorkspace.shared.open(link) }
-            }
+            Divider()
+            Button(openHelp) { CalendarSync.open(item) }
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
@@ -314,6 +284,10 @@ private struct EventRow: View {
     /// Only before a session starts; while one runs, a click just changes its intention.
     private var canStart: Bool {
         !engine.isActive && item.end > now && !item.isAllDay
+    }
+
+    private var openHelp: String {
+        CalendarSettings.shared.source == .apple ? "Open in Calendar" : "Open in Google Calendar"
     }
 
     private var minutesLeft: Int { Int(item.end.timeIntervalSince(now) / 60) }

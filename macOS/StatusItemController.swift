@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import Observation
 
 /// The menu bar item: a ring that empties as time passes, the time, or both.
@@ -25,6 +26,13 @@ final class StatusItemController: NSObject {
         render()
         toast.onClick = { [weak self] in self?.showPanel() }
         LinkActivity.shared.popup = { [weak self] title, detail in self?.toast.show(title: title, detail: detail) }
+        // A heads-up before events, shown even mid-session; it stays a while so it isn't missed.
+        CalendarSync.shared.onAlert = { [weak self] item, minutes in
+            let time = item.start.formatted(.dateTime.hour().minute())
+            let when = minutes == 0 ? "Starting now · \(time)" : "In \(minutes) min · \(time)"
+            self?.toast.show(title: item.title, detail: when, symbol: "calendar",
+                             tint: Color(nsColor: item.color), duration: .seconds(20))
+        }
     }
 
     func togglePanel() { panel.toggle() }

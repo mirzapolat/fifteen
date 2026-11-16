@@ -9,6 +9,9 @@ final class LinkToastModel {
     var shown = false
     var title = ""
     var detail = ""
+    var symbol = "person.2.fill"
+    /// A colour behind the symbol (an event's calendar), or the quiet default.
+    var tint: Color?
     /// Where the nub sits, in the popup's own coordinates.
     var arrowX: CGFloat = LinkToastView.width / 2
 }
@@ -25,17 +28,21 @@ final class LinkToastController {
     private var hovering = false
     var onClick: (() -> Void)?
 
-    private nonisolated static let visibleFor: Duration = .seconds(5)
+    nonisolated static let visibleFor: Duration = .seconds(5)
 
     init(anchor: @escaping () -> NSStatusBarButton?) {
         self.anchor = anchor
     }
 
-    func show(title: String, detail: String) {
+    /// An event heads-up stays longer than a Link change.
+    func show(title: String, detail: String, symbol: String = "person.2.fill", tint: Color? = nil,
+              duration: Duration = LinkToastController.visibleFor) {
         let panel = panel ?? makePanel()
         let wasShown = model.shown
         model.title = title
         model.detail = detail
+        model.symbol = symbol
+        model.tint = tint
         if let host {
             let size = host.fittingSize
             panel.setContentSize(size)
@@ -48,7 +55,7 @@ final class LinkToastController {
                 withAnimation(.spring(duration: 0.45, bounce: 0.3)) { self.model.shown = true }
             }
         }
-        scheduleHide()
+        scheduleHide(after: duration)
     }
 
     func dismiss() {
@@ -61,7 +68,7 @@ final class LinkToastController {
         }
     }
 
-    private func scheduleHide(after delay: Duration = visibleFor) {
+    private func scheduleHide(after delay: Duration) {
         hideTask?.cancel()
         hideTask = Task { @MainActor in
             try? await Task.sleep(for: delay)
@@ -126,7 +133,8 @@ private struct LinkToastRoot: View {
 
     var body: some View {
         let tip = UnitPoint(x: model.arrowX / LinkToastView.width, y: 0)
-        LinkToastView(title: model.title, detail: model.detail, arrowX: model.arrowX)
+        LinkToastView(title: model.title, detail: model.detail, symbol: model.symbol, tint: model.tint,
+                      arrowX: model.arrowX)
             .scaleEffect(model.shown ? 1 : 0.5, anchor: tip)
             .opacity(model.shown ? 1 : 0)
             .blur(radius: model.shown ? 0 : 8)
@@ -143,15 +151,18 @@ struct LinkToastView: View {
 
     var title: String
     var detail: String
+    var symbol: String = "person.2.fill"
+    var tint: Color?
     var arrowX: CGFloat
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "person.2.fill")
+            Image(systemName: symbol)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(tint ?? .secondary)
                 .frame(width: 28, height: 28)
-                .background(Circle().fill(Color.primary.opacity(0.08)))
+                .background(Circle().fill((tint ?? .primary).opacity(tint == nil ? 0.08 : 0.18)))
+                .contentTransition(.symbolEffect(.replace))
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 13, weight: .semibold))
