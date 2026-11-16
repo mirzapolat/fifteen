@@ -256,6 +256,41 @@ final class RemindersSync {
         }
     }
 
+    /// Deletes a reminder from Reminders, like swiping it away there.
+    func delete(_ item: ReminderItem) {
+        completeTasks[item.id]?.cancel()
+        completeTasks[item.id] = nil
+        completing.remove(item.id)
+        guard let reminder = store.calendarItem(withIdentifier: item.id) as? EKReminder else {
+            refresh()
+            return
+        }
+        do {
+            try store.remove(reminder, commit: true)
+            withAnimation(.spring(duration: 0.4, bounce: 0.15)) {
+                items.removeAll { $0.id == item.id }
+                priorityIDs.removeAll { $0 == item.id }
+            }
+            savePriorities()
+        } catch {
+            status = .failed(error.localizedDescription)
+        }
+    }
+
+    /// Changes a reminder's text. An empty title leaves it as it was.
+    func rename(_ item: ReminderItem, to title: String) {
+        let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty, title != item.title,
+              let reminder = store.calendarItem(withIdentifier: item.id) as? EKReminder else { return }
+        reminder.title = title
+        do {
+            try store.save(reminder, commit: true)
+            if let index = items.firstIndex(where: { $0.id == item.id }) { items[index].title = title }
+        } catch {
+            status = .failed(error.localizedDescription)
+        }
+    }
+
     // MARK: Today's priorities
 
     /// Reminders picked as today's priorities, in the order they were picked. Kept by Fifteen,

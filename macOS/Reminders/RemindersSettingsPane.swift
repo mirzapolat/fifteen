@@ -111,23 +111,32 @@ struct ReminderListPicker: View {
             if lists.isEmpty {
                 Text("No lists").tag(settings.listID)
             }
-            ForEach(names, id: \.self) { group in
-                Section(names.count > 1 ? group : "") {
-                    ForEach(groups[group] ?? []) { list in
-                        Label {
-                            Text(list.title)
-                        } icon: {
-                            Image(nsImage: ListDot.image(list.color))
-                        }
-                        .tag(list.id)
-                    }
+            // Grouped by account only when there's more than one: an empty heading shows as a blank line.
+            if names.count > 1 {
+                ForEach(names, id: \.self) { group in
+                    Section(group) { rows(groups[group] ?? []) }
                 }
+            } else {
+                rows(lists)
             }
         }
     }
 }
 
 /// A small round swatch for menus, which can't draw SwiftUI shapes.
+extension ReminderListPicker {
+    fileprivate func rows(_ lists: [ReminderList]) -> some View {
+        ForEach(lists) { list in
+            Label {
+                Text(list.title)
+            } icon: {
+                Image(nsImage: ListDot.image(list.color))
+            }
+            .tag(list.id)
+        }
+    }
+}
+
 enum ListDot {
     static func image(_ color: NSColor) -> NSImage {
         let image = NSImage(size: NSSize(width: 10, height: 10), flipped: false) { rect in
