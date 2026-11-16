@@ -65,6 +65,7 @@ private struct GeneralPane: View {
             Section {
                 LaunchAtLoginToggle()
                 Toggle("Pause focus while the Mac is locked", isOn: $prefs.pauseWhenLocked)
+                Toggle("Ask before quitting", isOn: $prefs.confirmBeforeQuitting)
             } header: {
                 Text("System")
             } footer: {
@@ -181,13 +182,13 @@ private struct FocusPane: View {
 
     var body: some View {
         @Bindable var prefs = prefs
-        // While a session is running or paused, nothing here can be loosened: you can add
-        // restrictions, but not switch them off. Finish or reset the timer to change them.
-        let locked = engine.isActive
+        // While focus is running or paused, nothing here can be loosened: you can add
+        // restrictions, but not switch them off. Breaks are free time to change them.
+        let locked = engine.isActive && engine.phase == .focus
         Form {
             if locked {
                 Section {
-                    Label("Locked while a session runs", systemImage: "lock.fill")
+                    Label("Locked while you focus", systemImage: "lock.fill")
                 }
             }
             Section {

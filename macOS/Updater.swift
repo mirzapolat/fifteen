@@ -33,6 +33,7 @@ final class Updater {
 
     @ObservationIgnored private var controller: SPUStandardUpdaterController?
     @ObservationIgnored private let driverDelegate = UserDriverDelegate()
+    @ObservationIgnored private let updaterDelegate = RelaunchDelegate()
     @ObservationIgnored private var watchers: Set<AnyCancellable> = []
     private var updater: SPUUpdater? { controller?.updater }
 
@@ -40,7 +41,7 @@ final class Updater {
     /// ad-hoc signed and would only be offered the published release.
     func start() {
         guard !Self.isDebugBuild else { return }
-        let controller = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil,
+        let controller = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: updaterDelegate,
                                                       userDriverDelegate: driverDelegate)
         self.controller = controller
         let updater = controller.updater
@@ -75,5 +76,12 @@ private final class UserDriverDelegate: NSObject, SPUStandardUserDriverDelegate 
         if handleShowingUpdate {
             DispatchQueue.main.async { NSApp.activate() }
         }
+    }
+}
+
+/// Installing an update quits Fifteen; that shouldn't stop to ask "Quit Fifteen?".
+private final class RelaunchDelegate: NSObject, SPUUpdaterDelegate {
+    func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
+        MainActor.assumeIsolated { AppDelegate.quittingForUpdate = true }
     }
 }

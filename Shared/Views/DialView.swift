@@ -264,6 +264,16 @@ struct DialView: View {
                     .transition(.blurReplace)
             }
             if showsRating {
+                // Still counting on: the extra time sits small above the stars.
+                if engine.isCountingOvertime {
+                    Text(clockText)
+                        .font(.system(size: size * 0.09, weight: .light))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .contentTransition(.numericText())
+                        .animation(.snappy(duration: 0.25), value: clockText)
+                        .transition(.blurReplace)
+                }
                 // The session is over: no "Done", just "How did it go?" and five stars.
                 FocusRating(size: size)
                     .transition(.blurReplace)
@@ -310,7 +320,7 @@ struct DialView: View {
     /// After focus, ask how it went (if enabled and the session was recorded).
     private var showsRating: Bool {
         engine.state == .finished && engine.phase == .focus && prefs.reflectionActive
-            && engine.lastRecordID != nil && !engine.isCountingOvertime
+            && engine.lastRecordID != nil
     }
 
     /// Finished, with nothing to count or rate: a quiet checkmark instead of a time.

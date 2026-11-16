@@ -266,6 +266,8 @@ final class Preferences {
     /// Mac: switch on Do Not Disturb during focus (via two shortcuts).
     var doNotDisturb: Bool { didSet { store.set(doNotDisturb, forKey: Key.doNotDisturb) } }
     var pauseWhenLocked: Bool { didSet { store.set(pauseWhenLocked, forKey: Key.pauseWhenLocked) } }
+    /// Mac: ask before Fifteen quits (⌘Q or Quit Fifteen).
+    var confirmBeforeQuitting: Bool { didSet { store.set(confirmBeforeQuitting, forKey: Key.confirmBeforeQuitting) } }
     var focusStartShortcut: String { didSet { store.set(focusStartShortcut, forKey: Key.focusStartShortcut) } }
     var focusEndShortcut: String { didSet { store.set(focusEndShortcut, forKey: Key.focusEndShortcut) } }
 
@@ -335,6 +337,7 @@ final class Preferences {
             Key.breakCurtain: false,
             Key.doNotDisturb: false,
             Key.pauseWhenLocked: true,
+            Key.confirmBeforeQuitting: true,
             Key.focusStartShortcut: "",
             Key.focusEndShortcut: "",
             Key.liveActivity: true,
@@ -405,6 +408,7 @@ final class Preferences {
         breakCurtain = store.bool(forKey: Key.breakCurtain)
         doNotDisturb = store.bool(forKey: Key.doNotDisturb)
         pauseWhenLocked = store.bool(forKey: Key.pauseWhenLocked)
+        confirmBeforeQuitting = store.bool(forKey: Key.confirmBeforeQuitting)
         focusStartShortcut = store.string(forKey: Key.focusStartShortcut) ?? ""
         focusEndShortcut = store.string(forKey: Key.focusEndShortcut) ?? ""
         liveActivity = store.bool(forKey: Key.liveActivity)
@@ -480,6 +484,7 @@ final class Preferences {
         breakCurtain = store.bool(forKey: Key.breakCurtain)
         doNotDisturb = store.bool(forKey: Key.doNotDisturb)
         pauseWhenLocked = store.bool(forKey: Key.pauseWhenLocked)
+        confirmBeforeQuitting = store.bool(forKey: Key.confirmBeforeQuitting)
         focusStartShortcut = store.string(forKey: Key.focusStartShortcut) ?? ""
         focusEndShortcut = store.string(forKey: Key.focusEndShortcut) ?? ""
         liveActivity = store.bool(forKey: Key.liveActivity)
@@ -547,6 +552,7 @@ final class Preferences {
         Key.breakCurtain,
         Key.doNotDisturb,
         Key.pauseWhenLocked,
+        Key.confirmBeforeQuitting,
         Key.focusStartShortcut,
         Key.focusEndShortcut,
         Key.liveActivity,
@@ -661,6 +667,7 @@ final class Preferences {
         static let breakCurtain = "breakCurtain"
         static let doNotDisturb = "doNotDisturb"
         static let pauseWhenLocked = "pauseWhenLocked"
+        static let confirmBeforeQuitting = "confirmBeforeQuitting"
         static let focusStartShortcut = "focusStartShortcut"
         static let focusEndShortcut = "focusEndShortcut"
         static let liveActivity = "liveActivity"

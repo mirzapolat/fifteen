@@ -85,6 +85,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Set when Sparkle relaunches into an update: that quit goes through without asking.
+    static var quittingForUpdate = false
+
+    /// ⌘Q or Quit Fifteen asks first (can be switched off in Settings → General). Logging out,
+    /// shutting down and installing an update quit straight away.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        let prefs = Preferences.shared
+        guard prefs.confirmBeforeQuitting, !Self.quittingForUpdate else { return .terminateNow }
+        if let event = NSAppleEventManager.shared().currentAppleEvent,
+           event.eventClass == kCoreEventClass, event.eventID == kAEQuitApplication {
+            return .terminateNow
+        }
+        NSApp.activate()
+        let alert = NSAlert()
+        let engine = TimerEngine.shared
+        alert.messageText = "Quit Fifteen?"
+        if engine.isActive && engine.phase == .focus {
+            alert.informativeText = "You're in a focus session. Apps and websites won't be blocked until you open Fifteen again."
+        }
+        alert.addButton(withTitle: "Quit")
+        alert.addButton(withTitle: "Cancel")
+        alert.showsSuppressionButton = true
+        alert.suppressionButton?.title = "Don't ask again"
+        let quit = alert.runModal() == .alertFirstButtonReturn
+        if quit && alert.suppressionButton?.state == .on { prefs.confirmBeforeQuitting = false }
+        return quit ? .terminateNow : .terminateCancel
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         DoNotDisturb.shared.turnOffBeforeQuitting()
     }
