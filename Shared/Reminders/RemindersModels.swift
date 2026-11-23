@@ -44,6 +44,8 @@ final class RemindersSettings {
     var side: PanelSide = .right { didSet { store.set(side.rawValue, forKey: Key.side) } }
     /// Tucked away behind the bubble with the button in its header.
     var collapsed: Bool = false { didSet { store.set(collapsed, forKey: Key.collapsed) } }
+    /// The box's width as you last dragged it (Mac). 0 = the usual width.
+    var panelWidth: Double = 0 { didSet { store.set(panelWidth, forKey: Key.panelWidth) } }
     /// Only what's due today or overdue, not everything on the list.
     var onlyDue: Bool = false { didSet { store.set(onlyDue, forKey: Key.onlyDue) } }
     /// Clicking a reminder fills in the intention.
@@ -74,6 +76,7 @@ final class RemindersSettings {
         onlyDue = store.bool(forKey: Key.onlyDue)
         useAsIntention = store.bool(forKey: Key.useAsIntention)
         collapsed = store.bool(forKey: Key.collapsed)
+        panelWidth = store.double(forKey: Key.panelWidth)
     }
 
     private enum Key {
@@ -83,6 +86,7 @@ final class RemindersSettings {
         static let onlyDue = "remindersOnlyDue"
         static let useAsIntention = "remindersUseAsIntention"
         static let collapsed = "remindersCollapsed"
-        static let all = [enabled, listID, side, onlyDue, useAsIntention, collapsed]
+        static let panelWidth = "remindersPanelWidth"
+        static let all = [enabled, listID, side, onlyDue, useAsIntention, collapsed, panelWidth]
     }
 }

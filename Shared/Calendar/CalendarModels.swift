@@ -214,6 +214,8 @@ final class CalendarSettings {
     var side: PanelSide = .left { didSet { store.set(side.rawValue, forKey: Key.side) } }
     /// Tucked away behind the bubble with the button in its header.
     var collapsed: Bool = false { didSet { store.set(collapsed, forKey: Key.collapsed) } }
+    /// The box's width as you last dragged it (Mac). 0 = the usual width.
+    var panelWidth: Double = 0 { didSet { store.set(panelWidth, forKey: Key.panelWidth) } }
     /// Calendars shown in the box, per source. Empty = all of them.
     var shownAppleCalendars: Set<String> = [] { didSet { store.set(Array(shownAppleCalendars), forKey: Key.shownApple) } }
     var shownGoogleCalendars: Set<String> = [] { didSet { store.set(Array(shownGoogleCalendars), forKey: Key.shownGoogle) } }
@@ -289,6 +291,7 @@ final class CalendarSettings {
         useEventAsIntention = store.bool(forKey: Key.useEventAsIntention)
         eventTitle = store.string(forKey: Key.eventTitle) ?? EventTitleTemplate.standard
         collapsed = store.bool(forKey: Key.collapsed)
+        panelWidth = store.double(forKey: Key.panelWidth)
         alertsEnabled = store.bool(forKey: Key.alertsEnabled)
         alertMinutes = min(max(store.integer(forKey: Key.alertMinutes), 1), 120)
     }
@@ -307,11 +310,12 @@ final class CalendarSettings {
         static let useEventAsIntention = "calendarUseEventAsIntention"
         static let eventTitle = "calendarEventTitle"
         static let collapsed = "calendarCollapsed"
+        static let panelWidth = "calendarPanelWidth"
         static let alertsEnabled = "calendarAlertsEnabled"
         static let alertMinutes = "calendarAlertMinutes"
 
         static let all = [enabled, source, showPanel, side, shownApple, shownGoogle, showAllDay,
-                          logSessions, appleLog, googleLog, useEventAsIntention, eventTitle, collapsed,
+                          logSessions, appleLog, googleLog, useEventAsIntention, eventTitle, collapsed, panelWidth,
                           alertsEnabled, alertMinutes]
     }
 }

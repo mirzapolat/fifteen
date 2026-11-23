@@ -69,7 +69,6 @@ struct CalendarSidePanel: View {
             HStack(spacing: 0) {
                 if sync.status == .ready {
                     SideBoxIconButton(symbol: "arrow.clockwise", help: "Refresh") { sync.refresh() }
-                    SideBoxIconButton(symbol: "arrow.up.forward.app", help: openAppHelp) { CalendarSync.openCalendarApp() }
                 }
                 SideBoxCollapseButton(kind: .calendar, side: side)
             }
@@ -78,10 +77,6 @@ struct CalendarSidePanel: View {
         // In line with the events below, so the title keeps the same distance from the timer.
         .padding(.horizontal, 8)
         .accessibilityAddTraits(.isHeader)
-    }
-
-    private var openAppHelp: String {
-        CalendarSettings.shared.source == .apple ? "Open Calendar" : "Open Google Calendar"
     }
 }
 

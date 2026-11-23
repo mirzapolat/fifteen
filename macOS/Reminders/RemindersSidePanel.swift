@@ -49,7 +49,6 @@ struct RemindersSidePanel: View {
                             withAnimation(.spring(duration: 0.35, bounce: 0.25)) { adding = true }
                         }
                     }
-                    SideBoxIconButton(symbol: "arrow.up.forward.app", help: "Open Reminders") { sync.open() }
                 }
                 SideBoxCollapseButton(kind: .reminders, side: side)
             }

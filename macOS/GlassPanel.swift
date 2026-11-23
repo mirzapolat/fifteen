@@ -68,6 +68,14 @@ final class GlassPanel: NSPanel {
     /// How tall the bubble is right now; the window is taller so the bubble can grow inside it.
     var bubbleHeight: () -> CGFloat = { .greatestFiniteMagnitude }
 
+    /// Whether the bubble is meant to be up. While it isn't, the window lets every click through
+    /// and won't come back on screen: AppKit can re-show it on its own (e.g. when a menu opened from
+    /// the bubble finishes after the bubble closed), and an invisible window at menu bar level
+    /// would otherwise swallow clicks on the menu bar and everything under it.
+    var isPresented = false {
+        didSet { ignoresMouseEvents = !isPresented }
+    }
+
     init<Content: View>(rootView: Content) {
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
                    backing: .buffered, defer: true)
@@ -106,7 +114,21 @@ final class GlassPanel: NSPanel {
     override var canBecomeMain: Bool { false }
     override func cancelOperation(_ sender: Any?) { onEscape?() }
 
+    override func order(_ place: NSWindow.OrderingMode, relativeTo otherWin: Int) {
+        guard place == .out || isPresented else { return }
+        super.order(place, relativeTo: otherWin)
+    }
+
+    override func becomeKey() {
+        guard isPresented else { orderOut(nil); return }
+        super.becomeKey()
+    }
+
     override func sendEvent(_ event: NSEvent) {
+        if !isPresented, [.leftMouseDown, .rightMouseDown, .otherMouseDown].contains(event.type) {
+            orderOut(nil)
+            return
+        }
         if [.leftMouseDown, .rightMouseDown, .otherMouseDown].contains(event.type), let content = contentView {
             let point = content.convert(event.locationInWindow, from: nil)
             let fromTop = content.isFlipped ? point.y : content.bounds.height - point.y
@@ -134,12 +156,14 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
         self.anchor = anchor
     }
 
-    var isShown: Bool { presentation.isOpen }
+    var isShown: Bool { panel?.isPresented == true }
 
     func toggle() { isShown ? close() : open() }
 
     func open() {
         let panel = panel ?? makePanel()
+        guard !panel.isPresented else { return }
+        panel.isPresented = true
         // Settings can show or hide parts of the bubble, so measure it fresh each time.
         let engine = TimerEngine.shared
         LinkChrome.shared.isOpen = false
@@ -159,6 +183,8 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
         // Ready to type an intention when there's none yet; otherwise don't select the existing text.
         if !(engine.state == .idle && engine.intention.isEmpty) { panel.makeFirstResponder(nil) }
         DispatchQueue.main.async {
+            // Closed again before this ran: stay closed.
+            guard panel.isPresented else { return }
             withAnimation(.spring(duration: 0.45, bounce: 0.3)) { self.presentation.isOpen = true }
         }
         // Clicks in other apps (global monitors never see our own clicks) close the bubble.
@@ -169,7 +195,8 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
     }
 
     func close() {
-        guard presentation.isOpen else { return }
+        guard let panel, panel.isPresented else { return }
+        panel.isPresented = false
         withAnimation(.spring(duration: 0.28, bounce: 0)) { presentation.isOpen = false }
         LinkChrome.shared.timerVisible = false
         anchor()?.highlight(false)
@@ -179,7 +206,7 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
         appSwitchObserver = nil
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(260))
-            if !presentation.isOpen { panel?.orderOut(nil) }
+            if !panel.isPresented { panel.orderOut(nil) }
         }
     }
 

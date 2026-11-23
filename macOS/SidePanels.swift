@@ -5,8 +5,9 @@ import SwiftUI
 enum SidePanels {
     enum Kind { case calendar, reminders }
 
-    /// A box's width (including the part tucked behind the bubble).
+    /// A box's width (including the part tucked behind the bubble) unless you've dragged it wider or narrower.
     static let defaultWidth: CGFloat = 214
+    static let widthRange: ClosedRange<CGFloat> = 180...420
     static let tuck: CGFloat = 14
     static let height: CGFloat = 292
 
@@ -27,8 +28,24 @@ enum SidePanels {
         isCollapsed(kind) ? collapsedWidth : fullWidth(of: kind)
     }
 
-    /// The box's width when open.
-    @MainActor static func fullWidth(of kind: Kind) -> CGFloat { defaultWidth }
+    /// The box's width when open, as you last dragged it.
+    @MainActor static func fullWidth(of kind: Kind) -> CGFloat {
+        let stored = switch kind {
+        case .calendar: CalendarSettings.shared.panelWidth
+        case .reminders: RemindersSettings.shared.panelWidth
+        }
+        let width = CGFloat(stored)
+        return widthRange.contains(width) ? width : defaultWidth
+    }
+
+    @MainActor static func setWidth(_ width: CGFloat, of kind: Kind) {
+        let width = Double(min(max(width.rounded(), widthRange.lowerBound), widthRange.upperBound))
+        switch kind {
+        case .calendar: CalendarSettings.shared.panelWidth = width
+        case .reminders: RemindersSettings.shared.panelWidth = width
+        }
+        onResize?()
+    }
 
     /// Switched on, but Fifteen may not read it yet: the box waits as a slim strip that asks for
     /// access when clicked, instead of a big empty box beside the timer.
@@ -112,7 +129,7 @@ enum SidePanels {
         }
     }
 
-    /// Called when a box is tucked away or brought back, so the window can grow or shrink with it.
+    /// Called when a box is resized, tucked away or brought back, so the window can grow or shrink with it.
     @MainActor static var onResize: (() -> Void)?
 
     /// What a box adds to the window's width.
@@ -200,6 +217,7 @@ final class SideBoxChrome {
 /// The glass a side box is drawn on: rounded on the outside, tucked behind the bubble on the
 /// inside, sliding out from behind it once the bubble has opened. Collapsed (with the button in its
 /// header, or while it waits for access) it's a slim strip; click the strip to open it again.
+/// Drag its outer edge to resize it.
 struct SideBox<Content: View>: View {
     var kind: SidePanels.Kind
     var side: PanelSide
@@ -236,6 +254,11 @@ struct SideBox<Content: View>: View {
         .frame(width: width, height: SidePanels.height, alignment: side == .left ? .leading : .trailing)
         .glassPanel(in: shape)
         .contentShape(shape)
+        .overlay(alignment: side == .left ? .leading : .trailing) {
+            if !looksCollapsed {
+                ResizeEdge(kind: kind, side: side)
+            }
+        }
         .offset(x: isOpen ? toward * tucked : toward * width)
         .opacity(isOpen ? 1 : 0)
         .animation(.spring(duration: 0.5, bounce: 0.2).delay(isOpen ? 0.12 : 0), value: isOpen)
@@ -288,6 +311,48 @@ struct SideBox<Content: View>: View {
         side == .left
             ? UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 20)
             : UnevenRoundedRectangle(bottomTrailingRadius: 20, topTrailingRadius: 20)
+    }
+}
+
+/// The box's outer edge: drag to make it wider or narrower (kept for next time), double-click for the usual width.
+private struct ResizeEdge: View {
+    var kind: SidePanels.Kind
+    var side: PanelSide
+    @State private var hovering = false
+    @State private var start: (mouse: CGFloat, width: CGFloat)?
+
+    var body: some View {
+        Color.clear
+            .frame(width: 10)
+            .frame(maxHeight: .infinity)
+            .padding(.vertical, 22)
+            .contentShape(Rectangle())
+            .onHover { inside in
+                hovering = inside
+                if inside { NSCursor.resizeLeftRight.push() } else if start == nil { NSCursor.pop() }
+            }
+            .gesture(
+                DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                    .onChanged { _ in
+                        // Screen coordinates: the window itself moves while a left box grows to the left.
+                        let mouse = NSEvent.mouseLocation.x
+                        if start == nil { start = (mouse, SidePanels.fullWidth(of: kind)) }
+                        guard let start else { return }
+                        let delta = (mouse - start.mouse) * (side == .left ? -1 : 1)
+                        SidePanels.setWidth(start.width + delta, of: kind)
+                    }
+                    .onEnded { _ in
+                        start = nil
+                        if !hovering { NSCursor.pop() }
+                    }
+            )
+            .onTapGesture(count: 2) {
+                withAnimation(.snappy) { SidePanels.setWidth(SidePanels.defaultWidth, of: kind) }
+            }
+            .onDisappear {
+                if hovering || start != nil { NSCursor.pop() }
+            }
+            .help("Drag to resize · double-click for the usual width")
     }
 }
 

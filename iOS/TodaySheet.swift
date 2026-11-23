@@ -32,12 +32,6 @@ struct TodaySheet: View {
                         .frame(width: 220)
                     }
                 }
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(current == .calendar ? "Open Calendar" : "Open Reminders",
-                           systemImage: "arrow.up.forward.app") {
-                        if current == .calendar { CalendarSync.openCalendarApp() } else { RemindersSync.shared.open() }
-                    }
-                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done", systemImage: "checkmark") { dismiss() }
                 }
