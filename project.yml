@@ -11,8 +11,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.4"
-    CURRENT_PROJECT_VERSION: "18"
+    MARKETING_VERSION: "1.4.1"
+    CURRENT_PROJECT_VERSION: "19"
     DEVELOPMENT_TEAM: "56746T8S3D"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_EMIT_LOC_STRINGS: YES
@@ -136,10 +136,9 @@ targets:
         # Lets Link talk to a relay on this Mac or the local network while developing.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        # iPhone: upright only. iPad: every way, as Split View and Stage Manager expect.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown

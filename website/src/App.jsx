@@ -545,7 +545,7 @@ function PhoneSection({ timer, spectrum }) {
         <li>Countdown on the Lock Screen and in the Dynamic Island, with Pause and Reset</li>
         <li>Link, Timer, Analytics and Settings in four tabs</li>
         <li>Keeps the screen on while the timer runs</li>
-        <li>Works on iPad and in landscape</li>
+        <li>Works on iPad, upright or on its side</li>
       </Reveal>
     </section>
   );

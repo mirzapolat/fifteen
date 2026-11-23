@@ -9,8 +9,8 @@ struct TouchIntentionField: View {
     @Environment(HistoryStore.self) private var history
     @Environment(Preferences.self) private var prefs
     @FocusState private var focused: Bool
-    /// The space to the controls below it; none when they sit beside it instead.
-    var gap: CGFloat = 12
+    /// The space to the controls below it.
+    private let gap: CGFloat = 12
 
     private enum Content: Equatable { case reflection(FocusRecord.ID), tip, intention }
 

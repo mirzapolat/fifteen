@@ -33,7 +33,7 @@ you’re away from your Mac.
 - Countdown on the Lock Screen and in the Dynamic Island, with Pause and Reset
 - Link, Timer, Analytics and Settings in four tabs
 - Keeps the screen on while the timer runs
-- Works on iPad and in landscape
+- Works on iPad, upright or on its side
 
 ## Features
 

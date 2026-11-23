@@ -244,57 +244,32 @@ struct TimerTab: View {
     private func layout(showsHeader: Bool) -> some View {
         GeometryReader { geo in
             let size = geo.size
+            // The iPhone stays upright; an iPad can be on its side, where the ring gets what's left
+            // once the header and controls are in.
             let landscape = size.width > size.height * 1.15
-            // In the column, the ring gets what's left once the header and controls are in.
-            let columnDial = landscape
+            let dial = landscape
                 ? min(size.width - 56, size.height - (showsHeader ? 220 : 160), 600)
                 : min(size.width - 56, size.height * 0.52, 560)
-            // Too short for a column (an iPhone on its side): the ring takes the full height in the
-            // middle, with the header in the top corners and the caption and controls in the bottom ones.
-            let cornerDial = min(size.height - 16, size.width * 0.44, 560)
-            let side = min((size.width - cornerDial) / 2 - 28, 340)
-            if showsHeader && landscape && columnDial < 300 && side >= 150 {
-                ZStack {
-                    DialView(lineWidth: cornerDial > 380 ? 9 : 7)
-                        .frame(width: cornerDial, height: cornerDial)
-                    VStack(spacing: 0) {
-                        PhaseHeader()
-                        Spacer(minLength: 0)
-                        HStack(alignment: .bottom, spacing: 0) {
-                            TouchIntentionField(gap: 0)
-                                .frame(width: side)
-                            Spacer(minLength: 0)
-                            TouchControlPills()
-                                .frame(width: side)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+            // One column: header, caption and controls share its width so their edges line up.
+            let column = min(size.width - 32, 520)
+            VStack(spacing: 0) {
+                if showsHeader {
+                    PhaseHeader()
+                        .frame(width: column)
+                        .padding(.top, 8)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                // One column, the same in both orientations; header, caption and controls share its
-                // width so their edges line up.
-                let column = min(size.width - 32, 520)
+                Spacer(minLength: 16)
+                DialView(lineWidth: dial > 380 ? 9 : 7)
+                    .frame(width: dial, height: dial)
+                Spacer(minLength: 16)
                 VStack(spacing: 0) {
-                    if showsHeader {
-                        PhaseHeader()
-                            .frame(width: column)
-                            .padding(.top, 8)
-                    }
-                    Spacer(minLength: 16)
-                    DialView(lineWidth: columnDial > 380 ? 9 : 7)
-                        .frame(width: columnDial, height: columnDial)
-                    Spacer(minLength: 16)
-                    VStack(spacing: 0) {
-                        TouchIntentionField()
-                        TouchControlPills()
-                    }
-                    .frame(width: column)
-                    .padding(.bottom, 16)
+                    TouchIntentionField()
+                    TouchControlPills()
                 }
-                .frame(maxWidth: .infinity)
+                .frame(width: column)
+                .padding(.bottom, 16)
             }
+            .frame(maxWidth: .infinity)
         }
         .background(Color(uiColor: .systemBackground).ignoresSafeArea())
     }
