@@ -81,6 +81,10 @@ struct SessionsTab: View {
         .onChange(of: prefs.insightsEnabled) {
             if !prefs.insightsEnabled { path.removeAll { $0 == .insights } }
         }
+        // Notes and ratings switched off: no filter for them left behind.
+        .onChange(of: prefs.reflectionActive) {
+            if !prefs.reflectionActive && (show == .notes || show == .rated) { show = .all }
+        }
         // Projects switched off: no project filter left behind.
         .onChange(of: prefs.projectsActive) {
             if !prefs.projectsActive { projectFilter = .all; router.projectsShown = false }
@@ -147,7 +151,8 @@ struct SessionsTab: View {
                     Section {
                         ForEach(day.records) { record in
                             NavigationLink(value: Route.session(record.id)) {
-                                JournalRow(record: record, project: prefs.projectsActive ? history.project(record.projectID) : nil)
+                                JournalRow(record: record, project: prefs.projectsActive ? history.project(record.projectID) : nil,
+                                           showsReflection: prefs.reflectionActive)
                             }
                             .swipeActions(edge: .trailing) {
                                 Button("Delete", systemImage: "trash", role: .destructive) { confirmDelete = [record.id] }
@@ -163,7 +168,7 @@ struct SessionsTab: View {
             }
             .listStyle(.plain)
             .scrollDismissesKeyboard(.immediately)
-            .searchable(text: $search, prompt: "Intentions, notes, projects")
+            .searchable(text: $search, prompt: prefs.reflectionActive ? "Intentions, notes, projects" : "Intentions and projects")
             .animation(.snappy, value: projectFilter)
             .animation(.snappy, value: show)
         }
@@ -203,6 +208,7 @@ struct SessionsTab: View {
                 }
             }
         }
+        if prefs.reflectionActive {
         Menu("Rating", systemImage: "star") {
             Picker("Rating", selection: Binding(
                 get: { record.rating ?? 0 },
@@ -213,6 +219,7 @@ struct SessionsTab: View {
                 }
                 Text("No Rating").tag(0)
             }
+        }
         }
         Divider()
         Button("Delete…", systemImage: "trash", role: .destructive) { confirmDelete = [record.id] }
@@ -232,7 +239,10 @@ struct SessionsTab: View {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Picker("Show", selection: $show.animation(.snappy)) {
-                    ForEach(Show.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
+                    // Notes and ratings belong to Insights; without it, only distractions are left to filter by.
+                    ForEach(Show.allCases.filter { prefs.reflectionActive || ($0 != .notes && $0 != .rated) }) {
+                        Label($0.title, systemImage: $0.symbol).tag($0)
+                    }
                 }
                 .pickerStyle(.inline)
                 if prefs.projectsActive && !history.projects.isEmpty {
@@ -302,7 +312,7 @@ struct SessionsTab: View {
             }
             guard !query.isEmpty else { return true }
             return record.intention.lowercased().contains(query)
-                || (record.note ?? "").lowercased().contains(query)
+                || (prefs.reflectionActive && (record.note ?? "").lowercased().contains(query))
                 || (prefs.projectsActive && (history.project(record.projectID)?.name.lowercased().contains(query) ?? false))
         }
     }
@@ -554,6 +564,8 @@ private struct NowRow: View {
 private struct JournalRow: View {
     var record: FocusRecord
     var project: Project?
+    /// Notes and ratings, which are part of Insights.
+    var showsReflection = true
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -590,7 +602,7 @@ private struct JournalRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 }
-                if let note = record.note, !note.isEmpty {
+                if showsReflection, let note = record.note, !note.isEmpty {
                     Text(note)
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -603,7 +615,7 @@ private struct JournalRow: View {
                 }
             }
             Spacer(minLength: 4)
-            if let rating = record.rating {
+            if showsReflection, let rating = record.rating {
                 RatingDots(value: rating)
                     .padding(.top, 6)
             }
@@ -668,8 +680,10 @@ private struct SessionDetail: View {
                     Text("\(record.start.formatted(date: .omitted, time: .shortened)) – \(record.end.formatted(date: .omitted, time: .shortened))")
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
-                    stars(record)
-                        .padding(.top, 10)
+                    if prefs.reflectionActive {
+                        stars(record)
+                            .padding(.top, 10)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
@@ -683,11 +697,13 @@ private struct SessionDetail: View {
                     .onSubmit { saveIntention() }
             }
 
+            if prefs.reflectionActive {
             Section("What You Got Done") {
                 TextField("Note", text: $note, prompt: Text("What did you get done?"), axis: .vertical)
                     .focused($field, equals: .note)
                     .lineLimit(3...10)
                     .onChange(of: note) { if loaded { history.update(id, note: note) } }
+            }
             }
 
             if prefs.projectsActive {

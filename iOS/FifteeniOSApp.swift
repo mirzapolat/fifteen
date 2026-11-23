@@ -11,6 +11,8 @@ struct FifteeniOSApp: App {
         Notifier.shared.openLink = { AppRouter.shared.showLink() }
         LiveActivityController.shared.start()
         LinkSession.shared.start()
+        CalendarSync.shared.start()
+        RemindersSync.shared.start()
         FifteenShortcuts.updateAppShortcutParameters()
         // `--start` starts a session right away (for screenshots of the running timer).
         if CommandLine.arguments.contains("--start") { TimerEngine.shared.start() }
@@ -27,6 +29,10 @@ struct FifteeniOSApp: App {
             if phase == .active {
                 TimerEngine.shared.refresh()
                 Notifier.shared.clearDelivered()
+                // Allowed or not may have changed in the Settings app while Fifteen was away.
+                NotificationAccess.shared.refresh()
+                CalendarSync.shared.appBecameActive()
+                RemindersSync.shared.appBecameActive()
             }
         }
     }
@@ -44,6 +50,10 @@ final class AppRouter {
     var tab: AppTab = AppRouter.launchTab
     /// The Link sheet, opened from the top right of the timer.
     var linkShown = CommandLine.arguments.contains("--link")
+    /// Today (events and reminders), opened from the calendar at the top right of the timer.
+    var todayShown = CommandLine.arguments.contains("--today")
+    /// What's New after an update (`--whats-new` shows this version's notes anyway).
+    var whatsNew: [ReleaseNotes] = CommandLine.arguments.contains("--whats-new") ? WhatsNew.currentNotes : []
     /// Projects, opened from the top left of Sessions (or "Manage Projects…" on the timer).
     /// `--tab sessions --projects` opens it at launch (for screenshots).
     var projectsShown = CommandLine.arguments.contains("--projects")
@@ -52,6 +62,13 @@ final class AppRouter {
 
     func showTimer() {
         tab = .timer
+    }
+
+    func showToday() {
+        guard TodayChrome.isOn else { return showTimer() }
+        linkShown = false
+        tab = .timer
+        todayShown = true
     }
 
     func showLink() {
@@ -123,6 +140,13 @@ struct RootView: View {
         .sheet(isPresented: $router.linkShown) {
             LinkSheet()
         }
+        .sheet(isPresented: $router.todayShown) {
+            TodaySheet()
+        }
+        .sheet(isPresented: Binding(get: { onboarded && !router.whatsNew.isEmpty },
+                                    set: { if !$0 { router.whatsNew = [] } })) {
+            WhatsNewSheet(notes: router.whatsNew)
+        }
         .background { BreakCoverHost() }
         .environment(\.appActions, AppActions(
             showInsights: { section in
@@ -137,13 +161,24 @@ struct RootView: View {
             showSettings: { router.tab = .settings }
         ))
         .fullScreenCover(isPresented: .constant(!onboarded)) {
-            OnboardingView { onboarded = true }
+            OnboardingView {
+                onboarded = true
+                // A brand-new install has nothing to catch up on.
+                router.whatsNew = []
+            }
+        }
+        .onAppear {
+            // Once per launch: the notes of every version since the one last opened.
+            if router.whatsNew.isEmpty, let notes = WhatsNew.forThisLaunch(onboarded: onboarded) {
+                router.whatsNew = notes
+            }
         }
         .onChange(of: engine.state, initial: true) { updateIdleTimer() }
         .onChange(of: prefs.keepScreenOn) { updateIdleTimer() }
         .onChange(of: router.tab, initial: true) { updateVisibility() }
-        // Link can't stay open once it's switched off.
+        // Link can't stay open once it's switched off; nor Today with nothing left to show.
         .onChange(of: prefs.linkEnabled, initial: true) { if !prefs.linkEnabled { router.linkShown = false } }
+        .onChange(of: TodayChrome.isOn) { if !TodayChrome.isOn { router.todayShown = false } }
         .onChange(of: scenePhase, initial: true) { updateVisibility() }
         .preferredColorScheme(prefs.appearance.colorScheme)
     }
@@ -188,6 +223,12 @@ struct TimerTab: View {
                                 ToolbarItem(placement: .topBarTrailing) {
                                     LinkHeaderButton()
                                         .labelStyle(.titleAndIcon)
+                                }
+                                .sharedBackgroundVisibility(.hidden)
+                            }
+                            if TodayChrome.isOn {
+                                ToolbarItem(placement: .topBarTrailing) {
+                                    TodayHeaderButton()
                                 }
                                 .sharedBackgroundVisibility(.hidden)
                             }
@@ -259,10 +300,14 @@ struct TimerTab: View {
     }
 }
 
-/// The header's right side on iPhone and iPad: Link, the way the Mac has it.
+/// The header's right side on iPhone: Today (when Calendar or Reminders is on), then Link, the
+/// way the Mac has the boxes beside the bubble and Link at its top right.
 struct TimerHeaderTrailing: View {
     var body: some View {
-        if Preferences.shared.linkEnabled { LinkHeaderButton() }
+        HStack(spacing: Pill.spacing) {
+            if TodayChrome.isOn { TodayHeaderButton() }
+            if Preferences.shared.linkEnabled { LinkHeaderButton() }
+        }
     }
 }
 

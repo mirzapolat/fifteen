@@ -23,6 +23,12 @@ struct IOSSettingsView: View {
                          summary: !prefs.linkEnabled ? "Off" : LinkSession.shared.isLinked ? "In a group" : nil) {
                         LinkSettingsSection()
                     }
+                    page("Calendar", symbol: "calendar", summary: calendarSummary) {
+                        TouchCalendarSettings()
+                    }
+                    page("Reminders", symbol: "checklist", summary: RemindersSettings.shared.enabled ? remindersSummary : "Off") {
+                        TouchRemindersSettings()
+                    }
                     page("Focus", symbol: "eye.slash", summary: focusSummary) {
                         FocusSection()
                     }
@@ -48,6 +54,14 @@ struct IOSSettingsView: View {
                             .navigationBarTitleDisplayMode(.inline)
                     } label: {
                         Label("About Fifteen", systemImage: "info.circle")
+                    }
+                    if !WhatsNew.currentNotes.isEmpty {
+                        Button {
+                            AppRouter.shared.whatsNew = WhatsNew.currentNotes
+                        } label: {
+                            Label("What's New in \(AppInfo.version)", systemImage: "sparkles")
+                                .foregroundStyle(.primary)
+                        }
                     }
                 }
                 ResetSection()
@@ -92,6 +106,23 @@ struct IOSSettingsView: View {
         case (false, true): "Screen on"
         case (false, false): nil
         }
+    }
+
+    private var calendarSummary: String? {
+        let settings = CalendarSettings.shared
+        guard settings.enabled else { return "Off" }
+        guard CalendarSync.shared.apple.isConnected else { return "No access" }
+        switch (settings.showPanel, settings.logSessions) {
+        case (true, true): return "Events, logging"
+        case (true, false): return "Events"
+        case (false, true): return "Logging"
+        case (false, false): return nil
+        }
+    }
+
+    private var remindersSummary: String? {
+        guard RemindersSync.shared.isConnected else { return "No access" }
+        return RemindersSync.shared.list?.title
     }
 
     private var soundSummary: String {

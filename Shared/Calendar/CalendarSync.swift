@@ -1,4 +1,4 @@
-import AppKit
+import Foundation
 import Observation
 
 /// Ties the calendar to the timer: keeps today's events fresh for the side box, starts focus from
@@ -28,7 +28,9 @@ final class CalendarSync {
 
     @ObservationIgnored let settings = CalendarSettings.shared
     @ObservationIgnored let apple = AppleCalendarProvider()
+    #if os(macOS)
     @ObservationIgnored let google = GoogleCalendarProvider()
+    #endif
     @ObservationIgnored private let engine = TimerEngine.shared
     @ObservationIgnored private let history = HistoryStore.shared
     @ObservationIgnored private let prefs = Preferences.shared
@@ -37,7 +39,12 @@ final class CalendarSync {
     @ObservationIgnored private var updateTask: Task<Void, Never>?
     @ObservationIgnored private var started = false
 
+    #if os(macOS)
     var provider: any CalendarProvider { settings.source == .apple ? apple : google }
+    #else
+    /// The iPhone and iPad read the Calendar app, which already has any Google account added in Settings.
+    var provider: any CalendarProvider { apple }
+    #endif
 
     // MARK: Lifecycle
 
@@ -90,6 +97,14 @@ final class CalendarSync {
     func bubbleOpened() {
         guard settings.panelVisible else { return }
         if let lastRefresh, Date().timeIntervalSince(lastRefresh) < 60 { return }
+        refresh()
+    }
+
+    /// The iPhone app came back to the front: fresh events if the last look is more than a minute old,
+    /// and a new look at access, which can be changed in the Settings app meanwhile.
+    func appBecameActive() {
+        guard settings.enabled else { return }
+        if let lastRefresh, Date().timeIntervalSince(lastRefresh) < 60, provider.isConnected { return }
         refresh()
     }
 
@@ -154,7 +169,9 @@ final class CalendarSync {
     }
 
     func cancelConnecting() {
+        #if os(macOS)
         google.cancelSignIn()
+        #endif
         if status == .connecting { status = provider.isConnected ? .ready : .notConnected }
     }
 
@@ -171,7 +188,11 @@ final class CalendarSync {
         guard !writable.isEmpty, !writable.contains(where: { $0.id == settings.logCalendar }) else { return }
         let fallback: String? = switch settings.source {
         case .apple: apple.store.defaultCalendarForNewEvents?.calendarIdentifier
+        #if os(macOS)
         case .google: google.accountName
+        #else
+        case .google: nil
+        #endif
         }
         settings.logCalendar = writable.first(where: { $0.id == fallback })?.id ?? writable[0].id
     }
@@ -254,7 +275,6 @@ final class CalendarSync {
             }
         }
         if prefs.showIntention { engine.intention = intention }
-        TimerChrome.shared.detailsShown = !engine.intention.isEmpty || engine.projectID != nil
     }
 
     /// Starts focus for an event now: a regular session, shortened when the event ends sooner.

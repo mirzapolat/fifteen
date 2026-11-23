@@ -49,55 +49,6 @@ enum Greeting {
     }
 }
 
-// MARK: - Release notes
-
-/// One version's notes, read from the bundled `release-notes/<version>.html`: the same file Sparkle's
-/// update window and the GitHub release show. An `<h2>` title, a `<p>` line and a `<ul>` of changes.
-struct ReleaseNotes: Identifiable {
-    var version: String
-    var title: String
-    var intro: String?
-    var items: [String]
-    var id: String { version }
-
-    /// Every bundled version, newest first.
-    static let bundled: [ReleaseNotes] = {
-        guard let folder = Bundle.main.resourceURL?.appendingPathComponent("release-notes"),
-              let files = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
-        else { return [] }
-        return files
-            .filter { $0.pathExtension == "html" }
-            .compactMap { url in
-                (try? String(contentsOf: url, encoding: .utf8)).map {
-                    parse($0, version: url.deletingPathExtension().lastPathComponent)
-                }
-            }
-            .sorted { $0.version.compare($1.version, options: .numeric) == .orderedDescending }
-    }()
-
-    static func parse(_ html: String, version: String) -> ReleaseNotes {
-        func contents(of tag: String) -> [String] {
-            let pattern = try! Regex("<\(tag)(?:\\s[^>]*)?>(.*?)</\(tag)>").dotMatchesNewlines().ignoresCase()
-            return html.matches(of: pattern)
-                .compactMap { $0.output[1].substring.map { plainText(String($0)) } }
-                .filter { !$0.isEmpty }
-        }
-        return ReleaseNotes(version: version,
-                            title: contents(of: "h2").first ?? "Fifteen \(version)",
-                            intro: contents(of: "p").first,
-                            items: contents(of: "li"))
-    }
-
-    private static func plainText(_ html: String) -> String {
-        var text = html.replacing(try! Regex("<[^>]+>"), with: "")
-        for (entity, character) in ["&lt;": "<", "&gt;": ">", "&quot;": "\"", "&#39;": "'",
-                                    "&apos;": "'", "&rsquo;": "’", "&nbsp;": " ", "&amp;": "&"] {
-            text = text.replacingOccurrences(of: entity, with: character)
-        }
-        return text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
-    }
-}
-
 // MARK: - Views
 
 /// After an update: the notes of each version since the last one opened, newest first.

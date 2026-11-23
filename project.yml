@@ -11,8 +11,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.3.7"
-    CURRENT_PROJECT_VERSION: "16"
+    MARKETING_VERSION: "1.4"
+    CURRENT_PROJECT_VERSION: "17"
     DEVELOPMENT_TEAM: "56746T8S3D"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_EMIT_LOC_STRINGS: YES
@@ -108,6 +108,11 @@ targets:
       - Shared
       - iOS
       - Resources
+      # Shown in What's New after an update. The iPhone has its own notes: the Mac's talk about
+      # the menu bar, ⌘Q and the like.
+      - path: release-notes/ios
+        type: folder
+        buildPhase: resources
     dependencies:
       - target: FifteenWidgets
     info:
@@ -122,6 +127,12 @@ targets:
         # Only standard HTTPS/WSS (the Link relay): exempt, so TestFlight doesn't ask for each build.
         ITSAppUsesNonExemptEncryption: false
         UIBackgroundModes: [audio]
+        # Calendar and Reminders (optional, off until switched on in Settings): today's events and a
+        # Reminders list on the timer, and finished focus sessions written back as events.
+        NSCalendarsFullAccessUsageDescription: Fifteen shows today's events on the timer and adds your finished focus sessions to the calendar you pick.
+        NSCalendarsUsageDescription: Fifteen shows today's events on the timer and adds your finished focus sessions to the calendar you pick.
+        NSRemindersFullAccessUsageDescription: Fifteen shows a Reminders list on the timer so you can tick things off and add new ones while you focus.
+        NSRemindersUsageDescription: Fifteen shows a Reminders list on the timer so you can tick things off and add new ones while you focus.
         # Lets Link talk to a relay on this Mac or the local network while developing.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
@@ -178,6 +189,7 @@ targets:
       - Shared/Analytics
       - Shared/Model/Phase.swift
       - Shared/Link/SharedTimer.swift
+      - Shared/Views/ReleaseNotes.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mirzapolat.fifteen.tests

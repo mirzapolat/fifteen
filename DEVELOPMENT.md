@@ -66,15 +66,19 @@ Shared/Analytics     Everything Insights computes
 Shared/Link          LinkSession (the relay client), the shared timer, avatars
 Shared/Services      SoundEngine (AVAudioEngine synthesis), Notifier, Haptics
 Shared/Views         Dial, header, controls, Insights, Settings sections
+Shared/Calendar      Calendar settings, sync and the Apple (EventKit) provider, for both apps
+Shared/Reminders     Reminders settings and sync, for both apps
 Shared/Intents       App Intents + App Shortcuts
 Shared/LiveActivity  Live Activity attributes and its Pause/Reset buttons
 macOS/               Menu bar item, glass bubble, Link card, hot keys, app blocker, break curtain, Settings
-macOS/Calendar       Calendar box beside the bubble, Apple (EventKit) and Google providers, session logging
-iOS/                 Tabs, timer controls, Link, Settings, onboarding, Live Activity controller
+macOS/Calendar       Calendar box beside the bubble, its settings, and the Google provider
+iOS/                 Tabs, timer controls, Link, Today (events and reminders), What's New, Settings,
+                     onboarding, Live Activity controller
 Widgets/             Lock Screen and Dynamic Island (WidgetKit extension)
 Resources/           AppIcon.icon (Icon Composer, Liquid Glass), AccentColor
 scripts/             release-mac.sh (notarized DMG, Sparkle appcast, GitHub release)
-release-notes/       <version>.html, shown in the update window
+release-notes/       <version>.html, shown in the update window; ios/<version>.html for the iPhone's
+                     What's New (`<li data-symbol="…"><strong>Title</strong> text</li>`)
 server/link          The Link relay (Node, Docker)
 website/             getfifteen.de (React + Vite, deploys on push to main via deploy-website.yml)
 ```

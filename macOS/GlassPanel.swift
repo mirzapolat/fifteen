@@ -141,9 +141,7 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
     func open() {
         let panel = panel ?? makePanel()
         // Settings can show or hide parts of the bubble, so measure it fresh each time.
-        // The field shows on open only when there's something in it; otherwise 💬 adds one.
         let engine = TimerEngine.shared
-        TimerChrome.shared.detailsShown = !engine.intention.isEmpty || engine.projectID != nil
         LinkChrome.shared.isOpen = false
         LinkChrome.shared.joining = false
         // Measured fresh each time (settings can change the bubble), plus room for the
@@ -231,9 +229,22 @@ final class GlassPanelController: NSObject, NSWindowDelegate {
         panel.delegate = self
         self.panel = panel
         panel.bubbleHeight = { [weak self] in self?.presentation.bubbleHeight ?? .greatestFiniteMagnitude }
-        // Dragging a side box's edge: the window follows right away, keeping the bubble under its item.
+        // Tucking a side box away or bringing it back: the window follows, keeping the bubble under its item.
         SidePanels.onResize = { [weak self] in self?.fitWidth() }
+        watchSideBoxes()
         return panel
+    }
+
+    /// A box can also change size by itself, e.g. opening up once calendar access is granted.
+    private func watchSideBoxes() {
+        withObservationTracking {
+            _ = SidePanels.extraWidth
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.fitWidth()
+                self?.watchSideBoxes()
+            }
+        }
     }
 
     /// The window's width for the bubble and its side boxes, worked out directly (the SwiftUI

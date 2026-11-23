@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The row under the ring:  [length]  ·····  [reset] [history] […]
+/// The row under the ring:  [length or Add Time] [reset]  ·····  [history] […]
 /// The ring itself starts and pauses. When a session ends, the length pill grows into a tinted
 /// "Take a Break" (or "Back to Focus") so moving on is one click.
 struct ControlPills: View {
@@ -23,10 +23,6 @@ struct ControlPills: View {
                 } else {
                     lengthPill
                         .glassID("leading", in: glass)
-                }
-                if showsDetailsPill {
-                    detailsPill
-                        .glassID("details", in: glass)
                 }
                 // Reset morphs in only when there's something to reset; last in its group, away
                 // from the main pill, so it isn't hit by accident.
@@ -146,7 +142,7 @@ struct ControlPills: View {
     }
 
     private var lengthTitle: String {
-        if engine.state != .idle { return "Time" }
+        if engine.state != .idle { return "Add Time" }
         return engine.isFlowtime ? "Flow" : "\(Int(engine.total / 60)) min"
     }
 
@@ -173,11 +169,6 @@ struct ControlPills: View {
         .accessibilityLabel("Reset")
     }
 
-    /// Hidden in breaks, and after a session, when the "What did you get done?" note takes the field's place.
-    private var showsDetailsPill: Bool {
-        (prefs.showIntention || prefs.projectsActive) && !engine.phase.isBreak && engine.state != .finished
-    }
-
     private var historyPill: some View {
         Button { actions.showHistory() } label: {
             Image(systemName: "chart.line.uptrend.xyaxis")
@@ -187,25 +178,6 @@ struct ControlPills: View {
         .buttonStyle(.plain)
         .help("Insights")
         .accessibilityLabel("Insights")
-    }
-
-    /// Reveals the project and "one thing" field. Solid while it's open; the icon is filled when
-    /// a project or intention is set, so you know there's something behind it.
-    private var detailsPill: some View {
-        let chrome = TimerChrome.shared
-        let hasDetails = !engine.intention.isEmpty || engine.projectID != nil
-        return Button {
-            withAnimation(Pill.morph) { chrome.detailsShown.toggle() }
-        } label: {
-            Image(systemName: hasDetails ? "text.bubble.fill" : "text.bubble")
-                .contentTransition(.symbolEffect(.replace))
-                .frame(width: Pill.height)
-                .pill(prominent: chrome.detailsShown, square: true)
-        }
-        .buttonStyle(.plain)
-        .help(chrome.detailsShown ? "Hide project and intention" : "Project and intention")
-        .accessibilityLabel("Project and intention")
-        .accessibilityAddTraits(chrome.detailsShown ? .isSelected : [])
     }
 
     /// Only what isn't already one click away elsewhere.

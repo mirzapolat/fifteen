@@ -27,6 +27,14 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Fifteen shows today's events on the timer and adds your finished focus sessions to the calendar you pick.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Fifteen shows today's events on the timer and adds your finished focus sessions to the calendar you pick.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Fifteen shows a Reminders list on the timer so you can tick things off and add new ones while you focus.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Fifteen shows a Reminders list on the timer so you can tick things off and add new ones while you focus.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

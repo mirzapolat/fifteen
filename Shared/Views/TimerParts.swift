@@ -104,23 +104,13 @@ struct CycleDots: View {
     }
 }
 
-/// Popup state that isn't a preference: whether the project and "one thing" field are revealed.
-/// They stay tucked behind a button at the bottom right until you ask for them.
-@Observable
-@MainActor
-final class TimerChrome {
-    static let shared = TimerChrome()
-    var detailsShown = false
-}
-
-/// "What's the one thing?" (with the project) when revealed, "What did you get done?" after a
+/// "What's the one thing?" (with the project) while focusing, "What did you get done?" after a
 /// session, a small suggestion during breaks. Takes no room at all when there's nothing to show.
 struct IntentionField: View {
     @Environment(TimerEngine.self) private var engine
     @Environment(HistoryStore.self) private var history
     @Environment(Preferences.self) private var prefs
     @FocusState private var focused: Bool
-    private var chrome: TimerChrome { TimerChrome.shared }
 
     private enum Content: Equatable { case reflection(FocusRecord.ID), tip, intention }
 
@@ -130,7 +120,7 @@ struct IntentionField: View {
             return .reflection(id)
         }
         if engine.phase.isBreak { return prefs.showIntention || prefs.reflectionActive ? .tip : nil }
-        return (prefs.showIntention || prefs.projectsActive) && chrome.detailsShown ? .intention : nil
+        return prefs.showIntention || prefs.projectsActive ? .intention : nil
     }
 
     var body: some View {
@@ -195,8 +185,8 @@ struct IntentionField: View {
                                     .animation(.snappy(duration: 0.2), value: engine.intention.isEmpty)
                                 }
                             .fieldBox(focused: focused)
-                            // Revealed on purpose, so it's ready to type into.
-                            .onAppear { if engine.intention.isEmpty { focused = true } }
+                            // Back to focus with nothing written yet: ready to type into.
+                            .onAppear { if engine.intention.isEmpty && engine.state == .idle { focused = true } }
                         } else {
                             // Projects without the intention: just the picker, with its name.
                             ProjectChip(showsName: true)

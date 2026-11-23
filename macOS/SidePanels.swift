@@ -1,26 +1,12 @@
 import SwiftUI
 
-/// Which side of the timer a box sits on.
-enum PanelSide: String, CaseIterable, Identifiable {
-    case left, right
-    var id: Self { self }
-    var title: String {
-        switch self {
-        case .left: "Left"
-        case .right: "Right"
-        }
-    }
-    var opposite: PanelSide { self == .left ? .right : .left }
-}
-
 /// The boxes that can hang off the bubble's sides: today's events and a reminders list.
 /// One per side; when both are on, each keeps its own side and they swap when you move one.
 enum SidePanels {
     enum Kind { case calendar, reminders }
 
-    /// A box's width (including the part tucked behind the bubble) unless you've dragged it wider or narrower.
+    /// A box's width (including the part tucked behind the bubble).
     static let defaultWidth: CGFloat = 214
-    static let widthRange: ClosedRange<CGFloat> = 180...420
     static let tuck: CGFloat = 14
     static let height: CGFloat = 292
 
@@ -41,24 +27,48 @@ enum SidePanels {
         isCollapsed(kind) ? collapsedWidth : fullWidth(of: kind)
     }
 
-    /// The box's width when open, as you last dragged it.
-    @MainActor static func fullWidth(of kind: Kind) -> CGFloat {
+    /// The box's width when open.
+    @MainActor static func fullWidth(of kind: Kind) -> CGFloat { defaultWidth }
+
+    /// Switched on, but Fifteen may not read it yet: the box waits as a slim strip that asks for
+    /// access when clicked, instead of a big empty box beside the timer.
+    @MainActor static func needsAccess(_ kind: Kind) -> Bool {
         switch kind {
-        case .calendar: CalendarSettings.shared.panelWidth
-        case .reminders: RemindersSettings.shared.panelWidth
+        case .calendar:
+            switch CalendarSync.shared.status {
+            case .off, .notConnected: return true
+            default: return false
+            }
+        case .reminders:
+            switch RemindersSync.shared.status {
+            case .off, .notConnected: return true
+            default: return false
+            }
         }
     }
 
-    @MainActor static func isCollapsible(_ kind: Kind) -> Bool {
+    /// Asks for access (or, once refused, opens the place in System Settings that gives it).
+    @MainActor static func connect(_ kind: Kind) {
         switch kind {
-        case .calendar: CalendarSettings.shared.collapsible
-        case .reminders: RemindersSettings.shared.collapsible
+        case .calendar:
+            let sync = CalendarSync.shared
+            if CalendarSettings.shared.source == .apple && sync.apple.isDenied {
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars")!)
+            } else {
+                sync.connect()
+            }
+        case .reminders:
+            if RemindersSync.shared.isDenied {
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders")!)
+            } else {
+                RemindersSync.shared.connect()
+            }
         }
     }
 
-    /// Collapsed for layout (the window's width). Only while collapsing is switched on in Settings.
+    /// Collapsed for layout (the window's width): tucked away with its button, or waiting for access.
     @MainActor static func isCollapsed(_ kind: Kind) -> Bool {
-        guard isCollapsible(kind) else { return false }
+        if needsAccess(kind) { return true }
         switch kind {
         case .calendar: return CalendarSettings.shared.collapsed
         case .reminders: return RemindersSettings.shared.collapsed
@@ -102,16 +112,7 @@ enum SidePanels {
         }
     }
 
-    @MainActor static func setWidth(_ width: CGFloat, of kind: Kind) {
-        let width = min(max(width.rounded(), widthRange.lowerBound), widthRange.upperBound)
-        switch kind {
-        case .calendar: CalendarSettings.shared.panelWidth = width
-        case .reminders: RemindersSettings.shared.panelWidth = width
-        }
-        onResize?()
-    }
-
-    /// Called while a box is being resized, so the window can grow or shrink with it.
+    /// Called when a box is tucked away or brought back, so the window can grow or shrink with it.
     @MainActor static var onResize: (() -> Void)?
 
     /// What a box adds to the window's width.
@@ -197,7 +198,8 @@ final class SideBoxChrome {
 }
 
 /// The glass a side box is drawn on: rounded on the outside, tucked behind the bubble on the
-/// inside, sliding out from behind it once the bubble has opened. Drag its outer edge to resize it.
+/// inside, sliding out from behind it once the bubble has opened. Collapsed (with the button in its
+/// header, or while it waits for access) it's a slim strip; click the strip to open it again.
 struct SideBox<Content: View>: View {
     var kind: SidePanels.Kind
     var side: PanelSide
@@ -209,12 +211,10 @@ struct SideBox<Content: View>: View {
     var count: Int?
     @ViewBuilder var content: Content
 
-    @State private var edgeHover = false
-    @State private var tabHover = false
-
     var body: some View {
         let width = SidePanels.width(of: kind)
-        let looksCollapsed = SidePanels.isCollapsible(kind) && SideBoxChrome.shared.looksCollapsed(kind)
+        let needsAccess = SidePanels.needsAccess(kind)
+        let looksCollapsed = needsAccess || SideBoxChrome.shared.looksCollapsed(kind)
         // While collapsing, the box still has its full width but slides behind the bubble so only a strip shows.
         let tucked = looksCollapsed ? max(0, width - SidePanels.collapsedWidth) : 0
         let toward: CGFloat = side == .left ? 1 : -1
@@ -222,14 +222,13 @@ struct SideBox<Content: View>: View {
             content
                 .padding(.top, 12)
                 .padding(.bottom, 10)
-                // With tucking on, the outer edge keeps room for the tab so it never covers a row.
-                .padding(side == .left ? .leading : .trailing, SidePanels.isCollapsible(kind) ? 20 : 12)
+                .padding(side == .left ? .leading : .trailing, 12)
                 .padding(side == .left ? .trailing : .leading, SidePanels.tuck + 8)
                 .frame(width: width, height: SidePanels.height, alignment: .top)
                 .opacity(looksCollapsed ? 0 : 1)
                 .blur(radius: looksCollapsed ? 6 : 0)
                 .allowsHitTesting(!looksCollapsed)
-            strip
+            strip(needsAccess: needsAccess)
                 .frame(width: SidePanels.collapsedWidth - SidePanels.tuck, height: SidePanels.height)
                 .opacity(looksCollapsed ? 1 : 0)
                 .allowsHitTesting(looksCollapsed)
@@ -237,18 +236,6 @@ struct SideBox<Content: View>: View {
         .frame(width: width, height: SidePanels.height, alignment: side == .left ? .leading : .trailing)
         .glassPanel(in: shape)
         .contentShape(shape)
-        .overlay(alignment: side == .left ? .leading : .trailing) {
-            if !looksCollapsed {
-                ResizeEdge(kind: kind, side: side, hovering: $edgeHover)
-            }
-        }
-        .overlay(alignment: side == .left ? .leading : .trailing) {
-            if SidePanels.isCollapsible(kind) && (edgeHover || tabHover) {
-                collapseTab(collapsed: looksCollapsed)
-                    .transition(.opacity.combined(with: .scale(0.6, anchor: side == .left ? .leading : .trailing)))
-            }
-        }
-        .animation(.snappy(duration: 0.2), value: edgeHover || tabHover)
         .offset(x: isOpen ? toward * tucked : toward * width)
         .opacity(isOpen ? 1 : 0)
         .animation(.spring(duration: 0.5, bounce: 0.2).delay(isOpen ? 0.12 : 0), value: isOpen)
@@ -260,23 +247,28 @@ struct SideBox<Content: View>: View {
                 .padding(side == .left ? .leading : .trailing, -SidePanels.shadowRoom)
                 .padding(.vertical, -SidePanels.shadowRoom)
         }
-        .onHover { inside in
-            // The strip itself shows the tab too, so it's easy to find again.
-            if looksCollapsed { edgeHover = inside }
-        }
         .padding(.top, top)
     }
 
-    /// The slim strip a collapsed box leaves: its symbol and count. Click to open it again.
-    private var strip: some View {
+    /// The slim strip a collapsed box leaves: its symbol and count. Click to open it again, or,
+    /// with a dot, to let Fifteen read your calendar or reminders.
+    private func strip(needsAccess: Bool) -> some View {
         Button {
             Haptics.play(.select)
-            SidePanels.toggleCollapsed(kind)
+            if needsAccess { SidePanels.connect(kind) } else { SidePanels.toggleCollapsed(kind) }
         } label: {
             VStack(spacing: 6) {
                 Image(systemName: symbol)
                     .font(.system(size: 13, weight: .medium))
-                if let count, count > 0 {
+                    .overlay(alignment: .topTrailing) {
+                        if needsAccess {
+                            Circle()
+                                .fill(Color.orange)
+                                .frame(width: 7, height: 7)
+                                .offset(x: 4, y: -3)
+                        }
+                    }
+                if !needsAccess, let count, count > 0 {
                     Text("\(count)")
                         .font(.system(size: 11, weight: .semibold))
                         .monospacedDigit()
@@ -288,32 +280,8 @@ struct SideBox<Content: View>: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help("Show")
-    }
-
-    /// A small glass tab on the outer edge: ‹ tucks the box away, › brings it back.
-    private func collapseTab(collapsed: Bool) -> some View {
-        // Pointing the way the box will move: in toward the bubble, or back out.
-        let inward = side == .left ? "chevron.compact.right" : "chevron.compact.left"
-        let outward = side == .left ? "chevron.compact.left" : "chevron.compact.right"
-        return Button {
-            Haptics.play(.select)
-            tabHover = false
-            edgeHover = false
-            SidePanels.toggleCollapsed(kind)
-        } label: {
-            Image(systemName: collapsed ? outward : inward)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(tabHover ? .primary : .secondary)
-                .frame(width: 12, height: 40)
-                .background(Capsule().fill(Color.primary.opacity(tabHover ? 0.16 : 0.09)))
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .padding(side == .left ? .leading : .trailing, 4)
-        .onHover { tabHover = $0 }
-        .help(collapsed ? "Show" : "Tuck Away")
-        .accessibilityLabel(collapsed ? "Show box" : "Collapse box")
+        .help(needsAccess ? (kind == .calendar ? "Connect your calendar" : "Connect Reminders") : "Show")
+        .accessibilityLabel(needsAccess ? (kind == .calendar ? "Connect your calendar" : "Connect Reminders") : "Show box")
     }
 
     private var shape: UnevenRoundedRectangle {
@@ -323,42 +291,17 @@ struct SideBox<Content: View>: View {
     }
 }
 
-/// The box's outer edge: drag to make it wider or narrower (kept for next time), double-click for the usual width.
-private struct ResizeEdge: View {
+/// In a box's header: tucks the box away behind the bubble, leaving a slim strip.
+struct SideBoxCollapseButton: View {
     var kind: SidePanels.Kind
     var side: PanelSide
-    @Binding var hovering: Bool
-    @State private var start: (mouse: CGFloat, width: CGFloat)?
 
     var body: some View {
-        Color.clear
-            .frame(width: 10)
-            .frame(maxHeight: .infinity)
-            .padding(.vertical, 22)
-            .contentShape(Rectangle())
-            .onHover { inside in
-                hovering = inside
-                if inside { NSCursor.resizeLeftRight.push() } else if start == nil { NSCursor.pop() }
-            }
-            .gesture(
-                DragGesture(minimumDistance: 1, coordinateSpace: .global)
-                    .onChanged { _ in
-                        // Screen coordinates: the window itself moves while the box grows to the left.
-                        let mouse = NSEvent.mouseLocation.x
-                        if start == nil { start = (mouse, SidePanels.width(of: kind)) }
-                        guard let start else { return }
-                        let delta = (mouse - start.mouse) * (side == .left ? -1 : 1)
-                        SidePanels.setWidth(start.width + delta, of: kind)
-                    }
-                    .onEnded { _ in
-                        start = nil
-                        if !hovering { NSCursor.pop() }
-                    }
-            )
-            .onTapGesture(count: 2) {
-                withAnimation(.snappy) { SidePanels.setWidth(SidePanels.defaultWidth, of: kind) }
-            }
-            .help("Drag to resize · double-click for the usual width")
+        // Pointing the way the box will go: in, toward the bubble.
+        SideBoxIconButton(symbol: side == .left ? "chevron.right" : "chevron.left", help: "Tuck Away") {
+            Haptics.play(.select)
+            SidePanels.toggleCollapsed(kind)
+        }
     }
 }
 

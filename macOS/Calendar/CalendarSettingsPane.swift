@@ -124,7 +124,6 @@ struct CalendarSettingsPane: View {
                     ForEach(PanelSide.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
-                Toggle("Tuck away from the box's edge", isOn: $settings.collapsible)
                 Toggle("Include all-day events", isOn: $settings.showAllDay)
                 if prefs.showIntention {
                     Toggle("Offer to make an event your intention", isOn: $settings.useEventAsIntention)
@@ -140,12 +139,9 @@ struct CalendarSettingsPane: View {
     }
 
     private var panelFooter: String {
-        var text = "Click an event to open it in your calendar; hover it for 💬 to make it your intention. Drag the box's outer edge to make it wider or narrower. ▶ next to an event starts focusing on it, shortened if the event ends sooner. If an event mentions one of your projects, that project is picked too. When a session would run into your next event, the box says so and offers to make it fit."
-        if settings.collapsible {
-            text += " Hover the outer edge and click the tab to tuck the box away behind the timer; click it again to bring it back."
-        }
+        var text = "Click an event to focus on it, make it your intention or join its call. The box warns you when a session would run into your next event."
         if RemindersSettings.shared.enabled {
-            text += " Your reminders sit on the other side; moving one box moves the other."
+            text += " Your reminders sit on the other side."
         }
         return text
     }
@@ -190,7 +186,7 @@ struct CalendarSettingsPane: View {
             Text("Backwards Tracking")
         } footer: {
             if settings.logSessions {
-                Text("When a focus session ends, it's added where it happened, titled as above, with the minutes, distractions, how it felt and what you got done in the notes. Notes and ratings you add afterwards are sent too. These events are marked free, so they don't block your time, and they don't show up in the box next to the timer. A separate calendar just for focus, like “Fifteen”, keeps them easy to hide.")
+                Text("Each finished focus session becomes an event, with your notes and rating. They're marked free, so they don't block your time.")
             }
         }
     }
@@ -382,50 +378,6 @@ private struct EventTitleEditor: View {
             intention: engine.intention.isEmpty ? "Write the introduction" : engine.intention,
             project: prefs.projectsActive ? project : "",
             minutes: prefs.focusMinutes, felt: felt, distractions: 1))
-    }
-}
-
-/// Lays chips out in rows, wrapping to the next row when one is full.
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 6
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let rows = rows(for: subviews, width: proposal.width ?? .infinity)
-        let height = rows.map(\.height).reduce(0, +) + spacing * CGFloat(max(0, rows.count - 1))
-        let width = rows.map(\.width).max() ?? 0
-        return CGSize(width: proposal.width ?? width, height: height)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var y = bounds.minY
-        for row in rows(for: subviews, width: bounds.width) {
-            var x = bounds.minX
-            for index in row.indices {
-                let size = subviews[index].sizeThatFits(.unspecified)
-                subviews[index].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-                x += size.width + spacing
-            }
-            y += row.height + spacing
-        }
-    }
-
-    private struct Row { var indices: [Int] = []; var width: CGFloat = 0; var height: CGFloat = 0 }
-
-    private func rows(for subviews: Subviews, width: CGFloat) -> [Row] {
-        var rows: [Row] = [Row()]
-        for index in subviews.indices {
-            let size = subviews[index].sizeThatFits(.unspecified)
-            let needed = rows[rows.count - 1].indices.isEmpty ? size.width : rows[rows.count - 1].width + spacing + size.width
-            if needed > width, !rows[rows.count - 1].indices.isEmpty {
-                rows.append(Row())
-            }
-            var row = rows[rows.count - 1]
-            row.width = row.indices.isEmpty ? size.width : row.width + spacing + size.width
-            row.height = max(row.height, size.height)
-            row.indices.append(index)
-            rows[rows.count - 1] = row
-        }
-        return rows
     }
 }
 

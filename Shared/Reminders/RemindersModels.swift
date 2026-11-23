@@ -1,4 +1,4 @@
-import AppKit
+import Foundation
 import Observation
 
 /// One Reminders list the box can show.
@@ -7,7 +7,7 @@ struct ReminderList: Identifiable, Hashable {
     var title: String
     /// Account it belongs to ("iCloud", an Exchange address).
     var group: String
-    var color: NSColor
+    var color: PlatformColor
     var isWritable: Bool
 }
 
@@ -29,7 +29,7 @@ struct ReminderItem: Identifiable, Hashable, Sendable {
     }
 }
 
-/// All Reminders settings. Mac only, like the calendar's.
+/// All Reminders settings, like the calendar's.
 @Observable
 @MainActor
 final class RemindersSettings {
@@ -42,11 +42,8 @@ final class RemindersSettings {
     /// The list shown. Empty = the list new reminders go to.
     var listID: String = "" { didSet { store.set(listID, forKey: Key.listID) } }
     var side: PanelSide = .right { didSet { store.set(side.rawValue, forKey: Key.side) } }
-    /// Hovering the box's outer edge offers to tuck it away behind the bubble.
-    var collapsible: Bool = false { didSet { store.set(collapsible, forKey: Key.collapsible) } }
+    /// Tucked away behind the bubble with the button in its header.
     var collapsed: Bool = false { didSet { store.set(collapsed, forKey: Key.collapsed) } }
-    /// The box's width, as you last dragged it.
-    var panelWidth: CGFloat = SidePanels.defaultWidth { didSet { store.set(Double(panelWidth), forKey: Key.panelWidth) } }
     /// Only what's due today or overdue, not everything on the list.
     var onlyDue: Bool = false { didSet { store.set(onlyDue, forKey: Key.onlyDue) } }
     /// Clicking a reminder fills in the intention.
@@ -61,8 +58,6 @@ final class RemindersSettings {
             Key.side: PanelSide.right.rawValue,
             Key.onlyDue: false,
             Key.useAsIntention: true,
-            Key.panelWidth: Double(SidePanels.defaultWidth),
-            Key.collapsible: false,
         ])
         load()
     }
@@ -78,8 +73,6 @@ final class RemindersSettings {
         side = PanelSide(rawValue: store.string(forKey: Key.side) ?? "") ?? .right
         onlyDue = store.bool(forKey: Key.onlyDue)
         useAsIntention = store.bool(forKey: Key.useAsIntention)
-        panelWidth = CalendarSettings.width(store.double(forKey: Key.panelWidth))
-        collapsible = store.bool(forKey: Key.collapsible)
         collapsed = store.bool(forKey: Key.collapsed)
     }
 
@@ -89,9 +82,7 @@ final class RemindersSettings {
         static let side = "remindersSide"
         static let onlyDue = "remindersOnlyDue"
         static let useAsIntention = "remindersUseAsIntention"
-        static let panelWidth = "remindersPanelWidth"
-        static let collapsible = "remindersCollapsible"
         static let collapsed = "remindersCollapsed"
-        static let all = [enabled, listID, side, onlyDue, useAsIntention, panelWidth, collapsible, collapsed]
+        static let all = [enabled, listID, side, onlyDue, useAsIntention, collapsed]
     }
 }

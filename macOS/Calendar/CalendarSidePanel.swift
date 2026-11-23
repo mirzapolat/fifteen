@@ -3,7 +3,8 @@ import AppKit
 
 /// The events box beside the bubble, tucked behind its left or right edge the way the Link strip
 /// tucks under its bottom. What's on now, what's next, and a nudge when a session would run into
-/// the next event. Click an event to make it your intention; ▶ starts focusing on it.
+/// the next event. Click an event for what you can do with it: focus on it, make it your
+/// intention, join its call, or open it in your calendar.
 struct CalendarSidePanel: View {
     var side: PanelSide
     var isOpen: Bool
@@ -65,13 +66,14 @@ struct CalendarSidePanel: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
-            if sync.status == .ready {
-                HStack(spacing: 0) {
+            HStack(spacing: 0) {
+                if sync.status == .ready {
                     SideBoxIconButton(symbol: "arrow.clockwise", help: "Refresh") { sync.refresh() }
                     SideBoxIconButton(symbol: "arrow.up.forward.app", help: openAppHelp) { CalendarSync.openCalendarApp() }
                 }
-                .padding(.trailing, -4)
+                SideBoxCollapseButton(kind: .calendar, side: side)
             }
+            .padding(.trailing, -4)
         }
         // In line with the events below, so the title keeps the same distance from the timer.
         .padding(.horizontal, 8)
@@ -222,28 +224,31 @@ private struct EventRow: View {
                 .fill(Color(nsColor: item.color))
                 .frame(width: 3)
                 .frame(maxHeight: .infinity)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(item.title)
-                    .font(.system(size: 12, weight: isCurrent ? .semibold : .medium))
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(timeLabel)
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(isCurrent ? .primary : .secondary)
-                    .monospacedDigit()
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: 4) {
+                // Click the event for everything you can do with it (the same menu as a right-click).
+                Menu {
+                    actions
+                } label: {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(item.title)
+                            .font(.system(size: 12, weight: isCurrent ? .semibold : .medium))
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(timeLabel)
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(isCurrent ? .primary : .secondary)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+                .menuIndicator(.hidden)
                 if let meeting = item.meeting, item.end > now {
                     JoinButton(meeting: meeting, isSoon: isCurrent || item.start.timeIntervalSince(now) <= 10 * 60)
-                        .padding(.top, 4)
                 }
-            }
-            Spacer(minLength: 0)
-            if hovering && sync.eventsBecomeIntention {
-                SideBoxIconButton(symbol: "text.bubble", help: "Make This Your Intention", size: 10) {
-                    Haptics.play(.select)
-                    sync.use(item)
-                }
-                .transition(.opacity.combined(with: .scale(0.8)))
             }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -256,32 +261,36 @@ private struct EventRow: View {
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { hovering = $0 }
         .animation(.snappy(duration: 0.18), value: hovering)
-        .onTapGesture {
-            Haptics.play(.select)
-            CalendarSync.open(item)
-        }
-        .help(CalendarSettings.shared.source == .apple ? "Click to open in Calendar" : "Click to open in Google Calendar")
-        .contextMenu {
-            if canStart {
-                Button("Focus on This") { sync.focus(on: item) }
-                if isCurrent, minutesLeft >= 1, !prefs.isFlowtime {
-                    Button("Focus Until It Ends (\(minutesLeft) min)") { sync.focus(on: item, untilItEnds: true) }
-                }
-            }
-            if sync.eventsBecomeIntention {
-                Button("Use as Intention") { sync.use(item) }
-            }
-            if let meeting = item.meeting {
-                Button("Join \(meeting.service)") { NSWorkspace.shared.open(meeting.url) }
-            }
-            Divider()
-            Button(openHelp) { CalendarSync.open(item) }
-        }
+        .help(canStart ? "Click to focus on it or open it" : "Click for more")
+        .contextMenu { actions }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
     }
 
-    /// Only before a session starts; while one runs, a click just changes its intention.
+    @ViewBuilder
+    private var actions: some View {
+        if canStart {
+            Button("Focus on This", systemImage: "play.fill") { sync.focus(on: item) }
+            if isCurrent, minutesLeft >= 1, !prefs.isFlowtime {
+                Button("Focus Until It Ends (\(minutesLeft) min)", systemImage: "timer") {
+                    sync.focus(on: item, untilItEnds: true)
+                }
+            }
+        }
+        if sync.eventsBecomeIntention {
+            Button("Use as Intention", systemImage: "text.bubble") {
+                Haptics.play(.select)
+                sync.use(item)
+            }
+        }
+        if let meeting = item.meeting {
+            Button("Join \(meeting.service)", systemImage: "video") { NSWorkspace.shared.open(meeting.url) }
+        }
+        Divider()
+        Button(openHelp, systemImage: "calendar") { CalendarSync.open(item) }
+    }
+
+    /// Only before a session starts; while one runs, an event can still become its intention.
     private var canStart: Bool {
         !engine.isActive && item.end > now && !item.isAllDay
     }

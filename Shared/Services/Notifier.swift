@@ -45,6 +45,10 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
     private let center = UNUserNotificationCenter.current()
     private let requestID = "fifteen.session.end"
+    /// The end of what starts by itself after this session (a break with "Start breaks
+    /// automatically"). An iPhone app in the background can't schedule it when the break begins,
+    /// so it's scheduled now, along with the first.
+    private let followUpID = "fifteen.session.end.next"
     private let linkRequestID = "fifteen.link.activity"
     /// Opens the timer (the Mac's bubble, the iPhone's Timer tab) when a notification is tapped.
     var openTimer: (() -> Void)?
@@ -101,7 +105,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func sync(with engine: TimerEngine) {
-        center.removePendingNotificationRequests(withIdentifiers: [requestID])
+        center.removePendingNotificationRequests(withIdentifiers: [requestID, followUpID])
         guard Preferences.shared.notifications, engine.state == .running, !engine.isFlowtime,
               let end = engine.endDate else { return }
         requestAuthorizationIfNeeded()
@@ -149,6 +153,36 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         let interval = max(1, end.timeIntervalSinceNow)
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
         center.add(UNNotificationRequest(identifier: requestID, content: content, trigger: trigger))
+
+        // Focus hands over to a break by itself: say when that break is over, too.
+        if startsByItself && engine.phase == .focus && next.isBreak {
+            scheduleBreakEnd(next, after: end, intention: intention)
+        }
+    }
+
+    /// "Break's over", for a break that starts on its own when the current focus session ends.
+    private func scheduleBreakEnd(_ phase: Phase, after start: Date, intention: String) {
+        let prefs = Preferences.shared
+        let breakEnd = start.addingTimeInterval(prefs.duration(for: phase))
+        let words = SessionWords.done(phase: phase, next: .focus, minutes: prefs.minutes(for: phase), intention: intention)
+        let content = UNMutableNotificationContent()
+        content.title = words.title
+        if prefs.autoStartFocus {
+            content.body = SessionWords.quoted(intention).map { "Focus starts now: \($0)." }
+                ?? "Your next \(prefs.minutes(for: .focus))-minute focus starts now."
+            content.categoryIdentifier = Category.automatic.rawValue
+        } else {
+            content.body = words.message
+            content.categoryIdentifier = Category.toFocus.rawValue
+        }
+        content.threadIdentifier = "fifteen.session"
+        content.interruptionLevel = .timeSensitive
+        content.relevanceScore = 1
+        #if os(iOS)
+        content.sound = .default
+        #endif
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, breakEnd.timeIntervalSinceNow), repeats: false)
+        center.add(UNNotificationRequest(identifier: followUpID, content: content, trigger: trigger))
     }
 
     /// "Mira paused" — someone in the Link group changed the timer. Each one replaces the last,
@@ -167,7 +201,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
     /// Opening Fifteen clears the session banner: the timer says the same thing.
     func clearDelivered() {
-        center.removeDeliveredNotifications(withIdentifiers: [requestID])
+        center.removeDeliveredNotifications(withIdentifiers: [requestID, followUpID])
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
@@ -175,7 +209,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         #if os(iOS)
         // On the Timer tab the ring itself shows that the session ended (and the chime plays); a
         // banner on top would only cover it. Elsewhere in the app it's worth the banner.
-        let isSession = notification.request.identifier == "fifteen.session.end"
+        let isSession = notification.request.identifier.hasPrefix("fifteen.session.end")
         Task { @MainActor in
             completionHandler(isSession && LinkChrome.shared.timerVisible ? [.list] : [.banner, .list])
         }

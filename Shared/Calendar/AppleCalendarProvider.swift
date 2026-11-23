@@ -1,5 +1,5 @@
-import AppKit
 import EventKit
+import Foundation
 
 /// The Calendar app's calendars through EventKit: iCloud, Exchange, CalDAV, and Google accounts
 /// added under System Settings → Internet Accounts.
@@ -39,7 +39,7 @@ final class AppleCalendarProvider: CalendarProvider {
             .map { calendar in
                 CalendarInfo(id: calendar.calendarIdentifier, title: calendar.title,
                              group: calendar.source?.title ?? "Other",
-                             color: calendar.color ?? .controlAccentColor,
+                             color: .eventKit(calendar.cgColor),
                              isWritable: calendar.allowsContentModifications,
                              kind: Self.kind(of: calendar))
             }
@@ -66,7 +66,7 @@ final class AppleCalendarProvider: CalendarProvider {
                              title: event.title?.isEmpty == false ? event.title : "Untitled",
                              start: event.startDate, end: event.endDate,
                              calendarID: event.calendar.calendarIdentifier,
-                             color: event.calendar.color ?? .controlAccentColor,
+                             color: .eventKit(event.calendar.cgColor),
                              isAllDay: event.isAllDay,
                              link: Self.calendarLink(for: event),
                              meeting: MeetingLink.find(in: [event.url?.absoluteString, event.location, event.notes]))
@@ -98,9 +98,14 @@ final class AppleCalendarProvider: CalendarProvider {
         }
     }
 
-    /// Calendar.app opens to a day with `ical://`; there's no public link to one event.
+    /// The Calendar app opens to a day with `ical://` (Mac) or `calshow:` (iPhone and iPad);
+    /// there's no public link to one event.
     private static func calendarLink(for event: EKEvent) -> URL? {
         let seconds = Int(event.startDate.timeIntervalSinceReferenceDate)
+        #if os(macOS)
         return URL(string: "ical://\(seconds)") ?? URL(string: "ical://")
+        #else
+        return URL(string: "calshow:\(seconds)")
+        #endif
     }
 }

@@ -533,57 +533,22 @@ struct InsightsSettingsSection: View {
 
     var body: some View {
         @Bindable var prefs = prefs
-        #if os(iOS)
-        // On iPhone and iPad, Insights is only the charts behind "This week" in Sessions;
-        // projects and notes stand on their own.
         Section {
             Toggle("Insights", isOn: $prefs.insightsEnabled.animation())
         } footer: {
-            Text(prefs.insightsEnabled
-                 ? "Tap This Week in Sessions for charts, your focus calendar, goals and streaks."
-                 : "This Week in Sessions no longer opens Insights. Everything else stays as it is.")
-        }
-        Section {
-            Toggle("Intention: \u{201C}What's the one thing?\u{201D}", isOn: $prefs.showIntention)
-            Toggle("Projects", isOn: $prefs.showProjects.animation())
-        } header: {
-            Text("While Focusing")
-        } footer: {
-            Text(prefs.showProjects
-                 ? "Pick a project on the timer. Manage them with the folder at the top left of Sessions."
-                 : "Projects are hidden on the timer, in Sessions and in Insights. Sessions keep the project they had.")
-        }
-        Section {
-            Toggle("Notes and focus rating", isOn: $prefs.askForReflection)
-        } header: {
-            Text("After a Session")
-        } footer: {
-            Text("Write what you got done and rate how it went, right on the timer. Both show up in Sessions.")
-        }
-        if prefs.insightsEnabled {
-            goalsAndStreaks
-        }
-        #else
-        Section {
-            Toggle("Insights", isOn: $prefs.insightsEnabled.animation())
-        } footer: {
-            Text(prefs.insightsEnabled
-                 ? "Charts, goals, streaks and your session history, all on this device."
-                 : "Insights, projects and the after-session rating are hidden everywhere. Sessions are still recorded, so nothing is lost if you turn it back on.")
+            Text(prefs.insightsEnabled ? Self.onText : Self.offText)
         }
 
-        // The intention stands on its own; projects come with Insights.
+        // The intention stands on its own; projects, notes and ratings come with Insights.
         Section {
             Toggle("Intention: \u{201C}What's the one thing?\u{201D}", isOn: $prefs.showIntention)
             if prefs.insightsEnabled {
-                Toggle("Projects", isOn: $prefs.showProjects)
+                Toggle("Projects", isOn: $prefs.showProjects.animation())
             }
         } header: {
             Text("While Focusing")
         } footer: {
-            Text(prefs.insightsEnabled
-                 ? "Write down the one thing you're on, and pick a project to see where your focus goes in Insights → Projects."
-                 : "Write down the one thing you're on, right on the timer.")
+            Text(prefs.insightsEnabled ? Self.projectsText : "Write down the one thing you're on, right on the timer.")
         }
 
         if prefs.insightsEnabled {
@@ -592,13 +557,24 @@ struct InsightsSettingsSection: View {
             } header: {
                 Text("After a Session")
             } footer: {
-                Text("Write what you got done and rate how it went, right on the timer. Both show up in Insights.")
+                Text(Self.reflectionText)
             }
 
             goalsAndStreaks
         }
-        #endif
     }
+
+    #if os(macOS)
+    private static let onText = "Charts, goals, streaks and your session history, all on this device."
+    private static let offText = "Insights, projects and the after-session rating are hidden everywhere. Sessions are still recorded, so nothing is lost if you turn it back on."
+    private static let projectsText = "Write down the one thing you're on, and pick a project to see where your focus goes in Insights → Projects."
+    private static let reflectionText = "Write what you got done and rate how it went, right on the timer. Both show up in Insights."
+    #else
+    private static let onText = "Charts, your focus calendar, goals and streaks behind This Week in Sessions, plus projects, notes and ratings."
+    private static let offText = "Projects, notes and ratings are hidden too, and This Week no longer opens Insights. Sessions are still recorded, so nothing is lost if you turn it back on."
+    private static let projectsText = "Pick a project on the timer. Manage them with the folder at the top left of Sessions."
+    private static let reflectionText = "Write what you got done and rate how it went, right on the timer. Both show up in Sessions."
+    #endif
 
     @ViewBuilder
     private var goalsAndStreaks: some View {
@@ -764,7 +740,11 @@ struct ResetSection: View {
             .confirmationDialog("Reset all settings?", isPresented: $confirmSettings) {
                 Button("Reset Settings", role: .destructive) { resetSettings() }
             } message: {
+                #if os(macOS)
                 Text("Every setting goes back to how Fifteen comes: timer lengths, presets, sounds, display, menu bar, app blocker and the rest. Your history and projects stay.")
+                #else
+                Text("Every setting goes back to how Fifteen comes: timer lengths, presets, sounds, display, Lock Screen, calendar and the rest. Your history and projects stay.")
+                #endif
             }
 
             LabeledContent {
@@ -777,7 +757,11 @@ struct ResetSection: View {
             .confirmationDialog("Delete all history?", isPresented: $confirmHistory) {
                 Button("Delete Everything", role: .destructive) { wipeHistory() }
             } message: {
+                #if os(macOS)
                 Text("All sessions, notes, ratings and projects are deleted from this device, and Insights starts empty. This can't be undone. To keep a copy, export a backup from Insights first.")
+                #else
+                Text("All sessions, notes, ratings and projects are deleted from this device, and Insights starts empty. This can't be undone. To keep a copy, export a backup from Your Data first.")
+                #endif
             }
         } header: {
             Text("Start Over")

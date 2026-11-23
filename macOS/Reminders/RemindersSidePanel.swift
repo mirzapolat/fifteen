@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 /// A Reminders list beside the bubble, on the side the calendar box isn't. Tick things off,
-/// add new ones with +, click one to make it your intention, ▶ to focus on it.
+/// add new ones with +, star today's priorities, and right-click one to focus on it.
 struct RemindersSidePanel: View {
     var side: PanelSide
     var isOpen: Bool
@@ -41,8 +41,8 @@ struct RemindersSidePanel: View {
                     .font(.headline)
             }
             Spacer(minLength: 0)
-            if sync.status == .ready {
-                HStack(spacing: 0) {
+            HStack(spacing: 0) {
+                if sync.status == .ready {
                     if sync.list?.isWritable == true {
                         SideBoxIconButton(symbol: "plus", help: "New Reminder", size: 11) {
                             Haptics.play(.select)
@@ -51,8 +51,9 @@ struct RemindersSidePanel: View {
                     }
                     SideBoxIconButton(symbol: "arrow.up.forward.app", help: "Open Reminders") { sync.open() }
                 }
-                .padding(.trailing, -4)
+                SideBoxCollapseButton(kind: .reminders, side: side)
             }
+            .padding(.trailing, -4)
         }
         .frame(height: 20)
         // In line with the reminders below, so the title keeps the same distance from the timer.
@@ -410,21 +411,14 @@ private struct ReminderRow: View {
             }
             .animation(.easeOut(duration: 0.2), value: ticked)
             Spacer(minLength: 0)
-            if (hovering || isPriority) && !ticked && !editing {
-                HStack(spacing: 2) {
-                    PriorityStar(isOn: isPriority, color: color) {
-                        Haptics.play(.select)
-                        sync.togglePriority(item)
-                    }
-                    if hovering && sync.remindersBecomeIntention {
-                        SideBoxIconButton(symbol: "text.bubble", help: "Make This Your Intention", size: 10) {
-                            Haptics.play(.select)
-                            sync.use(item)
-                        }
-                        .transition(.opacity.combined(with: .scale(0.8)))
-                    }
+            if !ticked && !editing {
+                // Always there, so priorities can be found without hovering; faint until it's one.
+                PriorityStar(isOn: isPriority, color: color) {
+                    Haptics.play(.select)
+                    sync.togglePriority(item)
                 }
-                // As tall as a line of text, so the buttons showing on hover don't make the row grow.
+                .opacity(isPriority || hovering ? 1 : 0.45)
+                // As tall as a line of text, so the star doesn't make the row grow.
                 .frame(height: 15)
                 .transition(.opacity.combined(with: .scale(0.8)))
             }
@@ -466,7 +460,7 @@ private struct ReminderRow: View {
             if swipe != 0 { return closeSwipe() }
             startEditing(ticked: ticked)
         }, including: editing ? .subviews : .all)
-        .help(editing ? "" : (canEdit ? "Click to edit" : "Click to open in Reminders"))
+        .help(editing ? "" : (canEdit ? "Click to edit · right-click to focus on it" : "Click to open in Reminders · right-click to focus on it"))
         .contextMenu {
             if !engine.isActive { Button("Focus on This") { sync.focus(on: item) } }
             if sync.remindersBecomeIntention { Button("Use as Intention") { sync.use(item) } }

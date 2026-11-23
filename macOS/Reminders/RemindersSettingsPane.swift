@@ -70,7 +70,6 @@ struct RemindersSettingsPane: View {
                 ForEach(PanelSide.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
-            Toggle("Tuck away from the box's edge", isOn: $settings.collapsible)
             Toggle("Only show what's due today or overdue", isOn: $settings.onlyDue)
             if prefs.showIntention {
                 Toggle("Offer to make a reminder your intention", isOn: $settings.useAsIntention)
@@ -83,13 +82,9 @@ struct RemindersSettingsPane: View {
     }
 
     private var footer: String {
-        var text = "Click a reminder to mark it done; click again right away to take it back. 💬 on hover makes it your intention. ☆ makes it a priority: priorities stand out at the top of the box until the day ends. ▶ starts focusing on it."
-        text += " Drag the box's outer edge to make it wider or narrower."
-        if settings.collapsible {
-            text += " Hover the outer edge and click the tab to tuck the box away behind the timer; click it again to bring it back."
-        }
+        var text = "Tick the circle when it's done, ☆ for today's priorities, and right-click a reminder to focus on it."
         if CalendarSettings.shared.panelVisible {
-            text += " Your calendar sits on the other side; moving one box moves the other."
+            text += " Your calendar sits on the other side."
         }
         return text
     }

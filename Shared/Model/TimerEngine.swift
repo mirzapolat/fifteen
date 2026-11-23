@@ -125,12 +125,15 @@ final class TimerEngine {
         }
     }
 
-    func start() {
+    /// Starts the session that's ready. `startedAt` backdates it, for a break that began by itself
+    /// while Fifteen wasn't running (an iPhone app in the background, a Mac asleep).
+    func start(startedAt: Date? = nil) {
         guard state == .idle else { return }
         if linkedMode == nil { linkedMode = prefs.timerMode }
         now = Date()
-        sessionStart = now
-        endDate = now.addingTimeInterval(total)
+        let begin = min(startedAt ?? now, now)
+        sessionStart = begin
+        endDate = begin.addingTimeInterval(total)
         distractions = 0
         plannedDuration = isFlowtime ? nil : total
         pausedTotal = 0
@@ -192,7 +195,7 @@ final class TimerEngine {
     }
 
     /// Moves from a finished session to the next one.
-    func advance(autoStart: Bool) {
+    func advance(autoStart: Bool, startedAt: Date? = nil) {
         finishOvertime()
         let next = nextPhase
         let cameFromFocus = phase == .focus && state == .finished
@@ -205,7 +208,7 @@ final class TimerEngine {
             total = minutes * 60
             changed()
         }
-        if autoStart { start() }
+        if autoStart { start(startedAt: startedAt) }
     }
 
     /// Ends focus now and records the time actually spent. Under a minute isn't a session, so it just stops.
@@ -462,7 +465,10 @@ final class TimerEngine {
         let next = nextPhase
         let auto = next.isBreak ? prefs.autoStartBreaks : (finishedPhase.isBreak && prefs.autoStartFocus)
         if auto && !isCountingOvertime {
-            advance(autoStart: true)
+            // Noticed late (Fifteen was in the background or asleep): what's next began when this
+            // ended, as the notification said, not now. If that has run out too, it ends as well.
+            advance(autoStart: true, startedAt: fresh ? nil : end)
+            if state == .running, remaining(at: now) <= 0 { complete() }
         } else {
             changed()
         }
@@ -549,6 +555,9 @@ final class TimerEngine {
         var plannedDuration: TimeInterval?
         var pausedTotal: TimeInterval?
         var pauseStartedAt: Date?
+        /// The focus session that just ended, so its note and rating are still asked for after a relaunch.
+        var lastRecordID: UUID?
+        var linkedMode: TimerMode?
     }
 
     private func save() {
@@ -556,7 +565,8 @@ final class TimerEngine {
                                 pausedRemaining: pausedRemaining, sessionStart: sessionStart,
                                 completedInCycle: completedInCycle, distractions: distractions, intention: intention,
                                 projectID: projectID, plannedDuration: plannedDuration,
-                                pausedTotal: pausedTotal, pauseStartedAt: pauseStartedAt)
+                                pausedTotal: pausedTotal, pauseStartedAt: pauseStartedAt,
+                                lastRecordID: lastRecordID, linkedMode: linkedMode)
         if let data = try? JSONEncoder().encode(snapshot) {
             UserDefaults.standard.set(data, forKey: snapshotKey)
         }
@@ -578,6 +588,12 @@ final class TimerEngine {
         plannedDuration = s.plannedDuration
         pausedTotal = s.pausedTotal ?? 0
         pauseStartedAt = s.pauseStartedAt
+        // Only while that session is still on screen, and only if it's still in history.
+        if state == .finished, phase == .focus, let id = s.lastRecordID, history.record(id) != nil {
+            lastRecordID = id
+        }
+        // A running Flowtime session stays Flowtime even if the setting changed since.
+        if state != .idle { linkedMode = s.linkedMode }
         if state == .finished && !isCountingOvertime { endDate = nil }
     }
 }

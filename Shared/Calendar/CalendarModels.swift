@@ -1,5 +1,38 @@
-import AppKit
 import Observation
+import SwiftUI
+#if os(macOS)
+import AppKit
+/// A calendar's or list's colour, as the platform draws it.
+typealias PlatformColor = NSColor
+#else
+import UIKit
+typealias PlatformColor = UIColor
+#endif
+
+extension PlatformColor {
+    /// EventKit's colour for a calendar or list, or a quiet stand-in when it has none.
+    static func eventKit(_ color: CGColor?) -> PlatformColor {
+        #if os(macOS)
+        color.flatMap(NSColor.init(cgColor:)) ?? .controlAccentColor
+        #else
+        color.map(UIColor.init(cgColor:)) ?? .systemGray
+        #endif
+    }
+}
+
+/// Which side of the timer a box sits on (Mac).
+enum PanelSide: String, CaseIterable, Identifiable {
+    case left, right
+    var id: Self { self }
+    var title: String {
+        switch self {
+        case .left: "Left"
+        case .right: "Right"
+        }
+    }
+    var opposite: PanelSide { self == .left ? .right : .left }
+}
+
 
 /// Where events come from: the Calendar app (EventKit: iCloud, Exchange, and any Google account
 /// added in System Settings) or a direct sign-in to Google Calendar.
@@ -40,7 +73,7 @@ struct CalendarInfo: Identifiable, Hashable {
     var title: String
     /// Account or group it belongs to ("iCloud", "Google", an email).
     var group: String
-    var color: NSColor
+    var color: PlatformColor
     var isWritable: Bool
     var kind: CalendarKind = .mine
 }
@@ -52,7 +85,7 @@ struct CalendarItem: Identifiable, Hashable {
     var start: Date
     var end: Date
     var calendarID: String
-    var color: NSColor
+    var color: PlatformColor
     var isAllDay: Bool
     /// Where "Open in Calendar" goes.
     var link: URL?
@@ -164,7 +197,8 @@ enum FifteenEventTag {
     static let googleKey = "fifteenSession"
 }
 
-/// All calendar settings. Mac only, kept apart from `Preferences` (which the iPhone app shares).
+/// All calendar settings, kept apart from `Preferences`. The iPhone and iPad use Apple Calendar
+/// only; the side box's place and width matter only on the Mac.
 @Observable
 @MainActor
 final class CalendarSettings {
@@ -178,11 +212,8 @@ final class CalendarSettings {
     /// The events box next to the timer.
     var showPanel: Bool = true { didSet { store.set(showPanel, forKey: Key.showPanel) } }
     var side: PanelSide = .left { didSet { store.set(side.rawValue, forKey: Key.side) } }
-    /// Hovering the box's outer edge offers to tuck it away behind the bubble.
-    var collapsible: Bool = false { didSet { store.set(collapsible, forKey: Key.collapsible) } }
+    /// Tucked away behind the bubble with the button in its header.
     var collapsed: Bool = false { didSet { store.set(collapsed, forKey: Key.collapsed) } }
-    /// The box's width, as you last dragged it.
-    var panelWidth: CGFloat = SidePanels.defaultWidth { didSet { store.set(Double(panelWidth), forKey: Key.panelWidth) } }
     /// Calendars shown in the box, per source. Empty = all of them.
     var shownAppleCalendars: Set<String> = [] { didSet { store.set(Array(shownAppleCalendars), forKey: Key.shownApple) } }
     var shownGoogleCalendars: Set<String> = [] { didSet { store.set(Array(shownGoogleCalendars), forKey: Key.shownGoogle) } }
@@ -235,8 +266,6 @@ final class CalendarSettings {
             Key.logSessions: false,
             Key.useEventAsIntention: true,
             Key.eventTitle: EventTitleTemplate.standard,
-            Key.panelWidth: Double(SidePanels.defaultWidth),
-            Key.collapsible: false,
             Key.alertsEnabled: false,
             Key.alertMinutes: 5,
         ])
@@ -244,7 +273,11 @@ final class CalendarSettings {
 
     private func load() {
         enabled = store.bool(forKey: Key.enabled)
+        #if os(macOS)
         source = CalendarSource(rawValue: store.string(forKey: Key.source) ?? "") ?? .apple
+        #else
+        source = .apple
+        #endif
         showPanel = store.bool(forKey: Key.showPanel)
         side = PanelSide(rawValue: store.string(forKey: Key.side) ?? "") ?? .left
         shownAppleCalendars = Set(store.stringArray(forKey: Key.shownApple) ?? [])
@@ -255,16 +288,9 @@ final class CalendarSettings {
         googleLogCalendar = store.string(forKey: Key.googleLog) ?? ""
         useEventAsIntention = store.bool(forKey: Key.useEventAsIntention)
         eventTitle = store.string(forKey: Key.eventTitle) ?? EventTitleTemplate.standard
-        panelWidth = Self.width(store.double(forKey: Key.panelWidth))
-        collapsible = store.bool(forKey: Key.collapsible)
         collapsed = store.bool(forKey: Key.collapsed)
         alertsEnabled = store.bool(forKey: Key.alertsEnabled)
         alertMinutes = min(max(store.integer(forKey: Key.alertMinutes), 1), 120)
-    }
-
-    static func width(_ stored: Double) -> CGFloat {
-        let width = CGFloat(stored)
-        return SidePanels.widthRange.contains(width) ? width : SidePanels.defaultWidth
     }
 
     private enum Key {
@@ -280,14 +306,12 @@ final class CalendarSettings {
         static let googleLog = "calendarGoogleLogCalendar"
         static let useEventAsIntention = "calendarUseEventAsIntention"
         static let eventTitle = "calendarEventTitle"
-        static let panelWidth = "calendarPanelWidth"
-        static let collapsible = "calendarCollapsible"
         static let collapsed = "calendarCollapsed"
         static let alertsEnabled = "calendarAlertsEnabled"
         static let alertMinutes = "calendarAlertMinutes"
 
         static let all = [enabled, source, showPanel, side, shownApple, shownGoogle, showAllDay,
-                          logSessions, appleLog, googleLog, useEventAsIntention, eventTitle, panelWidth, collapsible, collapsed,
+                          logSessions, appleLog, googleLog, useEventAsIntention, eventTitle, collapsed,
                           alertsEnabled, alertMinutes]
     }
 }

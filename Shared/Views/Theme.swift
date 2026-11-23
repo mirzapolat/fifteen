@@ -55,6 +55,11 @@ struct PillStyle: ViewModifier {
             .foregroundStyle(prominent ? (scheme == .dark ? Color.black : Color.white) : Color.primary)
             .contentShape(.capsule)
             .glassSurface(in: .capsule, tint: prominent ? .primary : nil, interactive: true)
+            #if os(macOS)
+            // macOS fades tinted glass in a window that isn't focused (What's New, the welcome),
+            // which made "Continue" look disabled. A solid fill underneath keeps it ink either way.
+            .background { if prominent { Capsule().fill(Color.ink(scheme)) } }
+            #endif
     }
 }
 

@@ -1,7 +1,11 @@
-import AppKit
 import EventKit
 import Observation
 import SwiftUI
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 /// Ties a Reminders list to the timer: keeps its open reminders fresh for the side box, ticks
 /// them off, adds new ones, and turns one into your intention.
@@ -81,6 +85,13 @@ final class RemindersSync {
         refresh()
     }
 
+    /// The iPhone app came back to the front (Reminders may have changed meanwhile).
+    func appBecameActive() {
+        guard settings.enabled else { return }
+        if let lastRefresh, Date().timeIntervalSince(lastRefresh) < 30, isConnected { return }
+        refresh()
+    }
+
     private func observe() {
         if let observer { NotificationCenter.default.removeObserver(observer) }
         observer = NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: store, queue: .main) { _ in
@@ -144,7 +155,7 @@ final class RemindersSync {
             .map { list in
                 ReminderList(id: list.calendarIdentifier, title: list.title,
                              group: list.source?.title ?? "Other",
-                             color: list.color ?? .controlAccentColor,
+                             color: .eventKit(list.cgColor),
                              isWritable: list.allowsContentModifications)
             }
             .sorted { ($0.group, $0.title) < ($1.group, $1.title) }
@@ -356,11 +367,16 @@ final class RemindersSync {
 
     /// The Reminders app, at the reminder when one is given.
     func open(_ item: ReminderItem? = nil) {
+        #if os(macOS)
         if let item, let url = URL(string: "x-apple-reminderkit://REMCDReminder/\(item.id)"),
            NSWorkspace.shared.urlForApplication(toOpen: url) != nil {
             NSWorkspace.shared.open(url)
         } else {
             openApp("com.apple.reminders")
         }
+        #else
+        let link = item.flatMap { URL(string: "x-apple-reminderkit://REMCDReminder/\($0.id)") }
+        if let url = link ?? URL(string: "x-apple-reminderkit://") { UIApplication.shared.open(url) }
+        #endif
     }
 }

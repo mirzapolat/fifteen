@@ -391,27 +391,30 @@ struct BlockedAppsList: View {
                 }
             }
         }
-        HStack {
-            Menu("Add Running App") {
-                ForEach(runningApps, id: \.self) { id in
-                    Button(name(for: id)) { prefs.blockedApps.append(id) }
+        // One way in: what's open now, common time sinks you have installed, or any app.
+        Menu("Add App") {
+            if !runningApps.isEmpty {
+                Section("Open Now") {
+                    ForEach(runningApps, id: \.self) { id in appButton(id) }
                 }
             }
-            .fixedSize()
-            Button("Choose App…") { chooseApps() }
-            // Common time sinks that are installed, one click away.
-            if !suggestions.isEmpty {
-                Menu("Suggestions") {
-                    ForEach(suggestions, id: \.self) { id in
-                        Button {
-                            withAnimation { prefs.blockedApps.append(id) }
-                        } label: {
-                            Label { Text(name(for: id)) } icon: { Image(nsImage: menuIcon(for: id)) }
-                        }
-                    }
+            let suggested = suggestions.filter { !runningApps.contains($0) }
+            if !suggested.isEmpty {
+                Section("Suggested") {
+                    ForEach(suggested, id: \.self) { id in appButton(id) }
                 }
-                .fixedSize()
             }
+            Divider()
+            Button("Choose from Applications…") { chooseApps() }
+        }
+        .fixedSize()
+    }
+
+    private func appButton(_ id: String) -> some View {
+        Button {
+            withAnimation { prefs.blockedApps.append(id) }
+        } label: {
+            Label { Text(name(for: id)) } icon: { Image(nsImage: menuIcon(for: id)) }
         }
     }
 
